@@ -1,0 +1,83 @@
+# ==================== COMPILED OUTPUT ====================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# ==================== SPRING BOOT ====================
+spring-shell.log
+*.log
+logs/
+
+# ==================== IDE ====================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.eclipse/
+.classpath
+.project
+.settings/
+bin/
+
+# NetBeans
+nbproject/
+nbbuild/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# ==================== MAVEN ====================
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ==================== SECRETS & CONFIG ====================
+# Không commit file chứa thông tin nhạy cảm
+application-local.yml
+application-local.properties
+application-prod.yml
+application-prod.properties
+*.env
+.env
+.env.*
+!.env.example
+
+# Firebase service account key
+**/firebase-service-account.json
+**/google-services.json
+
+# AWS credentials
+**/aws-credentials.json
+
+# ==================== OS ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ==================== MISC ====================
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
