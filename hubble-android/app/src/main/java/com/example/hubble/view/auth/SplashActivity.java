@@ -4,18 +4,25 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivitySplashBinding;
-import com.example.hubble.view.MainActivity;
+import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 
-public class SplashActivity extends AppCompatActivity {
+public class SplashActivity extends BaseAuthActivity {
 
     private ActivitySplashBinding binding;
-    private AuthViewModel authViewModel;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.getRoot(); }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,15 +30,16 @@ public class SplashActivity extends AppCompatActivity {
         binding = ActivitySplashBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        AuthViewModel authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (authViewModel.getCurrentUser() != null) {
-                startActivity(new Intent(this, MainActivity.class));
+                navigateToMain();
             } else {
-                startActivity(new Intent(this, LoginActivity.class));
+                navigateToLogin();
             }
-            finish();
         }, 1800);
     }
 }

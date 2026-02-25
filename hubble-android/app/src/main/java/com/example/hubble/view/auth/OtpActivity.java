@@ -1,6 +1,5 @@
 package com.example.hubble.view.auth;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.text.Editable;
@@ -9,30 +8,33 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityOtpBinding;
-import com.example.hubble.view.MainActivity;
+import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
-import com.google.android.material.snackbar.Snackbar;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 
-import java.util.Locale;
-
-public class OtpActivity extends AppCompatActivity {
+public class OtpActivity extends BaseAuthActivity {
 
     public static final String EXTRA_PHONE_NUMBER = "extra_phone_number";
     public static final String EXTRA_VERIFICATION_ID = "extra_verification_id";
-    private String verificationId;
-    
+
     private ActivityOtpBinding binding;
     private AuthViewModel authViewModel;
+    private String verificationId;
     private String phoneNumber;
     private CountDownTimer countDownTimer;
     private boolean canResend = false;
-
     private EditText[] otpFields;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.progressBar; }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,8 +43,12 @@ public class OtpActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         phoneNumber = getIntent().getStringExtra(EXTRA_PHONE_NUMBER);
-        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         verificationId = getIntent().getStringExtra(EXTRA_VERIFICATION_ID);
+
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
+
         binding.tvOtpSubtitle.setText(getString(R.string.otp_subtitle, phoneNumber));
 
         otpFields = new EditText[]{
@@ -134,36 +140,27 @@ public class OtpActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
+        // OTP send (resend) observer — custom logic to update verificationId
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
                 binding.tvResend.setEnabled(false);
             } else if (result.isSuccess()) {
                 verificationId = result.getData();
-                authViewModel.otpSendState.setValue(null);
+                authViewModel.resetOtpSendState();
                 clearOtpFields();
                 startCountDown();
             } else {
                 binding.tvResend.setEnabled(true);
-                authViewModel.otpSendState.setValue(null);
+                authViewModel.resetOtpSendState();
                 showError(result.getMessage());
             }
         });
 
-        authViewModel.otpVerifyState.observe(this, result -> {
-            if (result == null) return;
-            if (result.isLoading()) {
-                setLoadingState(true);
-            } else if (result.isSuccess()) {
-                setLoadingState(false);
-                authViewModel.otpVerifyState.setValue(null);
-                navigateToMain();
-            } else {
-                setLoadingState(false);
-                authViewModel.otpVerifyState.setValue(null);
-                showError(result.getMessage());
-            }
-        });
+        // OTP verify observer — standard pattern
+        observeAuthResult(authViewModel.otpVerifyState,
+                authViewModel::resetOtpVerifyState,
+                this::navigateToMain);
     }
 
     private String collectOtp() {
@@ -181,23 +178,10 @@ public class OtpActivity extends AppCompatActivity {
         otpFields[0].requestFocus();
     }
 
-    private void setLoadingState(boolean isLoading) {
+    @Override
+    protected void setLoadingState(boolean isLoading) {
+        super.setLoadingState(isLoading);
         binding.btnVerify.setEnabled(!isLoading);
-        binding.progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-    }
-
-    private void navigateToMain() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        overridePendingTransition(0, 0);
-        finish();
-    }
-
-    private void showError(String message) {
-        Snackbar.make(binding.getRoot(),
-                message != null ? message : getString(R.string.error_generic),
-                Snackbar.LENGTH_LONG).show();
     }
 
     @Override

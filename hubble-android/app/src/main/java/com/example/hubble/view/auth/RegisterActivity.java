@@ -1,24 +1,29 @@
 package com.example.hubble.view.auth;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityRegisterBinding;
-import com.example.hubble.view.MainActivity;
+import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
-import com.google.android.material.snackbar.Snackbar;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 
-public class RegisterActivity extends AppCompatActivity {
+public class RegisterActivity extends BaseAuthActivity {
 
     private ActivityRegisterBinding binding;
     private AuthViewModel authViewModel;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.progressBar; }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,15 +31,20 @@ public class RegisterActivity extends AppCompatActivity {
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
 
         binding.btnBack.setOnClickListener(v -> finish());
-
         binding.btnRegister.setOnClickListener(v -> handleRegister());
-
         binding.tvLogin.setOnClickListener(v -> finish());
+        binding.btnGoLogin.setOnClickListener(v -> navigateToLogin());
+        binding.btnRetry.setOnClickListener(v -> showFormState());
 
-        observeViewModel();
+        observeAuthResult(authViewModel.registerState,
+                authViewModel::resetRegisterState,
+                this::showSuccessState,
+                this::showErrorState);
     }
 
     private void handleRegister() {
@@ -80,39 +90,33 @@ public class RegisterActivity extends AppCompatActivity {
         authViewModel.registerWithEmail(email, password, displayName);
     }
 
-    private void observeViewModel() {
-        authViewModel.registerState.observe(this, result -> {
-            if (result == null) return;
-            if (result.isLoading()) {
-                setLoadingState(true);
-            } else if (result.isSuccess()) {
-                setLoadingState(false);
-                authViewModel.registerState.setValue(null);
-                navigateToMain();
-            } else {
-                setLoadingState(false);
-                authViewModel.registerState.setValue(null);
-                showError(result.getMessage());
-            }
-        });
+    // ─── Result State Handling ───────────────────────────────────
+
+    private void showSuccessState() {
+        // Sign out so user must log in manually
+        authViewModel.logout();
+        binding.layoutForm.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.GONE);
+        binding.layoutSuccess.setVisibility(View.VISIBLE);
     }
 
-    private void setLoadingState(boolean isLoading) {
+    private void showErrorState(String message) {
+        binding.layoutForm.setVisibility(View.GONE);
+        binding.layoutSuccess.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.VISIBLE);
+        binding.tvErrorMessage.setText(message != null ? message : getString(R.string.error_generic));
+    }
+
+    private void showFormState() {
+        binding.layoutSuccess.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.GONE);
+        binding.layoutForm.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void setLoadingState(boolean isLoading) {
+        super.setLoadingState(isLoading);
         binding.btnRegister.setEnabled(!isLoading);
-        binding.progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-    }
-
-    private void navigateToMain() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        overridePendingTransition(0, 0);
-        finish();
-    }
-
-    private void showError(String message) {
-        Snackbar.make(binding.getRoot(),
-                message != null ? message : getString(R.string.error_generic),
-                Snackbar.LENGTH_LONG).show();
     }
 }
+

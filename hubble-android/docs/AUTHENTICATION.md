@@ -1,40 +1,29 @@
 # Authentication System
 
-Hệ thống xác thực của Hubble sử dụng **Firebase Authentication** + **Cloud Firestore**, triển khai theo kiến trúc **MVVM** (Java).
-
----
-
-## Mục lục
-
-1. [Kiến trúc](#kiến-trúc)
-2. [Luồng điều hướng](#luồng-điều-hướng)
-3. [Data Layer](#data-layer)
-4. [ViewModel Layer](#viewmodel-layer)
-5. [View Layer](#view-layer)
-6. [Cấu hình Firebase](#cấu-hình-firebase)
-7. [Design System](#design-system)
+### **Author**: Gia Huy
 
 ---
 
 ## Kiến trúc
 
 ```
-View (Activity)
-    │  observe LiveData
+View (BaseAuthActivity)
+    │  observe LiveData (read-only)
     ▼
-AuthViewModel          ← duy nhất một instance per screen scope
-    │  delegates to
+AuthViewModel              ← inject qua AuthViewModelFactory
+    │  RepositoryCallback<T>
     ▼
-AuthRepository         ← wraps Firebase SDK, posts AuthResult<T>
-    │
-    ├─ FirebaseAuth     (email, phone, signOut)
-    └─ FirebaseFirestore (users/{uid})
+AuthRepository             ← wraps Firebase SDK
+    ├─ FirebaseAuth        (email, phone, signOut)
+    └─ FirebaseFirestore   (users/{uid})
 ```
 
-**Quy tắc:**
-- Activity chỉ quan sát `LiveData`, không gọi Firebase trực tiếp.
-- Repository không import `android.view.*` hay `Context` ngoài `Activity` (bắt buộc cho `PhoneAuthProvider`).
-- `AuthResult<T>` bọc mọi kết quả async (`LOADING | SUCCESS<T> | ERROR`).
+| Nguyên tắc | Cách áp dụng |
+|-------------|-------------|
+| View không gọi Firebase | Chỉ observe `LiveData`, delegate qua ViewModel |
+| Repository không biết UI | Trả kết quả qua `RepositoryCallback<T>`, không nhận `LiveData` |
+| LiveData encapsulated | ViewModel expose `LiveData` (read-only), giữ `MutableLiveData` private |
+| DI qua Factory | `AuthViewModelFactory` inject `AuthRepository` vào ViewModel |
 
 ---
 
@@ -42,181 +31,113 @@ AuthRepository         ← wraps Firebase SDK, posts AuthResult<T>
 
 ```
 SplashActivity
-    ├─ user != null ──► MainActivity
-    └─ user == null ──► LoginActivity
-                            ├─ [Email tab]  email + password ──────────────────► MainActivity
-                            ├─ [Phone tab]  phone ──► OtpActivity ──────────────► MainActivity
-                            ├─ Quên MK ──► ForgotPasswordActivity (gửi email reset)
-                            └─ Đăng ký ──► RegisterActivity ────────────────────► MainActivity
+    ├─ đã login  ──► MainActivity
+    └─ chưa login ──► LoginActivity
+                          ├─ [Email]  ────────────────────────► MainActivity
+                          ├─ [Phone]  ──► OtpActivity ────────► MainActivity
+                          ├─ Quên MK  ──► ForgotPasswordActivity
+                          └─ Đăng ký  ──► RegisterActivity ───► MainActivity
 ```
 
 ---
 
 ## Data Layer
 
-### `AuthResult<T>`
+### `AuthResult<T>` — Async result wrapper
 
-Generic wrapper cho mọi operation async:
-
-| Factory | Ý nghĩa |
-|---------|---------|
+| Factory method | Trạng thái |
+|----------------|-----------|
 | `AuthResult.loading()` | Đang xử lý |
-| `AuthResult.success(data)` | Thành công, `data` chứa payload |
-| `AuthResult.error(message)` | Thất bại, `message` là lý do |
+| `AuthResult.success(data)` | Thành công |
+| `AuthResult.error(message)` | Thất bại |
 
-### `UserModel`
+### `UserModel` — Firestore document `users/{uid}`
 
-POJO lưu vào Firestore tại `users/{uid}`:
-
-| Field | Type | Mô tả                               |
-|-------|------|-------------------------------------|
-| `uid` | `String` | Firebase UID, trùng với document ID |
-| `username` | `String` | Tên hiển thị                        |
-| `email` | `String?` | Nullable nếu đăng ký bằng phone     |
-| `phone` | `String?` | Nullable nếu đăng ký bằng email     |
-| `createdAt` | `long` | Unix timestamp (ms)                 |
+| Field | Type | Nullable |
+|-------|------|----------|
+| `uid` | `String` | No |
+| `username` | `String` | No |
+| `email` | `String` | Yes (phone signup) |
+| `phone` | `String` | Yes (email signup) |
+| `createdAt` | `long` | No (Unix ms) |
 
 ### `AuthRepository`
 
-| Method | Firebase call | LiveData nhận |
-|--------|--------------|--------------|
-| `loginWithEmail(email, password, ld)` | `signInWithEmailAndPassword` | `AuthResult<FirebaseUser>` |
-| `registerWithEmail(email, password, username, ld)` | `createUserWithEmailAndPassword` → write Firestore | `AuthResult<FirebaseUser>` |
-| `sendPhoneOtp(phone, activity, ld)` | `PhoneAuthProvider.verifyPhoneNumber` | `AuthResult<String>` *(verificationId)* |
-| `resendPhoneOtp(phone, activity, token, ld)` | `verifyPhoneNumber` + `ForceResendingToken` | `AuthResult<String>` |
-| `verifyOtp(verificationId, code, ld)` | `signInWithCredential` | `AuthResult<FirebaseUser>` |
-| `sendPasswordResetEmail(email, ld)` | `sendPasswordResetEmail` | `AuthResult<Void>` |
-| `logout()` | `signOut()` | — |
+| Method | Firebase API | Callback type |
+|--------|-------------|--------------|
+| `loginWithEmail` | `signInWithEmailAndPassword` | `RepositoryCallback<FirebaseUser>` |
+| `registerWithEmail` | `createUserWithEmailAndPassword` → Firestore write | `RepositoryCallback<FirebaseUser>` |
+| `sendPhoneOtp` | `PhoneAuthProvider.verifyPhoneNumber` | `RepositoryCallback<String>` |
+| `verifyOtp` | `signInWithCredential` | `RepositoryCallback<FirebaseUser>` |
+| `sendPasswordResetEmail` | `sendPasswordResetEmail` | `RepositoryCallback<Void>` |
+| `logout` | `signOut` | — |
+
+> `sendPhoneOtp` xử lý cả gửi lần đầu và gửi lại — truyền `resendToken = null` để gửi mới, truyền token hợp lệ để resend.
+
+### `RepositoryCallback<T>` — Interface
+
+```java
+public interface RepositoryCallback<T> {
+    void onResult(AuthResult<T> result);
+}
+```
 
 ---
 
 ## ViewModel Layer
 
-### `AuthViewModel extends ViewModel`
+### `AuthViewModel`
 
-Một instance duy nhất, được chia sẻ thông qua `ViewModelProvider`.
+Tạo qua `AuthViewModelFactory` (inject `AuthRepository`).
 
-**LiveData được expose:**
+| LiveData (read-only) | Type | Observer |
+|---------------------|------|----------|
+| `loginState` | `AuthResult<FirebaseUser>` | LoginActivity |
+| `registerState` | `AuthResult<FirebaseUser>` | RegisterActivity |
+| `otpSendState` | `AuthResult<String>` | LoginActivity, OtpActivity |
+| `otpVerifyState` | `AuthResult<FirebaseUser>` | OtpActivity |
+| `forgotPasswordState` | `AuthResult<Void>` | ForgotPasswordActivity |
 
-| LiveData | Kiểu | Quan sát bởi |
-|----------|------|-------------|
-| `loginState` | `AuthResult<FirebaseUser>` | `LoginActivity` |
-| `registerState` | `AuthResult<FirebaseUser>` | `RegisterActivity` |
-| `otpSendState` | `AuthResult<String>` | `LoginActivity` |
-| `otpVerifyState` | `AuthResult<FirebaseUser>` | `OtpActivity` |
-| `forgotPasswordState` | `AuthResult<Void>` | `ForgotPasswordActivity` |
-
-**Lưu ý quan trọng:** `storedVerificationId` được giữ trong ViewModel (sống sót qua config change), **không** truyền qua Intent. `OtpActivity` chỉ cần gọi `authViewModel.verifyOtp(code)`.
+`storedVerificationId` được giữ trong ViewModel (sống sót qua config change).
 
 ---
 
 ## View Layer
 
-### `SplashActivity`
+### `BaseAuthActivity` — Shared logic
 
-- Delay 1800 ms → kiểm tra `getCurrentUser()` → route sang `LoginActivity` hoặc `MainActivity`.
-- `noHistory="true"` trong Manifest → không thể back về Splash.
+Tất cả Activity kế thừa. Cung cấp:
 
-### `LoginActivity`
+| Method | Chức năng |
+|--------|-----------|
+| `navigateToMain()` | Chuyển sang MainActivity, clear back stack |
+| `navigateToLogin()` | Chuyển sang LoginActivity, clear back stack |
+| `showError(message)` | Snackbar lỗi với fallback generic |
+| `setLoadingState(bool)` | Ẩn/hiện progress bar |
+| `observeAuthResult(liveData, reset, onSuccess)` | Observer chuẩn: loading → success/error |
 
-- **Tab Email**: validate email format + password not empty → `loginWithEmail`.
-- **Tab Phone**: validate E.164 (`+` prefix) → `sendPhoneOtp` → navigate `OtpActivity` với `EXTRA_PHONE_NUMBER`.
-- Observe `loginState` & `otpSendState`.
+### Screens
 
-### `RegisterActivity`
-
-**Validation (client-side):**
-
-| Rule | Error string |
-|------|-------------|
-| Display name không rỗng | `error_empty_name` |
-| Email hợp lệ | `error_invalid_email` |
-| Password ≥ 6 ký tự | `error_password_too_short` |
-| Confirm password khớp | `error_password_mismatch` |
-
-Sau khi Firebase tạo user → ghi `UserModel` vào Firestore → `MainActivity`.
-
-### `OtpActivity`
-
-- Nhận `EXTRA_PHONE_NUMBER` qua Intent.
-- 6 ô input: auto-focus-next khi nhập, auto-back khi xóa.
-- `CountDownTimer` 60 s → enable "Gửi lại" khi hết giờ.
-- `verifyOtp(code)` dùng `storedVerificationId` từ ViewModel.
-
-### `ForgotPasswordActivity`
-
-Hai trạng thái UI:
-
-| Trạng thái | View visible |
-|---|---|
-| Mặc định | `layoutForm` |
-| Sau khi gửi thành công | `layoutSuccess` (ẩn form, hiện icon ✉ + thông báo) |
-
-### `MainActivity`
-
-- Session guard: nếu user null → `navigateToLogin()`.
-- Hiển thị `displayName` (fallback: email → "User").
-- Nút Logout: `authViewModel.logout()` → `navigateToLogin()` (clear back stack).
-
+| Activity | Chức năng chính |
+|----------|----------------|
+| **SplashActivity** | Delay 1.8s → route theo trạng thái login |
+| **LoginActivity** | Tab Email (email + password) / Tab Phone (gửi OTP → OtpActivity) |
+| **RegisterActivity** | Validate name, email, password ≥ 6, confirm match → tạo account |
+| **OtpActivity** | 6 ô input auto-focus, countdown 60s, verify/resend OTP |
+| **ForgotPasswordActivity** | Gửi email reset → hiện success layout |
+| **MainActivity** | Hiện user info, nút Logout |
 ---
 
-## Cấu hình Firebase
-
-> Cần thực hiện trong [Firebase Console](https://console.firebase.google.com) trước khi test.
-
-### 1. Bật Sign-in methods
-
-`Authentication → Sign-in method`:
-- ✅ Email/Password
-- ✅ Phone
-
-### 2. Tạo Firestore Database
-
-`Firestore Database → Create database` (test mode hoặc production với rules phù hợp).
-
-**Security rules gợi ý:**
-```js
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-  }
-}
-```
-
-### 3. SHA-1 Fingerprint (bắt buộc cho Phone Auth)
-
-```bash
-# Debug keystore
-keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-```
-
-Đăng ký fingerprint tại: `Project settings → Your apps → Android app → Add fingerprint`.
-
----
-
-## Design System
+## Design Tokens
 
 | Token | Hex | Dùng cho |
-|-------|-----|---------|
-| `color_background` | `#23272A` | Nền tất cả màn hình |
+|-------|-----|----------|
+| `color_background` | `#23272A` | Nền |
 | `color_surface` | `#2C2F33` | Card, TabLayout |
-| `color_surface_elevated` | `#36393F` | Nút secondary |
-| `color_primary` | `#5865F2` | Nút chính, tab indicator, focus ring |
-| `color_primary_dark` | `#4752C4` | Pressed state của nút chính |
+| `color_primary` | `#5865F2` | Nút chính, focus ring |
+| `color_primary_dark` | `#4752C4` | Pressed state |
 | `color_text_primary` | `#FFFFFF` | Văn bản chính |
 | `color_text_secondary` | `#B9BBBE` | Label, placeholder |
-| `color_text_hint` | `#72767D` | Hint text |
-| `color_error` | `#ED4245` | Lỗi validation |
-| `color_success` | `#57F287` | Thông báo thành công |
-| `color_link` | `#00AFF4` | Link, Resend OTP |
-
-**Styles sẵn có:**
-
-| Style | Dùng cho |
-|-------|---------|
-| `Widget.Hubble.Button.Primary` | Nút hành động chính (Login, Register, Verify) |
-| `Widget.Hubble.Button.Secondary` | Nút phụ (Back to login, Logout) |
-| `Widget.Hubble.TextInputLayout` | Tất cả ô nhập liệu |
+| `color_error` | `#ED4245` | Validation error |
+| `color_success` | `#57F287` | Thành công |
+| `color_link` | `#00AFF4` | Link, Resend |

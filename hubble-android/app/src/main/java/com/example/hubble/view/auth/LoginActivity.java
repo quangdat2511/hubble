@@ -6,21 +6,27 @@ import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityLoginBinding;
-import com.example.hubble.view.MainActivity;
+import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
-import com.google.android.material.snackbar.Snackbar;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.android.material.tabs.TabLayout;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends BaseAuthActivity {
 
     private ActivityLoginBinding binding;
     private AuthViewModel authViewModel;
     private boolean isEmailMode = true;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.progressBar; }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,16 +34,17 @@ public class LoginActivity extends AppCompatActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
 
-        setupCountryCodePicker(); // Thêm hàm khởi tạo liên kết mã vùng
+        setupCountryCodePicker();
         setupTabs();
         setupClickListeners();
         observeViewModel();
     }
 
     private void setupCountryCodePicker() {
-        // Liên kết CCP với EditText để tự động format và kiểm tra số điện thoại
         binding.ccp.registerCarrierNumberEditText(binding.etPhone);
     }
 
@@ -49,13 +56,13 @@ public class LoginActivity extends AppCompatActivity {
                 if (isEmailMode) {
                     binding.tilEmail.setVisibility(View.VISIBLE);
                     binding.tilPassword.setVisibility(View.VISIBLE);
-                    binding.llPhoneContainer.setVisibility(View.GONE); // Đã sửa thành llPhoneContainer
+                    binding.llPhoneContainer.setVisibility(View.GONE);
                     binding.tvForgotPassword.setVisibility(View.VISIBLE);
                     binding.btnLogin.setText(R.string.login_btn);
                 } else {
                     binding.tilEmail.setVisibility(View.GONE);
                     binding.tilPassword.setVisibility(View.GONE);
-                    binding.llPhoneContainer.setVisibility(View.VISIBLE); // Đã sửa thành llPhoneContainer
+                    binding.llPhoneContainer.setVisibility(View.VISIBLE);
                     binding.tvForgotPassword.setVisibility(View.GONE);
                     binding.btnLogin.setText(R.string.login_send_otp);
                 }
@@ -113,34 +120,22 @@ public class LoginActivity extends AppCompatActivity {
     private void handlePhoneLogin() {
         binding.tilPhone.setError(null);
 
-        // Sử dụng thư viện CCP để kiểm tra tính hợp lệ của toàn bộ số (bao gồm cả độ dài theo từng quốc gia)
         if (!binding.ccp.isValidFullNumber()) {
             binding.tilPhone.setError(getString(R.string.error_invalid_phone));
             return;
         }
 
-        // Tự động lấy số điện thoại đã gắn kèm mã vùng (ví dụ: +84912345678)
         String phone = binding.ccp.getFullNumberWithPlus();
-
         authViewModel.sendPhoneOtp(phone, this);
     }
 
     private void observeViewModel() {
-        authViewModel.loginState.observe(this, result -> {
-            if (result == null) return;
-            if (result.isLoading()) {
-                setLoadingState(true);
-            } else if (result.isSuccess()) {
-                setLoadingState(false);
-                authViewModel.loginState.setValue(null);
-                navigateToMain();
-            } else {
-                setLoadingState(false);
-                authViewModel.loginState.setValue(null);
-                showError(result.getMessage());
-            }
-        });
+        // Email login observer
+        observeAuthResult(authViewModel.loginState,
+                authViewModel::resetLoginState,
+                this::navigateToMain);
 
+        // OTP send observer
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
@@ -148,39 +143,24 @@ public class LoginActivity extends AppCompatActivity {
             } else if (result.isSuccess()) {
                 setLoadingState(false);
                 String verificationId = result.getData();
-                authViewModel.otpSendState.setValue(null);
+                authViewModel.resetOtpSendState();
 
-                // Lấy lại số điện thoại đầy đủ để truyền sang OtpActivity
                 String phone = binding.ccp.getFullNumberWithPlus();
-
                 Intent intent = new Intent(this, OtpActivity.class);
                 intent.putExtra(OtpActivity.EXTRA_PHONE_NUMBER, phone);
                 intent.putExtra(OtpActivity.EXTRA_VERIFICATION_ID, verificationId);
                 startActivity(intent);
             } else {
                 setLoadingState(false);
-                authViewModel.otpSendState.setValue(null);
+                authViewModel.resetOtpSendState();
                 showError(result.getMessage());
             }
         });
     }
 
-    private void setLoadingState(boolean isLoading) {
+    @Override
+    protected void setLoadingState(boolean isLoading) {
+        super.setLoadingState(isLoading);
         binding.btnLogin.setEnabled(!isLoading);
-        binding.progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-    }
-
-    private void navigateToMain() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        overridePendingTransition(0, 0);
-        finish();
-    }
-
-    private void showError(String message) {
-        Snackbar.make(binding.getRoot(),
-                message != null ? message : getString(R.string.error_generic),
-                Snackbar.LENGTH_LONG).show();
     }
 }

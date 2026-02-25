@@ -1,21 +1,28 @@
 package com.example.hubble.view;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityMainBinding;
-import com.example.hubble.view.auth.LoginActivity;
+import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.firebase.auth.FirebaseUser;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseAuthActivity {
 
     private ActivityMainBinding binding;
     private AuthViewModel authViewModel;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.getRoot(); } // No progress bar on main
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,7 +30,9 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
 
         FirebaseUser user = authViewModel.getCurrentUser();
         if (user == null) {
@@ -47,19 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         binding.btnLogout.setOnClickListener(v -> {
             authViewModel.logout();
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
+            navigateToLogin();
         });
-    }
-
-    private void navigateToLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        overridePendingTransition(0, 0);
-        finish();
     }
 }

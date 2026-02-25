@@ -24,6 +24,10 @@
     <string name="register_btn">Tiếp tục</string>
     <string name="register_has_account">Đã có tài khoản? <b>Đăng nhập</b></string>
     <string name="register_terms">Bằng cách đăng ký, bạn đồng ý với Điều khoản dịch vụ và Chính sách quyền riêng tư của chúng tôi.</string>
+    <string name="register_success">Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.</string>
+    <string name="register_error">Đăng ký thất bại</string>
+    <string name="register_go_login">Đến trang đăng nhập</string>
+    <string name="register_try_again">Thử lại</string>
 
     <string name="otp_title">Xác thực điện thoại</string>
     <string name="otp_subtitle">Nhập mã 6 chữ số đã được gửi đến\n%1$s</string>

@@ -3,7 +3,6 @@ package com.example.hubble.data.repository;
 import android.app.Activity;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.MutableLiveData;
 
 import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.UserModel;
@@ -33,26 +32,26 @@ public class AuthRepository {
     }
 
     public void loginWithEmail(String email, String password,
-                               MutableLiveData<AuthResult<FirebaseUser>> resultLiveData) {
-        resultLiveData.setValue(AuthResult.loading());
+                               RepositoryCallback<FirebaseUser> callback) {
+        callback.onResult(AuthResult.loading());
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(authResult ->
-                        resultLiveData.setValue(AuthResult.success(authResult.getUser())))
+                        callback.onResult(AuthResult.success(authResult.getUser())))
                 .addOnFailureListener(e ->
-                        resultLiveData.setValue(AuthResult.error(e.getMessage())));
+                        callback.onResult(AuthResult.error(e.getMessage())));
     }
 
     public void registerWithEmail(String email, String password, String username,
-                                  MutableLiveData<AuthResult<FirebaseUser>> resultLiveData) {
-        resultLiveData.setValue(AuthResult.loading());
+                                  RepositoryCallback<FirebaseUser> callback) {
+        callback.onResult(AuthResult.loading());
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnSuccessListener(authResult -> {
                     FirebaseUser user = authResult.getUser();
                     if (user == null) {
-                        resultLiveData.setValue(AuthResult.error("Không thể tạo tài khoản"));
+                        callback.onResult(AuthResult.error("Không thể tạo tài khoản"));
                         return;
                     }
-                    
+
                     UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                             .setDisplayName(username)
                             .build();
@@ -62,99 +61,83 @@ public class AuthRepository {
                                 .document(user.getUid())
                                 .set(userModel)
                                 .addOnSuccessListener(unused ->
-                                        resultLiveData.setValue(AuthResult.success(user)))
+                                        callback.onResult(AuthResult.success(user)))
                                 .addOnFailureListener(e ->
-                                        resultLiveData.setValue(AuthResult.error(e.getMessage())));
+                                        callback.onResult(AuthResult.error(e.getMessage())));
                     });
                 })
                 .addOnFailureListener(e ->
-                        resultLiveData.setValue(AuthResult.error(e.getMessage())));
+                        callback.onResult(AuthResult.error(e.getMessage())));
     }
 
     public void sendPhoneOtp(String phoneNumber, Activity activity,
-                             MutableLiveData<AuthResult<String>> verificationLiveData) {
-        verificationLiveData.setValue(AuthResult.loading());
-        PhoneAuthOptions options = PhoneAuthOptions.newBuilder(mAuth)
+                             PhoneAuthProvider.ForceResendingToken resendToken,
+                             RepositoryCallback<String> callback) {
+        callback.onResult(AuthResult.loading());
+        PhoneAuthOptions.Builder builder = PhoneAuthOptions.newBuilder(mAuth)
                 .setPhoneNumber(phoneNumber)
                 .setTimeout(60L, TimeUnit.SECONDS)
                 .setActivity(activity)
-                .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                    @Override
-                    public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                        signInWithCredential(credential,
-                                new MutableLiveData<>());
-                    }
+                .setCallbacks(createOtpCallbacks(callback));
 
-                    @Override
-                    public void onVerificationFailed(@NonNull FirebaseException e) {
-                        verificationLiveData.setValue(AuthResult.error(e.getMessage()));
-                    }
+        if (resendToken != null) {
+            builder.setForceResendingToken(resendToken);
+        }
 
-                    @Override
-                    public void onCodeSent(@NonNull String verificationId,
-                                           @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                        verificationLiveData.setValue(AuthResult.success(verificationId));
-                    }
-                })
-                .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
-    }
-
-    public void resendPhoneOtp(String phoneNumber, Activity activity,
-                               PhoneAuthProvider.ForceResendingToken resendToken,
-                               MutableLiveData<AuthResult<String>> verificationLiveData) {
-        verificationLiveData.setValue(AuthResult.loading());
-        PhoneAuthOptions options = PhoneAuthOptions.newBuilder(mAuth)
-                .setPhoneNumber(phoneNumber)
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(activity)
-                .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                    @Override
-                    public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {}
-
-                    @Override
-                    public void onVerificationFailed(@NonNull FirebaseException e) {
-                        verificationLiveData.setValue(AuthResult.error(e.getMessage()));
-                    }
-
-                    @Override
-                    public void onCodeSent(@NonNull String verificationId,
-                                           @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                        verificationLiveData.setValue(AuthResult.success(verificationId));
-                    }
-                })
-                .setForceResendingToken(resendToken)
-                .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
+        PhoneAuthProvider.verifyPhoneNumber(builder.build());
     }
 
     public void verifyOtp(String verificationId, String code,
-                          MutableLiveData<AuthResult<FirebaseUser>> resultLiveData) {
+                          RepositoryCallback<FirebaseUser> callback) {
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
-        signInWithCredential(credential, resultLiveData);
-    }
-
-    private void signInWithCredential(PhoneAuthCredential credential,
-                                      MutableLiveData<AuthResult<FirebaseUser>> resultLiveData) {
-        resultLiveData.setValue(AuthResult.loading());
-        mAuth.signInWithCredential(credential)
-                .addOnSuccessListener(authResult ->
-                        resultLiveData.setValue(AuthResult.success(authResult.getUser())))
-                .addOnFailureListener(e ->
-                        resultLiveData.setValue(AuthResult.error(e.getMessage())));
+        signInWithCredential(credential, callback);
     }
 
     public void sendPasswordResetEmail(String email,
-                                       MutableLiveData<AuthResult<Void>> resultLiveData) {
-        resultLiveData.setValue(AuthResult.loading());
+                                       RepositoryCallback<Void> callback) {
+        callback.onResult(AuthResult.loading());
         mAuth.sendPasswordResetEmail(email)
                 .addOnSuccessListener(unused ->
-                        resultLiveData.setValue(AuthResult.success(null)))
+                        callback.onResult(AuthResult.success(null)))
                 .addOnFailureListener(e ->
-                        resultLiveData.setValue(AuthResult.error(e.getMessage())));
+                        callback.onResult(AuthResult.error(e.getMessage())));
     }
 
     public void logout() {
         mAuth.signOut();
+    }
+
+
+    // ─── Private Helpers ─────────────────────────────────────────
+
+    private void signInWithCredential(PhoneAuthCredential credential,
+                                      RepositoryCallback<FirebaseUser> callback) {
+        callback.onResult(AuthResult.loading());
+        mAuth.signInWithCredential(credential)
+                .addOnSuccessListener(authResult ->
+                        callback.onResult(AuthResult.success(authResult.getUser())))
+                .addOnFailureListener(e ->
+                        callback.onResult(AuthResult.error(e.getMessage())));
+    }
+
+    private PhoneAuthProvider.OnVerificationStateChangedCallbacks createOtpCallbacks(
+            RepositoryCallback<String> callback) {
+        return new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            @Override
+            public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
+                // Auto-verification handled by Firebase
+            }
+
+            @Override
+            public void onVerificationFailed(@NonNull FirebaseException e) {
+                callback.onResult(AuthResult.error(e.getMessage()));
+            }
+
+            @Override
+            public void onCodeSent(@NonNull String verificationId,
+                                   @NonNull PhoneAuthProvider.ForceResendingToken token) {
+                callback.onResult(AuthResult.success(verificationId));
+            }
+        };
     }
 }
