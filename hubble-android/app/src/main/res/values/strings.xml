@@ -8,7 +8,7 @@
     <string name="login_tab_email">Email</string>
     <string name="login_tab_phone">Điện thoại</string>
     <string name="login_email_hint">Email</string>
-    <string name="login_phone_hint">Số điện thoại (VD: +84...)</string>
+    <string name="login_phone_hint">Số điện thoại</string>
     <string name="login_password_hint">Mật khẩu</string>
     <string name="login_forgot_password">Quên mật khẩu?</string>
     <string name="login_btn">Đăng nhập</string>
