@@ -1,0 +1,122 @@
+package com.example.hubble.view.auth;
+
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Patterns;
+import android.view.View;
+
+import androidx.lifecycle.ViewModelProvider;
+
+import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.databinding.ActivityRegisterBinding;
+import com.example.hubble.view.base.BaseAuthActivity;
+import com.example.hubble.viewmodel.AuthViewModel;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
+
+public class RegisterActivity extends BaseAuthActivity {
+
+    private ActivityRegisterBinding binding;
+    private AuthViewModel authViewModel;
+
+    @Override
+    protected View getRootView() { return binding.getRoot(); }
+
+    @Override
+    protected View getProgressBar() { return binding.progressBar; }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        binding = ActivityRegisterBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository()))
+                .get(AuthViewModel.class);
+
+        binding.btnBack.setOnClickListener(v -> finish());
+        binding.btnRegister.setOnClickListener(v -> handleRegister());
+        binding.tvLogin.setOnClickListener(v -> finish());
+        binding.btnGoLogin.setOnClickListener(v -> navigateToLogin());
+        binding.btnRetry.setOnClickListener(v -> showFormState());
+
+        observeAuthResult(authViewModel.registerState,
+                authViewModel::resetRegisterState,
+                this::showSuccessState,
+                this::showErrorState);
+    }
+
+    private void handleRegister() {
+        String displayName = binding.etDisplayName.getText() != null
+                ? binding.etDisplayName.getText().toString().trim() : "";
+        String email = binding.etEmail.getText() != null
+                ? binding.etEmail.getText().toString().trim() : "";
+        String password = binding.etPassword.getText() != null
+                ? binding.etPassword.getText().toString() : "";
+        String confirmPassword = binding.etConfirmPassword.getText() != null
+                ? binding.etConfirmPassword.getText().toString() : "";
+
+        binding.tilDisplayName.setError(null);
+        binding.tilEmail.setError(null);
+        binding.tilPassword.setError(null);
+        binding.tilConfirmPassword.setError(null);
+
+        if (TextUtils.isEmpty(displayName)) {
+            binding.tilDisplayName.setError(getString(R.string.error_empty_name));
+            return;
+        }
+        if (TextUtils.isEmpty(email)) {
+            binding.tilEmail.setError(getString(R.string.error_empty_email));
+            return;
+        }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.tilEmail.setError(getString(R.string.error_invalid_email));
+            return;
+        }
+        if (TextUtils.isEmpty(password)) {
+            binding.tilPassword.setError(getString(R.string.error_empty_password));
+            return;
+        }
+        if (password.length() < 6) {
+            binding.tilPassword.setError(getString(R.string.error_password_too_short));
+            return;
+        }
+        if (!password.equals(confirmPassword)) {
+            binding.tilConfirmPassword.setError(getString(R.string.error_password_mismatch));
+            return;
+        }
+
+        authViewModel.registerWithEmail(email, password, displayName);
+    }
+
+    // ─── Result State Handling ───────────────────────────────────
+
+    private void showSuccessState() {
+        // Sign out so user must log in manually
+        authViewModel.logout();
+        binding.layoutForm.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.GONE);
+        binding.layoutSuccess.setVisibility(View.VISIBLE);
+    }
+
+    private void showErrorState(String message) {
+        binding.layoutForm.setVisibility(View.GONE);
+        binding.layoutSuccess.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.VISIBLE);
+        binding.tvErrorMessage.setText(message != null ? message : getString(R.string.error_generic));
+    }
+
+    private void showFormState() {
+        binding.layoutSuccess.setVisibility(View.GONE);
+        binding.layoutError.setVisibility(View.GONE);
+        binding.layoutForm.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void setLoadingState(boolean isLoading) {
+        super.setLoadingState(isLoading);
+        binding.btnRegister.setEnabled(!isLoading);
+    }
+}
+
