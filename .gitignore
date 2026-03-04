@@ -59,6 +59,9 @@ application-prod.properties
 # AWS credentials
 **/aws-credentials.json
 
+#Firebase admin
+**/hubble-35140-firebase-adminsdk-fbsvc-505e5ed7e1.json
+
 # ==================== OS ====================
 # macOS
 .DS_Store
