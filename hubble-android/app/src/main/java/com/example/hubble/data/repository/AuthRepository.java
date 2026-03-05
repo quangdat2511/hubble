@@ -4,8 +4,11 @@ import android.app.Activity;
 
 import androidx.annotation.NonNull;
 
+import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.AuthResult;
-import com.example.hubble.data.model.UserModel;
+import com.example.hubble.data.model.UserCreationRequest;
+import com.example.hubble.data.model.UserResponse;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -16,6 +19,10 @@ import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.concurrent.TimeUnit;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class AuthRepository {
 
@@ -44,6 +51,7 @@ public class AuthRepository {
     public void registerWithEmail(String email, String password, String username,
                                   RepositoryCallback<FirebaseUser> callback) {
         callback.onResult(AuthResult.loading());
+
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnSuccessListener(authResult -> {
                     FirebaseUser user = authResult.getUser();
@@ -55,15 +63,41 @@ public class AuthRepository {
                     UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                             .setDisplayName(username)
                             .build();
+
                     user.updateProfile(profileUpdates).addOnCompleteListener(profileTask -> {
-                        UserModel userModel = new UserModel(user.getUid(), username, email, null);
-                        mFirestore.collection("users")
-                                .document(user.getUid())
-                                .set(userModel)
-                                .addOnSuccessListener(unused ->
-                                        callback.onResult(AuthResult.success(user)))
-                                .addOnFailureListener(e ->
-                                        callback.onResult(AuthResult.error(e.getMessage())));
+                        user.getIdToken(true).addOnCompleteListener(tokenTask -> {
+                            if (tokenTask.isSuccessful()) {
+                                String token = "Bearer " + tokenTask.getResult().getToken();
+
+                                UserCreationRequest request = new UserCreationRequest(
+                                        user.getUid(),
+                                        username.toLowerCase(),
+                                        username,
+                                        email,
+                                        null
+                                );
+
+                                RetrofitClient.getApiService().syncUser(token, request).enqueue(new Callback<ApiResponse<UserResponse>>() {
+                                    @Override
+                                    public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
+                                        if (response.isSuccessful() && response.body() != null) {
+                                            callback.onResult(AuthResult.success(user));
+                                        } else {
+
+                                            callback.onResult(AuthResult.error("Lỗi từ server: " + response.code()));
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
+                                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                    }
+                                });
+
+                            } else {
+                                callback.onResult(AuthResult.error("Không thể xác thực token."));
+                            }
+                        });
                     });
                 })
                 .addOnFailureListener(e ->
@@ -110,12 +144,70 @@ public class AuthRepository {
 
     // ─── Private Helpers ─────────────────────────────────────────
 
+
+// ... (Bên trong class AuthRepository)
+
     private void signInWithCredential(PhoneAuthCredential credential,
                                       RepositoryCallback<FirebaseUser> callback) {
         callback.onResult(AuthResult.loading());
+
         mAuth.signInWithCredential(credential)
-                .addOnSuccessListener(authResult ->
-                        callback.onResult(AuthResult.success(authResult.getUser())))
+                .addOnSuccessListener(authResult -> {
+                    FirebaseUser user = authResult.getUser();
+
+                    boolean isNewUser = authResult.getAdditionalUserInfo() != null &&
+                            authResult.getAdditionalUserInfo().isNewUser();
+
+                    if (isNewUser && user != null) {
+                        user.getIdToken(true).addOnCompleteListener(tokenTask -> {
+                            if (tokenTask.isSuccessful()) {
+                                String token = "Bearer " + tokenTask.getResult().getToken();
+                                String phone = user.getPhoneNumber();
+                                String validUsername = phone != null ?
+                                        "user_" + phone.replaceAll("[^0-9]", "") :
+                                        "user_" + System.currentTimeMillis();
+                                UserCreationRequest request = new UserCreationRequest(
+                                        user.getUid(),
+                                        validUsername,
+                                        validUsername,
+                                        null,
+                                        phone
+                                );
+
+                                RetrofitClient.getApiService().syncUser(token, request).enqueue(new Callback<ApiResponse<UserResponse>>() {
+                                    @Override
+                                    public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
+                                        if (response.isSuccessful() && response.body() != null) {
+                                            callback.onResult(AuthResult.success(user));
+                                        } else {
+                                            try {
+                                                String errorBody = response.errorBody() != null ? response.errorBody().string() : "Unknown error";
+
+                                                user.delete();
+                                                callback.onResult(AuthResult.error("Đồng bộ thất bại: " + errorBody));
+                                            } catch (Exception e) {
+                                                user.delete();
+                                                callback.onResult(AuthResult.error("Lỗi từ server: " + response.code()));
+                                            }
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
+                                        user.delete();
+                                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                    }
+                                });
+
+                            } else {
+                                user.delete();
+                                callback.onResult(AuthResult.error("Không thể lấy token xác thực."));
+                            }
+                        });
+                    } else {
+                        callback.onResult(AuthResult.success(user));
+                    }
+                })
                 .addOnFailureListener(e ->
                         callback.onResult(AuthResult.error(e.getMessage())));
     }
