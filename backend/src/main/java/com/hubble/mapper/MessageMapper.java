@@ -9,9 +9,11 @@ import org.mapstruct.Mapping;
 public interface MessageMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "isDeleted", constant = "false")
+    @Mapping(target = "type", ignore = true)
+    @Mapping(target = "isPinned", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
+    @Mapping(target = "editedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
     Message toMessage(MessageRequest request);
 
 }

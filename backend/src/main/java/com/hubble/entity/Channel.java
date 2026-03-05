@@ -1,6 +1,6 @@
 package com.hubble.entity;
 
-import com.hubble.enums.MessageType;
+import com.hubble.enums.ChannelType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -17,41 +17,39 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "messages")
-public class Message {
+@Table(name = "channels")
+public class Channel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "channel_id", nullable = false)
-    UUID channelId;
+    /** Nullable – DM / GROUP_DM channels have no server */
+    @Column(name = "server_id")
+    UUID serverId;
 
-    @Column(name = "author_id", nullable = false)
-    UUID authorId;
+    /** Nullable – top-level channels have no parent */
+    @Column(name = "parent_id")
+    UUID parentId;
 
-    @Column(name = "reply_to_id")
-    UUID replyToId;
-
-    @Column(name = "content", columnDefinition = "TEXT")
-    String content;
+    @Column(name = "name", length = 100)
+    String name;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type")
-    @Builder.Default
-    MessageType type = MessageType.TEXT;
+    @Column(name = "type", nullable = false)
+    ChannelType type;
 
-    @Column(name = "is_pinned")
-    @Builder.Default
-    Boolean isPinned = false;
+    @Column(name = "topic", columnDefinition = "TEXT")
+    String topic;
 
-    @Column(name = "is_deleted")
+    @Column(name = "position")
     @Builder.Default
-    Boolean isDeleted = false;
+    Short position = 0;
 
-    @Column(name = "edited_at")
-    LocalDateTime editedAt;
+    @Column(name = "is_private")
+    @Builder.Default
+    Boolean isPrivate = false;
 
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
