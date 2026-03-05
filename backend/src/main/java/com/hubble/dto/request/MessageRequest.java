@@ -1,6 +1,9 @@
 package com.hubble.dto.request;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -8,7 +11,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageRequest {
-    String channelId;
-    String senderId;
+    UUID channelId;
+    UUID authorId;
+    UUID replyToId;
     String content;
 }
