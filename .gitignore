@@ -51,14 +51,6 @@ application-prod.properties
 .env
 .env.*
 !.env.example
-
-# Firebase service account key
-**/firebase-service-account.json
-**/google-services.json
-
-# AWS credentials
-**/aws-credentials.json
-# ==================== OS ====================
 # macOS
 .DS_Store
 .AppleDouble
