@@ -5,22 +5,44 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityLoginBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
-import com.google.android.material.tabs.TabLayout;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
 
 public class LoginActivity extends BaseAuthActivity {
 
     private ActivityLoginBinding binding;
     private AuthViewModel authViewModel;
-    private boolean isEmailMode = true;
+    private GoogleSignInClient mGoogleSignInClient;
+
+    private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                    try {
+                        GoogleSignInAccount account = task.getResult(ApiException.class);
+                        if (account != null && account.getIdToken() != null) {
+                            authViewModel.loginWithGoogle(account.getIdToken());
+                        }
+                    } catch (ApiException e) {
+                        showError("Google sign in failed: " + e.getStatusCode());
+                    }
+                }
+            }
+    );
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -35,68 +57,42 @@ public class LoginActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
-        setupCountryCodePicker();
-        setupTabs();
+        setupGoogleSignIn();
+        setupUI();
         setupClickListeners();
         observeViewModel();
     }
 
-    private void setupCountryCodePicker() {
-        binding.ccp.registerCarrierNumberEditText(binding.etPhone);
+    private void setupGoogleSignIn() {
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
     }
 
-    private void setupTabs() {
-        binding.tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                isEmailMode = tab.getPosition() == 0;
-                if (isEmailMode) {
-                    binding.tilEmail.setVisibility(View.VISIBLE);
-                    binding.tilPassword.setVisibility(View.VISIBLE);
-                    binding.llPhoneContainer.setVisibility(View.GONE);
-                    binding.tvForgotPassword.setVisibility(View.VISIBLE);
-                    binding.btnLogin.setText(R.string.login_btn);
-                } else {
-                    binding.tilEmail.setVisibility(View.GONE);
-                    binding.tilPassword.setVisibility(View.GONE);
-                    binding.llPhoneContainer.setVisibility(View.VISIBLE);
-                    binding.tvForgotPassword.setVisibility(View.GONE);
-                    binding.btnLogin.setText(R.string.login_send_otp);
-                }
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
-        });
+    private void setupUI() {
+        binding.tabLayout.setVisibility(View.GONE);
+        binding.llPhoneContainer.setVisibility(View.GONE);
+        binding.tilEmail.setVisibility(View.VISIBLE);
+        binding.tilPassword.setVisibility(View.VISIBLE);
     }
 
     private void setupClickListeners() {
-        binding.btnLogin.setOnClickListener(v -> {
-            if (isEmailMode) {
-                handleEmailLogin();
-            } else {
-                handlePhoneLogin();
-            }
-        });
-
+        binding.btnLogin.setOnClickListener(v -> handleEmailLogin());
+        binding.btnGoogleLogin.setOnClickListener(v -> handleGoogleLogin());
         binding.tvForgotPassword.setOnClickListener(v ->
                 startActivity(new Intent(this, ForgotPasswordActivity.class)));
-
         binding.tvRegister.setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class)));
     }
 
     private void handleEmailLogin() {
-        String email = binding.etEmail.getText() != null
-                ? binding.etEmail.getText().toString().trim() : "";
-        String password = binding.etPassword.getText() != null
-                ? binding.etPassword.getText().toString() : "";
+        String email = binding.etEmail.getText() != null ? binding.etEmail.getText().toString().trim() : "";
+        String password = binding.etPassword.getText() != null ? binding.etPassword.getText().toString() : "";
 
         binding.tilEmail.setError(null);
         binding.tilPassword.setError(null);
@@ -117,50 +113,21 @@ public class LoginActivity extends BaseAuthActivity {
         authViewModel.loginWithEmail(email, password);
     }
 
-    private void handlePhoneLogin() {
-        binding.tilPhone.setError(null);
-
-        if (!binding.ccp.isValidFullNumber()) {
-            binding.tilPhone.setError(getString(R.string.error_invalid_phone));
-            return;
-        }
-
-        String phone = binding.ccp.getFullNumberWithPlus();
-        authViewModel.sendPhoneOtp(phone, this);
+    private void handleGoogleLogin() {
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        googleSignInLauncher.launch(signInIntent);
     }
 
     private void observeViewModel() {
-        // Email login observer
         observeAuthResult(authViewModel.loginState,
                 authViewModel::resetLoginState,
                 this::navigateToMain);
-
-        // OTP send observer
-        authViewModel.otpSendState.observe(this, result -> {
-            if (result == null) return;
-            if (result.isLoading()) {
-                setLoadingState(true);
-            } else if (result.isSuccess()) {
-                setLoadingState(false);
-                String verificationId = result.getData();
-                authViewModel.resetOtpSendState();
-
-                String phone = binding.ccp.getFullNumberWithPlus();
-                Intent intent = new Intent(this, OtpActivity.class);
-                intent.putExtra(OtpActivity.EXTRA_PHONE_NUMBER, phone);
-                intent.putExtra(OtpActivity.EXTRA_VERIFICATION_ID, verificationId);
-                startActivity(intent);
-            } else {
-                setLoadingState(false);
-                authViewModel.resetOtpSendState();
-                showError(result.getMessage());
-            }
-        });
     }
 
     @Override
     protected void setLoadingState(boolean isLoading) {
         super.setLoadingState(isLoading);
         binding.btnLogin.setEnabled(!isLoading);
+        binding.btnGoogleLogin.setEnabled(!isLoading);
     }
 }

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "571998074420",
+    "project_id": "hubble-35140",
+    "storage_bucket": "hubble-35140.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:571998074420:android:b277b338c4604c16783c61",
+        "android_client_info": {
+          "package_name": "com.example.hubble"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "571998074420-e523afugefsecitpv7nurpgiupru5a23.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hubble",
+            "certificate_hash": "fb28caa92a19b6755d30bd7cb1486d7290e28c22"
+          }
+        },
+        {
+          "client_id": "571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_4KszITdde6KiUlK8-gsganFB3ccTXSc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

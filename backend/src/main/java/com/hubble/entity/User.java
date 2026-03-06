@@ -1,5 +1,6 @@
 package com.hubble.entity;
 
+import com.hubble.enums.AuthProvider;
 import com.hubble.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,8 +25,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "firebase_uid", unique = true, nullable = false)
-    String firebaseUid;
+    @Column(name = "password_hash", columnDefinition = "TEXT")
+    String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "auth_provider", nullable = false)
+    AuthProvider authProvider;
 
     @Column(nullable = false, unique = true)
     String username;
@@ -35,6 +41,15 @@ public class User {
 
     @Column(unique = true)
     String email;
+
+    @Column(columnDefinition = "TEXT")
+    String phone;
+
+    @Column(name = "email_verified")
+    Boolean emailVerified;
+
+    @Column(name = "phone_verified")
+    Boolean phoneVerified;
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     String avatarUrl;
@@ -59,15 +74,21 @@ public class User {
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
-    @Column(columnDefinition = "TEXT")
-    String phone;
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.status == null) {
             this.status = UserStatus.OFFLINE;
+        }
+        if (this.authProvider == null) {
+            this.authProvider = AuthProvider.LOCAL;
+        }
+        if (this.emailVerified == null) {
+            this.emailVerified = false;
+        }
+        if (this.phoneVerified == null) {
+            this.phoneVerified = false;
         }
     }
 

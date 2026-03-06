@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Hubble</string>
+    <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -12,6 +13,7 @@
     <string name="login_password_hint">Mật khẩu</string>
     <string name="login_forgot_password">Quên mật khẩu?</string>
     <string name="login_btn">Đăng nhập</string>
+    <string name="login_google">Đăng nhập với Google</string>
     <string name="login_send_otp">Gửi mã OTP</string>
     <string name="login_no_account">Chưa có tài khoản? <b>Đăng ký ngay</b></string>
 
@@ -29,7 +31,7 @@
     <string name="register_go_login">Đến trang đăng nhập</string>
     <string name="register_try_again">Thử lại</string>
 
-    <string name="otp_title">Xác thực điện thoại</string>
+    <string name="otp_title">Xác thực</string>
     <string name="otp_subtitle">Nhập mã 6 chữ số đã được gửi đến\n%1$s</string>
     <string name="otp_btn">Xác nhận</string>
     <string name="otp_resend_prefix">Không nhận được mã? </string>
@@ -42,6 +44,11 @@
     <string name="forgot_password_btn">Gửi email khôi phục</string>
     <string name="forgot_password_back_login">Quay lại đăng nhập</string>
     <string name="forgot_password_success">Email khôi phục đã được gửi! Vui lòng kiểm tra hộp thư.</string>
+
+    <string name="forgot_password_otp_hint">Mã OTP (6 chữ số)</string>
+    <string name="forgot_password_new_hint">Mật khẩu mới</string>
+    <string name="forgot_password_reset_btn">Đặt lại mật khẩu</string>
+    <string name="forgot_password_reset_success">Đổi mật khẩu thành công! Bạn có thể đăng nhập.</string>
 
     <string name="main_welcome">Xin chào, %1$s!</string>
     <string name="main_email_label">Email: %1$s</string>

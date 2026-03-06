@@ -1,6 +1,5 @@
 package com.example.hubble.view.auth;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,11 +26,12 @@ public class SplashActivity extends BaseAuthActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         binding = ActivitySplashBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         AuthViewModel authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
