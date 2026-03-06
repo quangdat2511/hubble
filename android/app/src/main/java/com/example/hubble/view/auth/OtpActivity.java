@@ -20,11 +20,9 @@ import com.example.hubble.viewmodel.AuthViewModelFactory;
 public class OtpActivity extends BaseAuthActivity {
 
     public static final String EXTRA_PHONE_NUMBER = "extra_phone_number";
-    public static final String EXTRA_VERIFICATION_ID = "extra_verification_id";
 
     private ActivityOtpBinding binding;
     private AuthViewModel authViewModel;
-    private String verificationId;
     private String phoneNumber;
     private CountDownTimer countDownTimer;
     private boolean canResend = false;
@@ -43,10 +41,9 @@ public class OtpActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         phoneNumber = getIntent().getStringExtra(EXTRA_PHONE_NUMBER);
-        verificationId = getIntent().getStringExtra(EXTRA_VERIFICATION_ID);
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         binding.tvOtpSubtitle.setText(getString(R.string.otp_subtitle, phoneNumber));
@@ -129,24 +126,22 @@ public class OtpActivity extends BaseAuthActivity {
                 showError(getString(R.string.error_empty_otp));
                 return;
             }
-            authViewModel.verifyOtp(otp, verificationId);
+            authViewModel.verifyOtp(phoneNumber, otp);
         });
 
         binding.tvResend.setOnClickListener(v -> {
             if (canResend && phoneNumber != null) {
-                authViewModel.sendPhoneOtp(phoneNumber, this);
+                authViewModel.resendPhoneOtp(phoneNumber);
             }
         });
     }
 
     private void observeViewModel() {
-        // OTP send (resend) observer — custom logic to update verificationId
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
                 binding.tvResend.setEnabled(false);
             } else if (result.isSuccess()) {
-                verificationId = result.getData();
                 authViewModel.resetOtpSendState();
                 clearOtpFields();
                 startCountDown();
@@ -157,7 +152,6 @@ public class OtpActivity extends BaseAuthActivity {
             }
         });
 
-        // OTP verify observer — standard pattern
         observeAuthResult(authViewModel.otpVerifyState,
                 authViewModel::resetOtpVerifyState,
                 this::navigateToMain);

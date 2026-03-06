@@ -1,24 +1,17 @@
 package com.example.hubble.data.repository;
 
-import android.app.Activity;
-
-import androidx.annotation.NonNull;
+import android.content.Context;
 
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.AuthResult;
-import com.example.hubble.data.model.UserCreationRequest;
+import com.example.hubble.data.model.LoginRequest;
+import com.example.hubble.data.model.PhoneSendOtpRequest;
+import com.example.hubble.data.model.PhoneVerifyOtpRequest;
+import com.example.hubble.data.model.RegisterRequest;
+import com.example.hubble.data.model.TokenResponse;
 import com.example.hubble.data.model.UserResponse;
-import com.google.firebase.FirebaseException;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthOptions;
-import com.google.firebase.auth.PhoneAuthProvider;
-import com.google.firebase.auth.UserProfileChangeRequest;
-import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.concurrent.TimeUnit;
+import com.example.hubble.utils.TokenManager;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -26,210 +19,111 @@ import retrofit2.Response;
 
 public class AuthRepository {
 
-    private final FirebaseAuth mAuth;
-    private final FirebaseFirestore mFirestore;
+    private final TokenManager tokenManager;
 
-    public AuthRepository() {
-        mAuth = FirebaseAuth.getInstance();
-        mFirestore = FirebaseFirestore.getInstance();
+    public AuthRepository(Context context) {
+        tokenManager = new TokenManager(context);
     }
 
-    public FirebaseUser getCurrentUser() {
-        return mAuth.getCurrentUser();
+    public UserResponse getCurrentUser() {
+        return tokenManager.getUser();
     }
 
-    public void loginWithEmail(String email, String password,
-                               RepositoryCallback<FirebaseUser> callback) {
+    public void loginWithEmail(String email, String password, RepositoryCallback<UserResponse> callback) {
         callback.onResult(AuthResult.loading());
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnSuccessListener(authResult ->
-                        callback.onResult(AuthResult.success(authResult.getUser())))
-                .addOnFailureListener(e ->
-                        callback.onResult(AuthResult.error(e.getMessage())));
+        LoginRequest request = new LoginRequest(email, password);
+
+        RetrofitClient.getApiService().loginWithEmail(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    TokenResponse tokenResponse = response.body().getResult();
+                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+                    tokenManager.saveUser(tokenResponse.getUser());
+                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                } else {
+                    callback.onResult(AuthResult.error("Đăng nhập thất bại"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
     }
 
-    public void registerWithEmail(String email, String password, String username,
-                                  RepositoryCallback<FirebaseUser> callback) {
+    public void registerWithEmail(String email, String password, String username, RepositoryCallback<UserResponse> callback) {
         callback.onResult(AuthResult.loading());
+        RegisterRequest request = new RegisterRequest(username, username, email, password);
 
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnSuccessListener(authResult -> {
-                    FirebaseUser user = authResult.getUser();
-                    if (user == null) {
-                        callback.onResult(AuthResult.error("Không thể tạo tài khoản"));
-                        return;
-                    }
+        RetrofitClient.getApiService().registerWithEmail(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult().getUser()));
+                } else {
+                    callback.onResult(AuthResult.error("Đăng ký thất bại"));
+                }
+            }
 
-                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                            .setDisplayName(username)
-                            .build();
-
-                    user.updateProfile(profileUpdates).addOnCompleteListener(profileTask -> {
-                        user.getIdToken(true).addOnCompleteListener(tokenTask -> {
-                            if (tokenTask.isSuccessful()) {
-                                String token = "Bearer " + tokenTask.getResult().getToken();
-
-                                UserCreationRequest request = new UserCreationRequest(
-                                        user.getUid(),
-                                        username.toLowerCase(),
-                                        username,
-                                        email,
-                                        null
-                                );
-
-                                RetrofitClient.getApiService().syncUser(token, request).enqueue(new Callback<ApiResponse<UserResponse>>() {
-                                    @Override
-                                    public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
-                                        if (response.isSuccessful() && response.body() != null) {
-                                            callback.onResult(AuthResult.success(user));
-                                        } else {
-
-                                            callback.onResult(AuthResult.error("Lỗi từ server: " + response.code()));
-                                        }
-                                    }
-
-                                    @Override
-                                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
-                                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
-                                    }
-                                });
-
-                            } else {
-                                callback.onResult(AuthResult.error("Không thể xác thực token."));
-                            }
-                        });
-                    });
-                })
-                .addOnFailureListener(e ->
-                        callback.onResult(AuthResult.error(e.getMessage())));
+            @Override
+            public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
     }
 
-    public void sendPhoneOtp(String phoneNumber, Activity activity,
-                             PhoneAuthProvider.ForceResendingToken resendToken,
-                             RepositoryCallback<String> callback) {
+    public void sendPhoneOtp(String phoneNumber, RepositoryCallback<String> callback) {
         callback.onResult(AuthResult.loading());
-        PhoneAuthOptions.Builder builder = PhoneAuthOptions.newBuilder(mAuth)
-                .setPhoneNumber(phoneNumber)
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(activity)
-                .setCallbacks(createOtpCallbacks(callback));
+        PhoneSendOtpRequest request = new PhoneSendOtpRequest(phoneNumber);
 
-        if (resendToken != null) {
-            builder.setForceResendingToken(resendToken);
-        }
+        RetrofitClient.getApiService().sendPhoneOtp(request).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                if (response.isSuccessful()) {
+                    callback.onResult(AuthResult.success("OTP Sent"));
+                } else {
+                    callback.onResult(AuthResult.error("Lỗi gửi OTP"));
+                }
+            }
 
-        PhoneAuthProvider.verifyPhoneNumber(builder.build());
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
     }
 
-    public void verifyOtp(String verificationId, String code,
-                          RepositoryCallback<FirebaseUser> callback) {
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
-        signInWithCredential(credential, callback);
-    }
-
-    public void sendPasswordResetEmail(String email,
-                                       RepositoryCallback<Void> callback) {
+    public void verifyOtp(String phone, String code, RepositoryCallback<UserResponse> callback) {
         callback.onResult(AuthResult.loading());
-        mAuth.sendPasswordResetEmail(email)
-                .addOnSuccessListener(unused ->
-                        callback.onResult(AuthResult.success(null)))
-                .addOnFailureListener(e ->
-                        callback.onResult(AuthResult.error(e.getMessage())));
+        PhoneVerifyOtpRequest request = new PhoneVerifyOtpRequest(phone, code);
+
+        RetrofitClient.getApiService().verifyPhoneOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    TokenResponse tokenResponse = response.body().getResult();
+                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+                    tokenManager.saveUser(tokenResponse.getUser());
+                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                } else {
+                    callback.onResult(AuthResult.error("Mã OTP không hợp lệ"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void sendPasswordResetEmail(String email, RepositoryCallback<Void> callback) {
+        callback.onResult(AuthResult.success(null));
     }
 
     public void logout() {
-        mAuth.signOut();
-    }
-
-
-    // ─── Private Helpers ─────────────────────────────────────────
-
-
-// ... (Bên trong class AuthRepository)
-
-    private void signInWithCredential(PhoneAuthCredential credential,
-                                      RepositoryCallback<FirebaseUser> callback) {
-        callback.onResult(AuthResult.loading());
-
-        mAuth.signInWithCredential(credential)
-                .addOnSuccessListener(authResult -> {
-                    FirebaseUser user = authResult.getUser();
-
-                    boolean isNewUser = authResult.getAdditionalUserInfo() != null &&
-                            authResult.getAdditionalUserInfo().isNewUser();
-
-                    if (isNewUser && user != null) {
-                        user.getIdToken(true).addOnCompleteListener(tokenTask -> {
-                            if (tokenTask.isSuccessful()) {
-                                String token = "Bearer " + tokenTask.getResult().getToken();
-                                String phone = user.getPhoneNumber();
-                                String validUsername = phone != null ?
-                                        "user_" + phone.replaceAll("[^0-9]", "") :
-                                        "user_" + System.currentTimeMillis();
-                                UserCreationRequest request = new UserCreationRequest(
-                                        user.getUid(),
-                                        validUsername,
-                                        validUsername,
-                                        null,
-                                        phone
-                                );
-
-                                RetrofitClient.getApiService().syncUser(token, request).enqueue(new Callback<ApiResponse<UserResponse>>() {
-                                    @Override
-                                    public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
-                                        if (response.isSuccessful() && response.body() != null) {
-                                            callback.onResult(AuthResult.success(user));
-                                        } else {
-                                            try {
-                                                String errorBody = response.errorBody() != null ? response.errorBody().string() : "Unknown error";
-
-                                                user.delete();
-                                                callback.onResult(AuthResult.error("Đồng bộ thất bại: " + errorBody));
-                                            } catch (Exception e) {
-                                                user.delete();
-                                                callback.onResult(AuthResult.error("Lỗi từ server: " + response.code()));
-                                            }
-                                        }
-                                    }
-
-                                    @Override
-                                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
-                                        user.delete();
-                                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
-                                    }
-                                });
-
-                            } else {
-                                user.delete();
-                                callback.onResult(AuthResult.error("Không thể lấy token xác thực."));
-                            }
-                        });
-                    } else {
-                        callback.onResult(AuthResult.success(user));
-                    }
-                })
-                .addOnFailureListener(e ->
-                        callback.onResult(AuthResult.error(e.getMessage())));
-    }
-
-    private PhoneAuthProvider.OnVerificationStateChangedCallbacks createOtpCallbacks(
-            RepositoryCallback<String> callback) {
-        return new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            @Override
-            public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                // Auto-verification handled by Firebase
-            }
-
-            @Override
-            public void onVerificationFailed(@NonNull FirebaseException e) {
-                callback.onResult(AuthResult.error(e.getMessage()));
-            }
-
-            @Override
-            public void onCodeSent(@NonNull String verificationId,
-                                   @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                callback.onResult(AuthResult.success(verificationId));
-            }
-        };
+        tokenManager.clear();
     }
 }

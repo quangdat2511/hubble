@@ -32,7 +32,7 @@ public class ForgotPasswordActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         binding.btnBack.setOnClickListener(v -> finish());

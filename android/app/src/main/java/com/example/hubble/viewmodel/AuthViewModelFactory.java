@@ -6,10 +6,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.data.repository.AuthRepository;
 
-/**
- * Factory for creating AuthViewModel with injected dependencies.
- * Enables Dependency Inversion: ViewModel no longer creates its own Repository.
- */
 public class AuthViewModelFactory implements ViewModelProvider.Factory {
 
     private final AuthRepository repository;

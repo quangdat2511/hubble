@@ -35,7 +35,7 @@ public class LoginActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         setupCountryCodePicker();
@@ -126,29 +126,25 @@ public class LoginActivity extends BaseAuthActivity {
         }
 
         String phone = binding.ccp.getFullNumberWithPlus();
-        authViewModel.sendPhoneOtp(phone, this);
+        authViewModel.sendPhoneOtp(phone);
     }
 
     private void observeViewModel() {
-        // Email login observer
         observeAuthResult(authViewModel.loginState,
                 authViewModel::resetLoginState,
                 this::navigateToMain);
 
-        // OTP send observer
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
                 setLoadingState(true);
             } else if (result.isSuccess()) {
                 setLoadingState(false);
-                String verificationId = result.getData();
                 authViewModel.resetOtpSendState();
 
                 String phone = binding.ccp.getFullNumberWithPlus();
                 Intent intent = new Intent(this, OtpActivity.class);
                 intent.putExtra(OtpActivity.EXTRA_PHONE_NUMBER, phone);
-                intent.putExtra(OtpActivity.EXTRA_VERIFICATION_ID, verificationId);
                 startActivity(intent);
             } else {
                 setLoadingState(false);

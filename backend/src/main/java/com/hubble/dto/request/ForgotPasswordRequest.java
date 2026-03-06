@@ -1,6 +1,5 @@
 package com.hubble.dto.request;
 
-import com.hubble.validator.TagConstraint;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -12,16 +11,9 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
+public class ForgotPasswordRequest {
 
-    @NotBlank(message = "USERNAME_INVALID")
-    @TagConstraint
-    String username;
-
-    String displayName;
-
+    @NotBlank(message = "EMAIL_INVALID")
     @Email(message = "EMAIL_INVALID")
     String email;
-
-    String phone;
 }

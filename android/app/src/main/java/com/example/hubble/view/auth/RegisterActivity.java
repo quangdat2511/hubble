@@ -32,7 +32,7 @@ public class RegisterActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         binding.btnBack.setOnClickListener(v -> finish());
@@ -90,10 +90,7 @@ public class RegisterActivity extends BaseAuthActivity {
         authViewModel.registerWithEmail(email, password, displayName);
     }
 
-    // ─── Result State Handling ───────────────────────────────────
-
     private void showSuccessState() {
-        // Sign out so user must log in manually
         authViewModel.logout();
         binding.layoutForm.setVisibility(View.GONE);
         binding.layoutError.setVisibility(View.GONE);
@@ -119,4 +116,3 @@ public class RegisterActivity extends BaseAuthActivity {
         binding.btnRegister.setEnabled(!isLoading);
     }
 }
-

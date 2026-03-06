@@ -1,8 +1,8 @@
 package com.hubble.dto.request;
 
-import com.hubble.validator.TagConstraint;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,16 +12,19 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
+public class RegisterRequest {
 
     @NotBlank(message = "USERNAME_INVALID")
-    @TagConstraint
+    @Size(min = 3, max = 32, message = "USERNAME_INVALID")
     String username;
 
     String displayName;
 
+    @NotBlank(message = "EMAIL_INVALID")
     @Email(message = "EMAIL_INVALID")
     String email;
 
-    String phone;
+    @NotBlank(message = "PASSWORD_INVALID")
+    @Size(min = 6, message = "PASSWORD_INVALID")
+    String password;
 }
