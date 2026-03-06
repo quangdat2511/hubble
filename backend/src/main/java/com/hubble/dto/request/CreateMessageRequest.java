@@ -10,7 +10,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MessageRequest {
+public class CreateMessageRequest {
     UUID channelId;
     UUID authorId;
     UUID replyToId;

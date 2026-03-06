@@ -1,6 +1,6 @@
 package com.hubble.service;
 
-import com.hubble.dto.request.UserCreationRequest;
+import com.hubble.dto.request.CreateUserRequest;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
 import com.hubble.exception.AppException;
@@ -22,7 +22,7 @@ public class UserService {
     UserMapper userMapper;
 
     @Transactional
-    public UserResponse syncFirebaseUser(UserCreationRequest request) {
+    public UserResponse syncFirebaseUser(CreateUserRequest request) {
         if (userRepository.existsByFirebaseUid(request.getFirebaseUid())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }

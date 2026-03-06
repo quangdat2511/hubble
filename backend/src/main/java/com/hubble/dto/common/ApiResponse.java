@@ -1,4 +1,4 @@
-package com.hubble.exception;
+package com.hubble.dto.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

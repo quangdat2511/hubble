@@ -1,8 +1,8 @@
 package com.hubble.controller;
 
-import com.hubble.dto.request.UserCreationRequest;
+import com.hubble.dto.request.CreateUserRequest;
 import com.hubble.dto.response.UserResponse;
-import com.hubble.exception.ApiResponse;
+import com.hubble.dto.common.ApiResponse;
 import com.hubble.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -23,7 +23,7 @@ public class UserController {
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @PostMapping("/sync")
-    public ResponseEntity<ApiResponse<UserResponse>> syncUser(@Valid @RequestBody UserCreationRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> syncUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse userResponse = userService.syncFirebaseUser(request);
 
         log.info("API /users/sync was called with email: {}", request.getEmail());

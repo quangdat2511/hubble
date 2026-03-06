@@ -1,6 +1,6 @@
 package com.hubble.mapper;
 
-import com.hubble.dto.request.UserCreationRequest;
+import com.hubble.dto.request.CreateUserRequest;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
 import org.mapstruct.Mapper;
@@ -17,7 +17,7 @@ public interface UserMapper {
     @Mapping(target = "lastSeenAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    User toUser(UserCreationRequest request);
+    User toUser(CreateUserRequest request);
 
     UserResponse toUserResponse(User user);
 }
