@@ -15,8 +15,8 @@ public class AuthViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<UserResponse>> _loginState = new MutableLiveData<>();
     public final LiveData<AuthResult<UserResponse>> loginState = _loginState;
 
-    private final MutableLiveData<AuthResult<UserResponse>> _registerState = new MutableLiveData<>();
-    public final LiveData<AuthResult<UserResponse>> registerState = _registerState;
+    private final MutableLiveData<AuthResult<String>> _registerState = new MutableLiveData<>();
+    public final LiveData<AuthResult<String>> registerState = _registerState;
 
     private final MutableLiveData<AuthResult<String>> _otpSendState = new MutableLiveData<>();
     public final LiveData<AuthResult<String>> otpSendState = _otpSendState;
@@ -24,8 +24,11 @@ public class AuthViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<UserResponse>> _otpVerifyState = new MutableLiveData<>();
     public final LiveData<AuthResult<UserResponse>> otpVerifyState = _otpVerifyState;
 
-    private final MutableLiveData<AuthResult<Void>> _forgotPasswordState = new MutableLiveData<>();
-    public final LiveData<AuthResult<Void>> forgotPasswordState = _forgotPasswordState;
+    private final MutableLiveData<AuthResult<String>> _forgotPasswordState = new MutableLiveData<>();
+    public final LiveData<AuthResult<String>> forgotPasswordState = _forgotPasswordState;
+
+    private final MutableLiveData<AuthResult<String>> _resetPasswordState = new MutableLiveData<>();
+    public final LiveData<AuthResult<String>> resetPasswordState = _resetPasswordState;
 
     public AuthViewModel(AuthRepository repository) {
         this.repository = repository;
@@ -39,8 +42,16 @@ public class AuthViewModel extends ViewModel {
         repository.loginWithEmail(email, password, result -> _loginState.setValue(result));
     }
 
+    public void loginWithGoogle(String idToken) {
+        repository.loginWithGoogle(idToken, result -> _loginState.setValue(result));
+    }
+
     public void registerWithEmail(String email, String password, String username) {
         repository.registerWithEmail(email, password, username, result -> _registerState.postValue(result));
+    }
+
+    public void verifyEmailOtp(String email, String otpCode) {
+        repository.verifyEmailOtp(email, otpCode, result -> _otpVerifyState.postValue(result));
     }
 
     public void sendPhoneOtp(String phoneNumber) {
@@ -59,6 +70,10 @@ public class AuthViewModel extends ViewModel {
         repository.sendPasswordResetEmail(email, result -> _forgotPasswordState.setValue(result));
     }
 
+    public void resetPassword(String email, String otpCode, String newPassword) {
+        repository.resetPassword(email, otpCode, newPassword, result -> _resetPasswordState.postValue(result));
+    }
+
     public void logout() {
         repository.logout();
     }
@@ -68,4 +83,5 @@ public class AuthViewModel extends ViewModel {
     public void resetOtpSendState() { _otpSendState.setValue(null); }
     public void resetOtpVerifyState() { _otpVerifyState.setValue(null); }
     public void resetForgotPasswordState() { _forgotPasswordState.setValue(null); }
+    public void resetResetPasswordState() { _resetPasswordState.setValue(null); }
 }

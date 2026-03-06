@@ -38,12 +38,10 @@ public class AuthService {
     PasswordEncoder passwordEncoder;
     GoogleTokenVerifier googleTokenVerifier;
     OtpService otpService;
-
-    // ─── Email/Password Registration ─────────────────────────────
+    EmailService emailService;
 
     @Transactional
-    public TokenResponse register(RegisterRequest request) {
-        // Check existing
+    public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -62,26 +60,52 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        log.info("New user registered: {}", savedUser.getEmail());
 
-        return createTokenResponse(savedUser);
+        String otp = otpService.generateOtp(savedUser.getId(), OtpType.EMAIL_VERIFY);
+        emailService.sendOtpEmail(savedUser.getEmail(), otp, "Xác thực tài khoản Hubble");
+
+        return "Vui lòng kiểm tra email để nhận mã OTP xác thực.";
     }
 
-    // ─── Email/Password Login ────────────────────────────────────
+    @Transactional
+    public TokenResponse verifyEmailRegistration(EmailVerifyOtpRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        boolean valid = otpService.verifyOtp(user.getId(), request.getOtpCode(), OtpType.EMAIL_VERIFY);
+        if (!valid) {
+            throw new AppException(ErrorCode.INVALID_OTP);
+        }
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        return createTokenResponse(user);
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        String otp = otpService.generateOtp(user.getId(), OtpType.PASSWORD_RESET);
+        emailService.sendOtpEmail(user.getEmail(), otp, "Khôi phục mật khẩu Hubble");
+    }
 
     public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
+        if (!user.getEmailVerified()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        log.info("User logged in: {}", user.getEmail());
         return createTokenResponse(user);
     }
-
-    // ─── Phone/Password Login ────────────────────────────────────
 
     public TokenResponse loginWithPhone(PhoneLoginRequest request) {
         User user = userRepository.findByPhone(request.getPhone())
@@ -91,29 +115,24 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        log.info("User logged in with phone: {}", user.getPhone());
         return createTokenResponse(user);
     }
-
-    // ─── Google OAuth2 Login ─────────────────────────────────────
 
     @Transactional
     public TokenResponse loginWithGoogle(GoogleLoginRequest request) {
         GoogleTokenVerifier.GoogleUserInfo googleInfo = googleTokenVerifier.verify(request.getIdToken());
+
         if (googleInfo == null) {
             throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
         }
 
-        // Find or create user
         User user = userRepository.findByEmail(googleInfo.getEmail()).orElse(null);
 
         if (user == null) {
-            // Create new user from Google info
             String baseUsername = googleInfo.getName() != null
                     ? googleInfo.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_")
                     : "user_" + System.currentTimeMillis();
 
-            // Ensure unique username
             String username = baseUsername;
             int counter = 1;
             while (userRepository.existsByUsername(username)) {
@@ -131,34 +150,25 @@ public class AuthService {
                     .build();
 
             user = userRepository.save(user);
-            log.info("New Google user registered: {}", user.getEmail());
-        } else {
-            log.info("Existing user logged in via Google: {}", user.getEmail());
         }
 
         return createTokenResponse(user);
     }
 
-    // ─── Phone OTP Send ──────────────────────────────────────────
-
     @Transactional
     public void sendPhoneOtp(PhoneSendOtpRequest request) {
-        // Check if user exists with this phone — if not, we'll create on verify
         User user = userRepository.findByPhone(request.getPhone()).orElse(null);
-
         UUID userId;
+
         if (user != null) {
             userId = user.getId();
         } else {
-            // Create a placeholder user for OTP storage
-            // This will be finalized during verification
             User tempUser = User.builder()
                     .username("phone_" + request.getPhone().replaceAll("[^0-9]", ""))
                     .phone(request.getPhone())
                     .authProvider(AuthProvider.PHONE)
                     .build();
 
-            // Check if temp username exists
             String username = tempUser.getUsername();
             int counter = 1;
             while (userRepository.existsByUsername(username)) {
@@ -173,8 +183,6 @@ public class AuthService {
         otpService.generateOtp(userId, OtpType.PHONE_VERIFY);
     }
 
-    // ─── Phone OTP Verify & Register/Login ───────────────────────
-
     @Transactional
     public TokenResponse verifyPhoneAndLogin(PhoneVerifyOtpRequest request) {
         User user = userRepository.findByPhone(request.getPhone())
@@ -185,15 +193,12 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_OTP);
         }
 
-        // Mark phone as verified
         user.setPhoneVerified(true);
 
-        // If password provided (registration flow), set it
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
 
-        // If username provided, update it
         if (request.getUsername() != null && !request.getUsername().isEmpty()) {
             if (!user.getUsername().equals(request.getUsername().toLowerCase())
                     && userRepository.existsByUsername(request.getUsername().toLowerCase())) {
@@ -204,20 +209,15 @@ public class AuthService {
         }
 
         userRepository.save(user);
-        log.info("Phone verified and logged in: {}", user.getPhone());
         return createTokenResponse(user);
     }
 
-    // ─── Token Refresh ───────────────────────────────────────────
-
     @Transactional
     public TokenResponse refreshToken(RefreshTokenRequest request) {
-        // Validate refresh token in JWT
         if (!jwtService.validateToken(request.getRefreshToken())) {
             throw new AppException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
 
-        // Find active session with this refresh token
         UserSession session = userSessionRepository
                 .findByRefreshTokenAndIsActiveTrue(request.getRefreshToken())
                 .orElseThrow(() -> new AppException(ErrorCode.REFRESH_TOKEN_INVALID));
@@ -226,36 +226,16 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        // Invalidate old session
         session.setIsActive(false);
         userSessionRepository.save(session);
 
-        // Create new tokens
         return createTokenResponse(user);
     }
-
-    // ─── Logout ──────────────────────────────────────────────────
 
     @Transactional
     public void logout(RefreshTokenRequest request) {
         userSessionRepository.deactivateByRefreshToken(request.getRefreshToken());
-        log.info("User logged out, refresh token invalidated");
     }
-
-    // ─── Forgot Password ─────────────────────────────────────────
-
-    @Transactional
-    public void forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-
-        String otp = otpService.generateOtp(user.getId(), OtpType.PASSWORD_RESET);
-
-        // TODO: Send OTP via email (for now, logged to console)
-        log.info("Password reset OTP sent to {}: {}", user.getEmail(), otp);
-    }
-
-    // ─── Reset Password ──────────────────────────────────────────
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
@@ -270,12 +250,8 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Invalidate all sessions
         userSessionRepository.deactivateAllByUserId(user.getId());
-        log.info("Password reset successful for: {}", user.getEmail());
     }
-
-    // ─── Get Current User ────────────────────────────────────────
 
     public UserResponse getCurrentUser(String userId) {
         User user = userRepository.findById(UUID.fromString(userId))
@@ -283,19 +259,17 @@ public class AuthService {
         return userMapper.toUserResponse(user);
     }
 
-    // ─── Private Helpers ─────────────────────────────────────────
-
     private TokenResponse createTokenResponse(User user) {
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
 
-        // Save session
         UserSession session = UserSession.builder()
                 .userId(user.getId())
                 .refreshToken(refreshToken)
                 .deviceType(DeviceType.MOBILE)
                 .isActive(true)
                 .build();
+
         userSessionRepository.save(session);
 
         return TokenResponse.builder()

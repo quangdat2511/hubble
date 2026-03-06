@@ -1,15 +1,6 @@
 package com.example.hubble.data.api;
 
-import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.LoginRequest;
-import com.example.hubble.data.model.PhoneLoginRequest;
-import com.example.hubble.data.model.PhoneSendOtpRequest;
-import com.example.hubble.data.model.PhoneVerifyOtpRequest;
-import com.example.hubble.data.model.RegisterRequest;
-import com.example.hubble.data.model.TokenResponse;
-import com.example.hubble.data.model.UserCreationRequest;
-import com.example.hubble.data.model.UserResponse;
-
+import com.example.hubble.data.model.*;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Header;
@@ -26,7 +17,19 @@ public interface ApiService {
     Call<ApiResponse<TokenResponse>> loginWithEmail(@Body LoginRequest request);
 
     @POST("api/auth/register")
-    Call<ApiResponse<TokenResponse>> registerWithEmail(@Body RegisterRequest request);
+    Call<ApiResponse<String>> registerWithEmail(@Body RegisterRequest request);
+
+    @POST("api/auth/email/verify")
+    Call<ApiResponse<TokenResponse>> verifyEmailOtp(@Body EmailVerifyOtpRequest request);
+
+    @POST("api/auth/login/google")
+    Call<ApiResponse<TokenResponse>> loginWithGoogle(@Body GoogleLoginRequest request);
+
+    @POST("api/auth/forgot-password")
+    Call<ApiResponse<String>> forgotPassword(@Body ForgotPasswordRequest request);
+
+    @POST("api/auth/reset-password")
+    Call<ApiResponse<String>> resetPassword(@Body ResetPasswordRequest request);
 
     @POST("api/auth/login/phone")
     Call<ApiResponse<TokenResponse>> loginWithPhone(@Body PhoneLoginRequest request);

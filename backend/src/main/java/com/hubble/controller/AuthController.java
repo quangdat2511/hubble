@@ -25,10 +25,16 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<TokenResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        TokenResponse tokenResponse = authService.register(request);
+    public ResponseEntity<ApiResponse<String>> register(@Valid @RequestBody RegisterRequest request) {
+        String message = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<TokenResponse>builder().result(tokenResponse).build());
+                .body(ApiResponse.<String>builder().result(message).build());
+    }
+
+    @PostMapping("/email/verify")
+    public ResponseEntity<ApiResponse<TokenResponse>> verifyEmailRegistration(@Valid @RequestBody EmailVerifyOtpRequest request) {
+        TokenResponse tokenResponse = authService.verifyEmailRegistration(request);
+        return ResponseEntity.ok(ApiResponse.<TokenResponse>builder().result(tokenResponse).build());
     }
 
     @PostMapping("/login")

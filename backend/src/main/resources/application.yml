@@ -2,16 +2,10 @@ server:
   port: 8080
 
 spring:
-#  datasource:
-#    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
-#    username: postgres.qexzpkwrfjlblrvtqvuh
-#    password: hubble@56183
-#    driver-class-name: org.postgresql.Driver
-
   datasource:
-    url: jdbc:postgresql://localhost:5432/temp_hubble
-    username: postgres
-    password: 1234
+    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.qexzpkwrfjlblrvtqvuh
+    password: hubble@56183
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -33,6 +27,18 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: huychienthan999@gmail.com
+    password: fkhifplujjzuqkub
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 jwt:
   secret: MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=
   access-token-expiration: 3600000
@@ -46,7 +52,7 @@ aws:
     secret-key: YOUR_AWS_SECRET_KEY
 
 google:
-  client-id: YOUR_GOOGLE_CLIENT_ID
+  client-id: 571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com
 
 otp:
   expiry-minutes: 5
@@ -55,3 +61,4 @@ otp:
 logging:
   level:
     com.hubble: DEBUG
+
