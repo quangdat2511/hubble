@@ -1,9 +1,8 @@
 package com.hubble.controller;
 
-
-import org.springframework.data.domain.Page;
-import com.hubble.dto.request.MessageRequest;
-import com.hubble.entity.Message;
+import com.hubble.dto.request.CreateMessageRequest;
+import com.hubble.dto.response.MessageResponse;
+import com.hubble.dto.common.ApiResponse;
 import com.hubble.service.MessageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +20,27 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-
 public class MessageController {
+
     MessageService messageService;
+
     @PostMapping
-    public ResponseEntity<Message> sendMessage(@RequestBody MessageRequest request) {
-        Message savedMessage = messageService.sendMessage(request);
-        return ResponseEntity.ok(savedMessage);
+    public ResponseEntity<ApiResponse<MessageResponse>> sendMessage(@RequestBody CreateMessageRequest request) {
+        MessageResponse messageResponse = messageService.sendMessage(request);
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder()
+                .result(messageResponse)
+                .build());
     }
 
     @GetMapping("/{channelId}")
-    public ResponseEntity<List<Message>> getMessages(
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> getMessages(
             @PathVariable UUID channelId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size
     ) {
-        List<Message> messages = messageService.getMessagesByChannel(channelId, page, size);
-        return ResponseEntity.ok(messages);
+        List<MessageResponse> messages = messageService.getMessagesByChannel(channelId, page, size);
+        return ResponseEntity.ok(ApiResponse.<List<MessageResponse>>builder()
+                .result(messages)
+                .build());
     }
 }

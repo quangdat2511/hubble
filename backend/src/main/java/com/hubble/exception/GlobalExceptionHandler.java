@@ -1,5 +1,6 @@
 package com.hubble.exception;
 
+import com.hubble.dto.common.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
+public class CreateUserRequest {
 
     @NotBlank(message = "Firebase UID không được để trống")
     String firebaseUid;
