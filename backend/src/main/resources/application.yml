@@ -27,8 +27,20 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: huychienthan999@gmail.com
+    password: fkhifplujjzuqkub
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 jwt:
-  secret: hubble-super-secret-key-change-this-in-production
+  secret: MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=
   access-token-expiration: 3600000
   refresh-token-expiration: 2592000000
 
@@ -39,6 +51,14 @@ aws:
     access-key: YOUR_AWS_ACCESS_KEY
     secret-key: YOUR_AWS_SECRET_KEY
 
+google:
+  client-id: 571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com
+
+otp:
+  expiry-minutes: 5
+  length: 6
+
 logging:
   level:
     com.hubble: DEBUG
+

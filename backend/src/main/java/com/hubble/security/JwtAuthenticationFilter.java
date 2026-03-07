@@ -1,11 +1,11 @@
 package com.hubble.security;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
+import com.hubble.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,10 +14,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.UUID;
 
 @Component
 @Slf4j
-public class FirebaseTokenFilter extends OncePerRequestFilter {
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -28,16 +33,20 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
-                String firebaseUid = decodedToken.getUid();
+                if (jwtService.validateToken(token)) {
+                    UUID userId = jwtService.getUserIdFromToken(token);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        firebaseUid, null, Collections.emptyList()
-                );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
+                    // Verify user exists in database
+                    userRepository.findById(userId).ifPresent(user -> {
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(
+                                        userId.toString(), null, Collections.emptyList()
+                                );
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    });
+                }
             } catch (Exception e) {
-
+                log.warn("JWT authentication failed: {}", e.getMessage());
             }
         }
 

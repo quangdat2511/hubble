@@ -14,9 +14,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateUserRequest {
 
-    @NotBlank(message = "Firebase UID không được để trống")
-    String firebaseUid;
-
     @NotBlank(message = "USERNAME_INVALID")
     @TagConstraint
     String username;

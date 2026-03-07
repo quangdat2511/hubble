@@ -1,12 +1,11 @@
 package com.example.hubble.view.auth;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
-
 import androidx.lifecycle.ViewModelProvider;
-
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivityRegisterBinding;
@@ -18,6 +17,7 @@ public class RegisterActivity extends BaseAuthActivity {
 
     private ActivityRegisterBinding binding;
     private AuthViewModel authViewModel;
+    private String currentEmail = "";
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -32,7 +32,7 @@ public class RegisterActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
-                new AuthViewModelFactory(new AuthRepository()))
+                new AuthViewModelFactory(new AuthRepository(this)))
                 .get(AuthViewModel.class);
 
         binding.btnBack.setOnClickListener(v -> finish());
@@ -43,19 +43,15 @@ public class RegisterActivity extends BaseAuthActivity {
 
         observeAuthResult(authViewModel.registerState,
                 authViewModel::resetRegisterState,
-                this::showSuccessState,
+                this::navigateToOtp,
                 this::showErrorState);
     }
 
     private void handleRegister() {
-        String displayName = binding.etDisplayName.getText() != null
-                ? binding.etDisplayName.getText().toString().trim() : "";
-        String email = binding.etEmail.getText() != null
-                ? binding.etEmail.getText().toString().trim() : "";
-        String password = binding.etPassword.getText() != null
-                ? binding.etPassword.getText().toString() : "";
-        String confirmPassword = binding.etConfirmPassword.getText() != null
-                ? binding.etConfirmPassword.getText().toString() : "";
+        String displayName = binding.etDisplayName.getText() != null ? binding.etDisplayName.getText().toString().trim() : "";
+        currentEmail = binding.etEmail.getText() != null ? binding.etEmail.getText().toString().trim() : "";
+        String password = binding.etPassword.getText() != null ? binding.etPassword.getText().toString() : "";
+        String confirmPassword = binding.etConfirmPassword.getText() != null ? binding.etConfirmPassword.getText().toString() : "";
 
         binding.tilDisplayName.setError(null);
         binding.tilEmail.setError(null);
@@ -66,11 +62,11 @@ public class RegisterActivity extends BaseAuthActivity {
             binding.tilDisplayName.setError(getString(R.string.error_empty_name));
             return;
         }
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(currentEmail)) {
             binding.tilEmail.setError(getString(R.string.error_empty_email));
             return;
         }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(currentEmail).matches()) {
             binding.tilEmail.setError(getString(R.string.error_invalid_email));
             return;
         }
@@ -87,17 +83,14 @@ public class RegisterActivity extends BaseAuthActivity {
             return;
         }
 
-        authViewModel.registerWithEmail(email, password, displayName);
+        authViewModel.registerWithEmail(currentEmail, password, displayName);
     }
 
-    // ─── Result State Handling ───────────────────────────────────
-
-    private void showSuccessState() {
-        // Sign out so user must log in manually
-        authViewModel.logout();
-        binding.layoutForm.setVisibility(View.GONE);
-        binding.layoutError.setVisibility(View.GONE);
-        binding.layoutSuccess.setVisibility(View.VISIBLE);
+    private void navigateToOtp() {
+        Intent intent = new Intent(this, OtpActivity.class);
+        intent.putExtra(OtpActivity.EXTRA_EMAIL, currentEmail);
+        startActivity(intent);
+        finish();
     }
 
     private void showErrorState(String message) {
@@ -119,4 +112,3 @@ public class RegisterActivity extends BaseAuthActivity {
         binding.btnRegister.setEnabled(!isLoading);
     }
 }
-
