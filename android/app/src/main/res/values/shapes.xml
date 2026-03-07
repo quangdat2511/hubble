@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Discord-style shape appearances -->
+
+    <!-- Server icon shapes -->
+    <style name="ShapeAppearance.App.ServerIcon" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="ShapeAppearance.App.ServerIcon.Rounded" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_xl</item>
+    </style>
+
+    <!-- Message bubble shapes -->
+    <style name="ShapeAppearance.App.MessageBubble" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_md</item>
+    </style>
+
+    <style name="ShapeAppearance.App.MessageBubble.Own" parent="ShapeAppearance.App.MessageBubble">
+        <item name="cornerSizeTopLeft">@dimen/radius_xl</item>
+        <item name="cornerSizeTopRight">@dimen/radius_sm</item>
+        <item name="cornerSizeBottomLeft">@dimen/radius_xl</item>
+        <item name="cornerSizeBottomRight">@dimen/radius_xl</item>
+    </style>
+
+    <style name="ShapeAppearance.App.MessageBubble.Other" parent="ShapeAppearance.App.MessageBubble">
+        <item name="cornerSizeTopLeft">@dimen/radius_sm</item>
+        <item name="cornerSizeTopRight">@dimen/radius_xl</item>
+        <item name="cornerSizeBottomLeft">@dimen/radius_xl</item>
+        <item name="cornerSizeBottomRight">@dimen/radius_xl</item>
+    </style>
+
+    <!-- Avatar shapes -->
+    <style name="ShapeAppearance.App.Avatar" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Card shapes -->
+    <style name="ShapeAppearance.App.Card" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_md</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Card.Large" parent="ShapeAppearance.App.Card">
+        <item name="cornerSize">@dimen/radius_lg</item>
+    </style>
+
+    <!-- Input field shapes -->
+    <style name="ShapeAppearance.App.Input" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_md</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Input.Pill" parent="ShapeAppearance.App.Input">
+        <item name="cornerSize">@dimen/radius_full</item>
+    </style>
+</resources>

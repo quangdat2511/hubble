@@ -1,13 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.Hubble" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary colors -->
         <item name="colorPrimary">@color/color_primary</item>
         <item name="colorPrimaryDark">@color/color_primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/color_primary_dark</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+
+        <!-- Secondary colors -->
+        <item name="colorSecondary">@color/color_primary_light</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/color_surface_elevated</item>
+        <item name="colorOnSecondaryContainer">@color/color_text_primary</item>
+
+        <!-- Surface colors -->
         <item name="colorSurface">@color/color_surface</item>
+        <item name="colorOnSurface">@color/color_text_primary</item>
+        <item name="colorSurfaceVariant">@color/color_input_background</item>
+        <item name="colorOnSurfaceVariant">@color/color_text_secondary</item>
+        <item name="colorSurfaceContainerHighest">@color/color_surface_elevated</item>
+
+        <!-- Background -->
         <item name="android:colorBackground">@color/color_background</item>
+        <item name="colorOnBackground">@color/color_text_primary</item>
         <item name="android:windowBackground">@color/color_background</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/color_error</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- Outline and borders -->
+        <item name="colorOutline">@color/color_divider</item>
+        <item name="colorOutlineVariant">@color/color_text_hint</item>
+
+        <!-- Text colors -->
         <item name="android:textColorPrimary">@color/color_text_primary</item>
         <item name="android:textColorSecondary">@color/color_text_secondary</item>
+        <item name="android:textColorHint">@color/color_text_hint</item>
+
+        <!-- System bars -->
         <item name="android:statusBarColor">@color/color_background</item>
         <item name="android:navigationBarColor">@color/color_background</item>
     </style>
@@ -25,7 +57,7 @@
         <item name="android:textStyle">bold</item>
         <item name="android:paddingTop">14dp</item>
         <item name="android:paddingBottom">14dp</item>
-        <item name="cornerRadius">4dp</item>
+        <item name="cornerRadius">8dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
     </style>
@@ -36,21 +68,67 @@
         <item name="android:textSize">14sp</item>
         <item name="android:paddingTop">14dp</item>
         <item name="android:paddingBottom">14dp</item>
-        <item name="cornerRadius">4dp</item>
+        <item name="cornerRadius">8dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
     </style>
 
     <style name="Widget.Hubble.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxBackgroundColor">@color/color_input_background</item>
-        <item name="boxStrokeColor">@color/color_divider</item>
+        <item name="boxBackgroundColor">?attr/colorSurfaceVariant</item>
+        <item name="boxStrokeColor">?attr/colorOutline</item>
         <item name="boxStrokeWidth">1dp</item>
-        <item name="hintTextColor">@color/color_text_hint</item>
-        <item name="android:textColorHint">@color/color_text_hint</item>
-        <item name="errorTextColor">@color/color_error</item>
-        <item name="boxCornerRadiusTopStart">4dp</item>
-        <item name="boxCornerRadiusTopEnd">4dp</item>
-        <item name="boxCornerRadiusBottomStart">4dp</item>
-        <item name="boxCornerRadiusBottomEnd">4dp</item>
+        <item name="hintTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textColorHint">?attr/colorOnSurfaceVariant</item>
+        <item name="errorTextColor">?attr/colorError</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+    </style>
+
+    <!-- Card styles -->
+    <style name="Widget.Hubble.CardView" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">@dimen/radius_md</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <style name="Widget.Hubble.CardView.Elevated" parent="Widget.Hubble.CardView">
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainerHighest</item>
+    </style>
+
+    <!-- Chip styles -->
+    <style name="Widget.Hubble.Chip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">@dimen/radius_md</item>
+        <item name="chipBackgroundColor">?attr/colorSurfaceContainerHighest</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Text styles matching Discord typography -->
+    <style name="TextAppearance.Hubble.ServerName" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Hubble.ChannelName" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="TextAppearance.Hubble.ChannelName.Active" parent="TextAppearance.Hubble.ChannelName">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.Hubble.MessageText" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.Hubble.Username" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Hubble.Timestamp" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textColor">?attr/colorOutlineVariant</item>
     </style>
 </resources>

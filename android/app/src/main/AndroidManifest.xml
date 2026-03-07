@@ -52,6 +52,11 @@
             android:name=".view.MainActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".view.settings.SettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
     </application>
 
 </manifest>

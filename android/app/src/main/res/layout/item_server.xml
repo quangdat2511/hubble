@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="@dimen/sidebar_width"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:paddingTop="@dimen/spacing_sm"
+    android:paddingBottom="@dimen/spacing_sm">
+
+    <!-- Active indicator pill on the left edge -->
+    <View
+        android:id="@+id/viewActiveIndicator"
+        android:layout_width="@dimen/server_active_indicator_width"
+        android:layout_height="@dimen/server_active_indicator_height"
+        android:layout_gravity="start|center_vertical"
+        android:background="@drawable/bg_server_active_indicator"
+        android:visibility="gone" />
+
+    <!-- Server icon (colored background circle) -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivServerIcon"
+        android:layout_width="@dimen/server_icon_size"
+        android:layout_height="@dimen/server_icon_size"
+        android:layout_gravity="center"
+        android:contentDescription="@string/cd_server_icon"
+        android:scaleType="centerCrop"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+    <!-- Initials overlay -->
+    <TextView
+        android:id="@+id/tvServerInitials"
+        android:layout_width="@dimen/server_icon_size"
+        android:layout_height="@dimen/server_icon_size"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
+</FrameLayout>

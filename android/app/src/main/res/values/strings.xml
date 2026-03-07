@@ -64,4 +64,62 @@
     <string name="error_empty_name">Vui lòng nhập tên hiển thị</string>
     <string name="error_empty_otp">Vui lòng nhập đầy đủ mã OTP</string>
     <string name="error_generic">Có lỗi xảy ra. Vui lòng thử lại.</string>
+
+    <!-- Main / Home -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_notifications">Các Thông Báo</string>
+    <string name="nav_me">Bạn</string>
+    <string name="main_add_server">Thêm máy chủ</string>
+    <string name="main_coming_soon">Tính năng sắp ra mắt</string>
+    <string name="main_search_hint">Tìm kiếm</string>
+    <string name="main_invite_people">Mời người dùng</string>
+    <string name="main_events">Sự kiện</string>
+    <string name="cd_server_icon">Biểu tượng máy chủ</string>
+    <string name="cd_add_server">Thêm máy chủ mới</string>
+    <string name="cd_search">Tìm kiếm</string>
+    <string name="cd_invite">Mời người dùng</string>
+    <string name="cd_events">Xem sự kiện</string>
+    <string name="cd_channel">Kênh %1$s</string>
+    <string name="home_default_server">Hubble</string>
+
+    <!-- Notifications screen -->
+    <string name="notifications_title">Các Thông Báo</string>
+    <string name="notifications_empty">Không có thông báo mới</string>
+    <string name="cd_notifications_more">Thêm tùy chọn thông báo</string>
+
+    <!-- Me / Profile screen -->
+    <string name="me_title">Bạn</string>
+    <string name="me_add_status">Thêm trạng thái</string>
+    <string name="me_edit_profile">Sửa Hồ Sơ</string>
+    <string name="me_joined_since">Gia Nhập Từ</string>
+    <string name="me_friends">Bạn Bè</string>
+    <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="cd_settings">Cài đặt</string>
+    <string name="cd_user_avatar">Ảnh đại diện</string>
+    <string name="cd_online_status">Trực tuyến</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_section_app">Ứng Dụng</string>
+    <string name="settings_section_support">Hỗ trợ</string>
+    <string name="settings_section_info">Có Gì Mới</string>
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_notifications">Các Thông Báo</string>
+    <string name="settings_appearance">Giao diện</string>
+    <string name="settings_advanced">Nâng cao</string>
+    <string name="settings_support">Hỗ trợ</string>
+    <string name="settings_changelog">Có Gì Mới</string>
+    <string name="settings_logout">Đăng Xuất</string>
+    <string name="settings_logout_confirm_title">Đăng xuất</string>
+    <string name="settings_logout_confirm_message">Bạn có chắc chắn muốn đăng xuất?</string>
+    <string name="settings_logout_confirm_yes">Đăng xuất</string>
+    <string name="settings_logout_confirm_no">Hủy</string>
+    <string name="cd_settings_back">Quay lại</string>
+
+    <!-- Channel list -->
+    <string name="channel_category_voice">Voice Channels</string>
+    <string name="channel_category_text">Text Channels</string>
+    <string name="channel_general">General</string>
+    <string name="channel_announcements">Announcements</string>
+    <string name="channel_lounge">Lounge</string>
 </resources>
