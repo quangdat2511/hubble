@@ -47,7 +47,25 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         ItemServerBinding b = ItemServerBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
-        return new ViewHolder(b);
+        ViewHolder holder = new ViewHolder(b);
+
+        // Set click listener once during creation for better performance
+        holder.itemView.setOnClickListener(v -> {
+            int pos = holder.getBindingAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return;
+
+            // Immediate UI update before callback for instant feedback
+            if (pos != selectedPosition) {
+                int old = selectedPosition;
+                selectedPosition = pos;
+                notifyItemChanged(old);
+                notifyItemChanged(selectedPosition);
+            }
+
+            if (listener != null) listener.onServerClick(servers.get(pos), pos);
+        });
+
+        return holder;
     }
 
     @Override
@@ -55,12 +73,6 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
         ServerItem server = servers.get(position);
         boolean selected = (position == selectedPosition);
         holder.bind(server, selected);
-        holder.itemView.setOnClickListener(v -> {
-            int pos = holder.getBindingAdapterPosition();
-            if (pos == RecyclerView.NO_ID) return;
-            setSelectedPosition(pos);
-            if (listener != null) listener.onServerClick(servers.get(pos), pos);
-        });
     }
 
     @Override
@@ -77,10 +89,11 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
         void bind(ServerItem server, boolean isSelected) {
             b.viewActiveIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
 
-            // Discord-style: squircle when selected, circle when not
-            float corner = isSelected ? 48f : 999f;
+            // Discord-style: rounded square (16dp) when selected, circle when not
+            // Use 16dp for squircle effect like Discord
+            float cornerSize = isSelected ? 16f : 999f;
             b.ivServerIcon.setShapeAppearanceModel(
-                    ShapeAppearanceModel.builder().setAllCornerSizes(corner).build());
+                    ShapeAppearanceModel.builder().setAllCornerSizes(cornerSize).build());
 
             GradientDrawable bg = new GradientDrawable();
             bg.setShape(GradientDrawable.OVAL);

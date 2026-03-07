@@ -114,10 +114,13 @@
                 android:layout_marginEnd="@dimen/spacing_md"
                 android:layout_marginBottom="@dimen/spacing_sm"
                 android:hint="@string/main_search_hint"
-                app:boxCornerRadiusBottomEnd="24dp"
-                app:boxCornerRadiusBottomStart="24dp"
-                app:boxCornerRadiusTopEnd="24dp"
-                app:boxCornerRadiusTopStart="24dp"
+                app:boxBackgroundColor="?attr/colorSurfaceVariant"
+                app:boxCornerRadiusBottomEnd="@dimen/radius_sm"
+                app:boxCornerRadiusBottomStart="@dimen/radius_sm"
+                app:boxCornerRadiusTopEnd="@dimen/radius_sm"
+                app:boxCornerRadiusTopStart="@dimen/radius_sm"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
                 app:startIconDrawable="@drawable/ic_search"
                 app:startIconTint="?attr/colorOnSurfaceVariant">
 
@@ -126,6 +129,7 @@
                     android:layout_height="wrap_content"
                     android:focusable="false"
                     android:focusableInTouchMode="false"
+                    android:textColor="?attr/colorOnSurface"
                     android:inputType="none" />
 
             </com.google.android.material.textfield.TextInputLayout>
