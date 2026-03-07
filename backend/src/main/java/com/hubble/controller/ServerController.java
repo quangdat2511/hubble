@@ -1,6 +1,7 @@
 package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
+import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.service.ServerService;
 import lombok.AccessLevel;
@@ -20,6 +21,17 @@ import java.util.UUID;
 public class ServerController {
 
     ServerService serverService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<ServerResponse>> createServer(
+            @RequestBody CreateServerRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        ServerResponse serverResponse = serverService.createServer(userId, request);
+        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
+                .result(serverResponse)
+                .build());
+    }
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<ServerResponse>>> getMyServers(Authentication authentication) {

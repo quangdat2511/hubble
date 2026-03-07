@@ -1,5 +1,6 @@
 package com.hubble.service;
 
+import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
@@ -56,5 +57,10 @@ public class ServerService {
                         .createdAt(server.getCreatedAt())
                         .build())
                 .toList();
+    }
+
+    public ServerResponse createServer(UUID userId, CreateServerRequest request) {
+        // TODO: implement create server logic
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
