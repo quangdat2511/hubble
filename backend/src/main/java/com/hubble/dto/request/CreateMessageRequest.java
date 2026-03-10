@@ -3,6 +3,7 @@ package com.hubble.dto.request;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -15,4 +16,6 @@ public class CreateMessageRequest {
     UUID authorId;
     UUID replyToId;
     String content;
+    private String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
+    private List<UUID> attachmentIds;
 }
