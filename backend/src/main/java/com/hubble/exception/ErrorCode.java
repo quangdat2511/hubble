@@ -18,6 +18,11 @@ public enum ErrorCode {
     PASSWORD_INVALID(1005, "Mật khẩu phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1006, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
 
+    FILE_EMPTY(1007, "File is empty", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(1008, "File exceeds maximum allowed size", HttpStatus.BAD_REQUEST),
+    FILE_TYPE_NOT_ALLOWED(1009, "File type is not allowed", HttpStatus.BAD_REQUEST),
+    UPLOAD_FAILED(1010, "Failed to upload file to storage", HttpStatus.BAD_REQUEST),
+
     // Xác thực
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
