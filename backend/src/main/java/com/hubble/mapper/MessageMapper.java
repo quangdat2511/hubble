@@ -1,6 +1,7 @@
 package com.hubble.mapper;
 
 import com.hubble.dto.request.CreateMessageRequest;
+import com.hubble.dto.response.MessageResponse;
 import com.hubble.entity.Message;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,5 +16,7 @@ public interface MessageMapper {
     @Mapping(target = "editedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     Message toMessage(CreateMessageRequest request);
+
+    MessageResponse toMessageResponse(Message message);
 
 }
