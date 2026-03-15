@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface ServerRepository extends JpaRepository<Server, UUID> {
+    boolean existsByInviteCode(String inviteCode);
 }
