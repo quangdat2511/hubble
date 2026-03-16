@@ -8,6 +8,8 @@ import com.hubble.entity.Message;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.MessageMapper;
+import com.hubble.repository.ChannelMemberRepository;
+import com.hubble.repository.ChannelRepository;
 import com.hubble.repository.MessageRepository;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -30,11 +32,28 @@ public class MessageService {
     MessageRepository messageRepository;
     MessageMapper messageMapper;
     SimpMessagingTemplate messagingTemplate;
+    ChannelRepository channelRepository;
+    ChannelMemberRepository channelMemberRepository;
 
-    public MessageResponse sendMessage(CreateMessageRequest request) {
-        Message newMessage = messageMapper.toMessage(request);
+    public MessageResponse sendMessage(UUID currentUserId, CreateMessageRequest request) {
+        UUID channelId = request.getChannelId();
+
+        // 1. Kiểm tra channel tồn tại
+        channelRepository.findById(channelId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+
+        // 2. Kiểm tra user là member của channel
+        boolean isMember = channelMemberRepository.existsByChannelIdAndUserId(channelId, currentUserId);
+        if (!isMember) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        };
+
+        // 4. Lưu & broadcast như cũ
+        Message newMessage = messageMapper.toMessage(request, currentUserId);
+
         Message savedMessage = messageRepository.save(newMessage);
         MessageResponse response = messageMapper.toMessageResponse(savedMessage);
+
         messagingTemplate.convertAndSend(
                 "/topic/channel/" + savedMessage.getChannelId(),
                 MessageEvent.builder().action("SEND").message(response).build()

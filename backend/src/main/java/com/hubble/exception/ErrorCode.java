@@ -17,7 +17,7 @@ public enum ErrorCode {
     USERNAME_INVALID(1004, "Tên hiển thị phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1005, "Mật khẩu phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1006, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
-
+    CANNOT_DM_SELF(1007, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
     // Xác thực
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
@@ -34,6 +34,8 @@ public enum ErrorCode {
     FRIEND_REQUEST_EXISTED(2001, "Lời mời kết bạn đã tồn tại", HttpStatus.BAD_REQUEST),
     FRIEND_REQUEST_NOT_FOUND(2002, "Lời mời kết bạn không tồn tại", HttpStatus.NOT_FOUND),
     ALREADY_FRIENDS(2003, "Hai người đã là bạn bè", HttpStatus.BAD_REQUEST),
+    CANNOT_FRIEND_SELF(2004, "Bạn không thể kết bạn với chính mình", HttpStatus.BAD_REQUEST),
+    FRIEND_REQUEST_FORBIDDEN(2005, "Không thể gửi lời mời do quan hệ chặn", HttpStatus.BAD_REQUEST),
 
     // Server / Kênh
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),

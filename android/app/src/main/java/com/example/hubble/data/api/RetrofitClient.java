@@ -10,6 +10,10 @@ public class RetrofitClient {
     private static final String BASE_URL = "http://10.0.2.2:8080/";
     private static Retrofit retrofit = null;
 
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
+
     public static ApiService getApiService() {
         if (retrofit == null) {
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
