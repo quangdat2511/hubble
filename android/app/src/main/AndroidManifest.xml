@@ -53,6 +53,16 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.DmChatActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.NewMessageActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".view.settings.SettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

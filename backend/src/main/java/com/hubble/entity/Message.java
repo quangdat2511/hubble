@@ -60,4 +60,5 @@ public class Message {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
 }

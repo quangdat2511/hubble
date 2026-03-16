@@ -9,11 +9,13 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityMainBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.view.me.MeFragment;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
+import com.example.hubble.viewmodel.MainViewModelFactory;
 import com.google.android.material.badge.BadgeDrawable;
 
 public class MainActivity extends BaseAuthActivity {
@@ -43,7 +45,9 @@ public class MainActivity extends BaseAuthActivity {
         }
 
         // Pre-create MainViewModel so HomeFragment can share it
-        new ViewModelProvider(this).get(com.example.hubble.viewmodel.MainViewModel.class);
+        new ViewModelProvider(this,
+            new MainViewModelFactory(new DmRepository(this)))
+            .get(com.example.hubble.viewmodel.MainViewModel.class);
 
         setupBottomNavigation();
 
