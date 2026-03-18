@@ -1,7 +1,5 @@
 package com.example.hubble.viewmodel;
 
-import android.graphics.Color;
-
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -47,19 +45,33 @@ public class MainViewModel extends ViewModel {
 
     public MainViewModel(DmRepository dmRepository) {
         this.dmRepository = dmRepository;
-        loadStubServers();
+        _servers.setValue(new ArrayList<>());
+        _selectedServer.setValue(null);
+        _channels.setValue(new ArrayList<>());
         refreshDirectMessages();
     }
 
-    private void loadStubServers() {
-        List<ServerItem> list = new ArrayList<>();
-        list.add(new ServerItem("1", "Hubble",        null, Color.parseColor("#5865F2")));
-        list.add(new ServerItem("2", "Máy cũ",        null, Color.parseColor("#57F287")));
-        list.add(new ServerItem("3", "DSA",           null, Color.parseColor("#FEE75C")));
-        list.add(new ServerItem("4", "Gaming",        null, Color.parseColor("#ED4245")));
-        list.add(new ServerItem("5", "Team Project",  null, Color.parseColor("#EB459E")));
-        _servers.setValue(list);
-        selectServer(list.get(0));
+    public void setServers(List<ServerItem> servers) {
+        List<ServerItem> updated = servers != null ? new ArrayList<>(servers) : new ArrayList<>();
+        _servers.setValue(updated);
+
+        if (updated.isEmpty()) {
+            _selectedServer.setValue(null);
+            _channels.setValue(new ArrayList<>());
+            return;
+        }
+
+        ServerItem current = _selectedServer.getValue();
+        if (current != null) {
+            for (ServerItem item : updated) {
+                if (item.getId() != null && item.getId().equals(current.getId())) {
+                    selectServer(item);
+                    return;
+                }
+            }
+        }
+
+        selectServer(updated.get(0));
     }
 
     public void selectServer(ServerItem server) {

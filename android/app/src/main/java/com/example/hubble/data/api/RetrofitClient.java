@@ -15,7 +15,7 @@ public class RetrofitClient {
         return BASE_URL;
     }
 
-    public static ApiService getApiService(Context context) {
+    private static Retrofit getRetrofit(Context context) {
         if (retrofit == null) {
             TokenManager tokenManager = new TokenManager(context.getApplicationContext());
 
@@ -32,6 +32,14 @@ public class RetrofitClient {
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
-        return retrofit.create(ApiService.class);
+        return retrofit;
+    }
+
+    public static ApiService getApiService(Context context) {
+        return getRetrofit(context).create(ApiService.class);
+    }
+
+    public static ServerService getServerService(Context context) {
+        return getRetrofit(context).create(ServerService.class);
     }
 }
