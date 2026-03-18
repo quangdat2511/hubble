@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/color_background"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/color_text_primary"
+        app:title="@string/customize_server_title"
+        app:titleTextColor="@color/color_text_primary" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/spacing_md"
+            android:paddingEnd="@dimen/spacing_md">
+
+            <!-- Subtitle -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:gravity="center"
+                android:text="@string/customize_server_subtitle"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="14sp" />
+
+            <!-- Icon picker -->
+            <FrameLayout
+                android:layout_width="@dimen/avatar_xl"
+                android:layout_height="@dimen/avatar_xl"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/spacing_xl">
+
+                <ImageView
+                    android:id="@+id/ivServerIcon"
+                    android:layout_width="@dimen/avatar_xl"
+                    android:layout_height="@dimen/avatar_xl"
+                    android:background="@color/color_surface"
+                    android:contentDescription="@string/cd_server_icon_upload"
+                    android:scaleType="centerCrop" />
+
+                <!-- Camera overlay badge -->
+                <FrameLayout
+                    android:id="@+id/fabPickIcon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="bottom|end"
+                    android:background="@color/color_primary"
+                    android:clickable="true"
+                    android:contentDescription="@string/customize_server_upload_icon"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_camera"
+                        android:tint="@color/white" />
+
+                </FrameLayout>
+
+            </FrameLayout>
+
+            <!-- Server name input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilServerName"
+                style="@style/Widget.Hubble.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:hint="@string/customize_server_name_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etServerName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapWords"
+                    android:maxLines="1"
+                    android:textColor="@color/color_text_primary" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Progress bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/spacing_md"
+                android:visibility="gone" />
+
+            <!-- Create button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCreate"
+                style="@style/Widget.Hubble.Button.Primary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/customize_server_btn" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

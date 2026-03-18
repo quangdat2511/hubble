@@ -4,8 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.RefreshTokenRequest;
-import com.example.hubble.data.model.TokenResponse;
+import com.example.hubble.data.model.auth.RefreshTokenRequest;
+import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.auth.LoginActivity;
 

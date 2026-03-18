@@ -3,7 +3,7 @@ package com.example.hubble.utils;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.google.gson.Gson;
 
 public class TokenManager {

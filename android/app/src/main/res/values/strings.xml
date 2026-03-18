@@ -116,6 +116,47 @@
     <string name="settings_logout_confirm_no">Hủy</string>
     <string name="cd_settings_back">Quay lại</string>
 
+    <!-- Create / Join Server -->
+    <string name="create_server_title">Tạo máy chủ</string>
+    <string name="create_server_subtitle">Máy chủ của bạn là nơi bạn và bạn bè trò chuyện. Hãy tạo máy chủ và bắt đầu nói chuyện.</string>
+    <string name="create_server_own">Tạo máy chủ của tôi</string>
+    <string name="create_server_templates_header">BẮT ĐẦU TỪ MỘT MẪU</string>
+    <string name="create_server_template_gaming">Gaming</string>
+    <string name="create_server_template_school">Câu lạc bộ trường</string>
+    <string name="create_server_template_study">Nhóm học tập</string>
+    <string name="create_server_template_friends">Bạn bè</string>
+    <string name="create_server_template_artists">Nghệ sĩ &amp; Nhà sáng tạo</string>
+    <string name="create_server_template_local">Cộng đồng địa phương</string>
+    <string name="create_server_join_hint">Bạn đã có lời mời?</string>
+    <string name="create_server_join_btn">Tham gia máy chủ</string>
+    <string name="create_server_back">Quay lại</string>
+
+    <string name="create_server_audience_title">Cho chúng tôi biết thêm</string>
+    <string name="create_server_audience_subtitle">Để giúp bạn thiết lập, bạn sử dụng máy chủ này cho mục đích gì?</string>
+    <string name="create_server_audience_community">Dành cho câu lạc bộ hoặc cộng đồng</string>
+    <string name="create_server_audience_friends">Dành cho tôi và bạn bè</string>
+    <string name="create_server_audience_community_desc">Tôi muốn gặp gỡ mọi người mới</string>
+    <string name="create_server_audience_friends_desc">Tôi đang nhắn tin cùng bạn bè</string>
+
+    <string name="customize_server_title">Tùy chỉnh máy chủ</string>
+    <string name="customize_server_subtitle">Thêm cá tính bằng tên và biểu tượng. Bạn luôn có thể thay đổi sau.</string>
+    <string name="customize_server_name_hint">Tên máy chủ</string>
+    <string name="customize_server_btn">Tạo</string>
+    <string name="customize_server_upload_icon">Tải lên biểu tượng</string>
+    <string name="cd_server_icon_upload">Chọn biểu tượng máy chủ</string>
+
+    <string name="join_server_title">Tham gia máy chủ</string>
+    <string name="join_server_subtitle">Nhập lời mời bên dưới để tham gia máy chủ hiện có</string>
+    <string name="join_server_hint">Liên kết mời hoặc mã mời</string>
+    <string name="join_server_btn">Tham gia máy chủ</string>
+    <string name="join_server_invite_examples">Lời mời trông như thế này</string>
+    <string name="join_server_example1">hubble.app/invite/abc123</string>
+    <string name="join_server_example2">hubble.app/invite/xyz789</string>
+
+    <string name="error_empty_server_name">Vui lòng nhập tên máy chủ</string>
+    <string name="error_empty_invite">Vui lòng nhập liên kết mời</string>
+    <string name="create_server_success">Tạo máy chủ thành công!</string>
+
     <!-- Channel list -->
     <string name="channel_category_voice">Voice Channels</string>
     <string name="channel_category_text">Text Channels</string>
