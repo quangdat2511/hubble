@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.AuthResult;
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 
 public class AuthViewModel extends ViewModel {

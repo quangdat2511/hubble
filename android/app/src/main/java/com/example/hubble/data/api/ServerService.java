@@ -1,8 +1,8 @@
 package com.example.hubble.data.api;
 
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.CreateServerRequest;
-import com.example.hubble.data.model.ServerResponse;
+import com.example.hubble.data.model.server.CreateServerRequest;
+import com.example.hubble.data.model.server.ServerResponse;
 
 import java.util.List;
 

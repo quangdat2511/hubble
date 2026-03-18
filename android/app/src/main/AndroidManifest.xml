@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
         android:allowBackup="true"
@@ -53,12 +50,12 @@
             android:exported="false" />
 
         <activity
-            android:name=".view.DmChatActivity"
+            android:name=".view.dm.DmChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".view.NewMessageActivity"
+            android:name=".view.dm.NewMessageActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

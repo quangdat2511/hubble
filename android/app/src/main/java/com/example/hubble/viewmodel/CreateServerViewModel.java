@@ -7,7 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.AuthResult;
-import com.example.hubble.data.model.ServerItem;
+import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.ServerRepository;
 
 public class CreateServerViewModel extends ViewModel {

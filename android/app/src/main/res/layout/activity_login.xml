@@ -90,10 +90,19 @@
         android:orientation="vertical"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/tabLayout">
-        <EditText
-            android:id="@+id/etPhone"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Hubble.TextInputLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:hint="@string/login_phone_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:textColor="@color/color_text_primary" />
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
     <TextView
