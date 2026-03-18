@@ -43,6 +43,9 @@ public interface ApiService {
     @POST("api/auth/phone/verify")
     Call<ApiResponse<TokenResponse>> verifyPhoneOtp(@Body PhoneVerifyOtpRequest request);
 
+    @POST("api/auth/refresh")
+    Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
+
         @GET("api/friends/friends")
         Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
