@@ -38,6 +38,10 @@ public class TokenManager {
         return prefs.getString("ACCESS_TOKEN", null);
     }
 
+    public String getRefreshToken() {
+        return prefs.getString("REFRESH_TOKEN", null);
+    }
+
     public void clear() {
         prefs.edit().clear().apply();
     }

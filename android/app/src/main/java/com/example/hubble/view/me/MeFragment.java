@@ -16,9 +16,11 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.data.model.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -98,6 +100,32 @@ public class MeFragment extends Fragment {
                 Snackbar.make(view,
                         getString(com.example.hubble.R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
+
+        // Logout card
+        binding.cardLogout.setOnClickListener(v ->
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(getString(com.example.hubble.R.string.settings_logout_confirm_title))
+                        .setMessage(getString(com.example.hubble.R.string.settings_logout_confirm_message))
+                        .setNegativeButton(getString(com.example.hubble.R.string.settings_logout_confirm_no),
+                                (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton(getString(com.example.hubble.R.string.settings_logout_confirm_yes),
+                                (dialog, which) -> performLogout())
+                        .show());
+    }
+
+    private void performLogout() {
+        AuthViewModel authViewModel = new ViewModelProvider(requireActivity(),
+                new AuthViewModelFactory(new AuthRepository(requireContext())))
+                .get(AuthViewModel.class);
+        authViewModel.logout();
+        navigateToLogin();
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        requireContext().startActivity(intent);
+        requireActivity().finish();
     }
 
     @Override

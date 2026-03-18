@@ -28,7 +28,7 @@ public class DmRepository {
     private final Gson gson;
 
     public DmRepository(Context context) {
-        this.apiService = RetrofitClient.getApiService();
+        this.apiService = RetrofitClient.getApiService(context);
         this.tokenManager = new TokenManager(context.getApplicationContext());
         this.gson = new Gson();
     }

@@ -1,7 +1,8 @@
 package com.example.hubble.data.api;
 
+import android.content.Context;
+import com.example.hubble.utils.TokenManager;
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -14,12 +15,15 @@ public class RetrofitClient {
         return BASE_URL;
     }
 
-    public static ApiService getApiService() {
+    public static ApiService getApiService(Context context) {
         if (retrofit == null) {
+            TokenManager tokenManager = new TokenManager(context.getApplicationContext());
+
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .connectTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)
                     .writeTimeout(60, TimeUnit.SECONDS)
+                    .authenticator(new TokenAuthenticator(tokenManager, context))
                     .build();
 
             retrofit = new Retrofit.Builder()
