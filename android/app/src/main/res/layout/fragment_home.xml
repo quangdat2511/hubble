@@ -7,7 +7,6 @@
     android:background="?android:attr/colorBackground"
     android:orientation="horizontal">
 
-    <!-- ── Left server sidebar ──────────────────────────────────── -->
     <LinearLayout
         android:layout_width="@dimen/sidebar_width"
         android:layout_height="match_parent"
@@ -24,7 +23,6 @@
             android:paddingTop="@dimen/spacing_sm"
             android:paddingBottom="@dimen/spacing_sm" />
 
-        <!-- Divider above add-server FAB -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -46,110 +44,85 @@
 
     </LinearLayout>
 
-    <!-- Vertical divider -->
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:background="?attr/colorOutline" />
 
-    <!-- ── Right channel content ────────────────────────────────── -->
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_md">
 
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/appBarLayout"
+        <TextView
+            android:id="@+id/tvDmTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dm_title"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/colorSurface"
-            app:liftOnScroll="true"
-            app:liftOnScrollTargetViewId="@id/rvChannels">
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <!-- Server name title row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/toolbar_height"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="@dimen/spacing_md"
-                android:paddingEnd="@dimen/spacing_sm">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSearch"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/cd_search"
+                app:icon="@drawable/ic_search"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
 
-                <TextView
-                    android:id="@+id/tvServerName"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/home_default_server"
-                    android:textAppearance="?attr/textAppearanceTitleLarge"
-                    android:textColor="?attr/colorOnSurface" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddFriend"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_weight="1"
+                android:text="@string/dm_add_friend"
+                app:icon="@drawable/ic_person"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnInvite"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/cd_invite"
-                    app:icon="@drawable/ic_invite"
-                    app:iconTint="?attr/colorOnSurfaceVariant" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnEvents"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/cd_events"
-                    app:icon="@drawable/ic_notifications"
-                    app:iconTint="?attr/colorOnSurfaceVariant" />
-
-            </LinearLayout>
-
-            <!-- Search bar -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilSearch"
-                style="@style/Widget.Material3.TextInputLayout.FilledBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_md"
-                android:layout_marginEnd="@dimen/spacing_md"
-                android:layout_marginBottom="@dimen/spacing_sm"
-                android:hint="@string/main_search_hint"
-                app:boxBackgroundColor="?attr/colorSurfaceVariant"
-                app:boxCornerRadiusBottomEnd="@dimen/radius_sm"
-                app:boxCornerRadiusBottomStart="@dimen/radius_sm"
-                app:boxCornerRadiusTopEnd="@dimen/radius_sm"
-                app:boxCornerRadiusTopStart="@dimen/radius_sm"
-                app:boxStrokeWidth="0dp"
-                app:boxStrokeWidthFocused="0dp"
-                app:startIconDrawable="@drawable/ic_search"
-                app:startIconTint="?attr/colorOnSurfaceVariant">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:focusable="false"
-                    android:focusableInTouchMode="false"
-                    android:textColor="?attr/colorOnSurface"
-                    android:inputType="none" />
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="?attr/colorOutline" />
-
-        </com.google.android.material.appbar.AppBarLayout>
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvChannels"
+            android:id="@+id/rvStories"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
             android:clipToPadding="false"
-            android:paddingBottom="@dimen/spacing_md"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+            android:overScrollMode="never"
+            android:paddingBottom="@dimen/spacing_sm" />
 
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvConversations"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingBottom="@dimen/spacing_md" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabNewDm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:contentDescription="@string/dm_new_message"
+            app:backgroundTint="?attr/colorPrimary"
+            app:srcCompat="@drawable/ic_person"
+            app:tint="@color/white" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -3,8 +3,11 @@ package com.example.hubble.data.api;
 import com.example.hubble.data.model.*;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
     @POST("api/users/sync")
@@ -39,4 +42,39 @@ public interface ApiService {
 
     @POST("api/auth/phone/verify")
     Call<ApiResponse<TokenResponse>> verifyPhoneOtp(@Body PhoneVerifyOtpRequest request);
+
+        @GET("api/friends/friends")
+        Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
+            @Header("Authorization") String token
+        );
+
+            @GET("api/contacts/friends")
+            Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
+                @Header("Authorization") String token
+            );
+
+        @GET("api/channels/dm")
+        Call<java.util.List<ChannelDto>> getDirectChannels(
+            @Header("Authorization") String token
+        );
+
+        @POST("api/channels/dm/{otherUserId}")
+        Call<ChannelDto> getOrCreateDirectChannel(
+            @Header("Authorization") String token,
+            @Path("otherUserId") String otherUserId
+        );
+
+        @GET("api/messages/{channelId}")
+        Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("page") int page,
+            @Query("size") int size
+        );
+
+        @POST("api/messages")
+        Call<ApiResponse<MessageDto>> sendMessage(
+            @Header("Authorization") String token,
+            @Body CreateMessageRequest request
+        );
 }
