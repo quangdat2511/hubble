@@ -1,6 +1,6 @@
 package com.example.hubble.data.realtime;
 
-import com.example.hubble.data.model.MessageDto;
+import com.example.hubble.data.model.dm.MessageDto;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;

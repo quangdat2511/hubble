@@ -10,8 +10,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
-import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
+import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.UserResponse;
 import com.example.hubble.data.realtime.FirestoreMessageRepository;
 import com.example.hubble.data.repository.DmRepository;
@@ -37,12 +37,8 @@ public class DmChatActivity extends AppCompatActivity {
     private FirestoreMessageRepository firestoreRepo;
     private TokenManager tokenManager;
 
-    private FirestoreMessageRepository firestoreRepo;
-    private TokenManager tokenManager;
-
     private String channelId;
     private String currentUserId;
-    private String currentUserName;
     private String currentUserName;
     private String peerName;
 
@@ -97,7 +93,6 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        firestoreRepo.removeListener();
         firestoreRepo.removeListener();
     }
 
@@ -160,30 +155,7 @@ public class DmChatActivity extends AppCompatActivity {
         });
     }
 
-    private void subscribeRealtime() {
-        if (TextUtils.isEmpty(channelId)) return;
-
-        firestoreRepo.listenMessages(channelId, new FirestoreMessageRepository.MessagesListener() {
-            @Override
-            public void onMessages(List<MessageDto> messages) {
-                runOnUiThread(() -> {
-                    List<DmMessageItem> mapped = mapMessages(messages);
-                    adapter.setItems(mapped);
-                    if (!mapped.isEmpty()) {
-                        binding.rvMessages.scrollToPosition(mapped.size() - 1);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                // Không spam snackbar khi lỗi realtime
-            }
-        });
-    }
-
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
-        // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
         // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
         List<MessageDto> ordered = new ArrayList<>(rawMessages);
         Collections.reverse(ordered);
@@ -205,7 +177,6 @@ public class DmChatActivity extends AppCompatActivity {
 
     private String formatTime(String rawTime) {
         if (rawTime == null || rawTime.trim().isEmpty()) return "";
-        if (rawTime == null || rawTime.trim().isEmpty()) return "";
         try {
             LocalDateTime dateTime = LocalDateTime.parse(rawTime);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
@@ -214,96 +185,4 @@ public class DmChatActivity extends AppCompatActivity {
             return rawTime;
         }
     }
-SƯ
-    private String buildMessageSnapshot(List<MessageDto> messages) {
-        if (messages == null || messages.isEmpty()) {
-            return "empty";
-        }
-
-        MessageDto latest = messages.get(0);
-        String id = latest.getId() == null ? "" : latest.getId();
-        String editedAt = latest.getEditedAt() == null ? "" : latest.getEditedAt();
-        return messages.size() + "|" + id + "|" + editedAt;
-    }
-
-    private void subscribeRealtime() {
-        if (TextUtils.isEmpty(channelId)) {
-            return;
-        }
-
-        dmStompClient.connectAndSubscribe(channelId, new DmStompClient.Listener() {
-            @Override
-            public void onMessage(MessageDto message) {
-                if (message == null) {
-                    return;
-                }
-
-                if (message.getChannelId() != null && !channelId.equals(message.getChannelId())) {
-                    return;
-                }
-
-                runOnUiThread(() -> applyIncomingMessage(message));
-            }
-
-            @Override
-            public void onError(String message) {
-                // Không spam snackbar để tránh ảnh hưởng trải nghiệm chat.
-            }
-        });
-    }
-
-    private void unsubscribeRealtime() {
-        if (dmStompClient != null) {
-            dmStompClient.disconnect();
-        }
-    }
-
-    private void applyIncomingMessage(MessageDto incoming) {
-        String messageId = incoming.getId();
-        if (messageId == null || messageId.trim().isEmpty()) {
-            loadMessages(true);
-            return;
-        }
-
-        boolean changed = false;
-        synchronized (cachedMessagesDesc) {
-            int index = indexOfMessage(cachedMessagesDesc, messageId);
-            if (index >= 0) {
-                cachedMessagesDesc.set(index, incoming);
-                changed = true;
-            } else {
-                // API list đang ở thứ tự createdAt DESC, nên tin mới thêm ở đầu list.
-                cachedMessagesDesc.add(0, incoming);
-                changed = true;
-            }
-        }
-
-        if (!changed) {
-            return;
-        }
-
-        List<MessageDto> rawCopy;
-        synchronized (cachedMessagesDesc) {
-            rawCopy = new ArrayList<>(cachedMessagesDesc);
-        }
-
-        lastMessageSnapshot = buildMessageSnapshot(rawCopy);
-        List<DmMessageItem> mapped = mapMessages(rawCopy);
-        adapter.setItems(mapped);
-        if (!mapped.isEmpty()) {
-            binding.rvMessages.scrollToPosition(mapped.size() - 1);
-        }
-    }
-
-    private int indexOfMessage(List<MessageDto> messages, String messageId) {
-        for (int i = 0; i < messages.size(); i++) {
-            MessageDto dto = messages.get(i);
-            if (dto.getId() != null && dto.getId().equals(messageId)) {
-                return i;
-            }
-        }
-        return -1;
-    }
 }
-
-
