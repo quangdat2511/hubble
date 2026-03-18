@@ -37,8 +37,12 @@ public class DmChatActivity extends AppCompatActivity {
     private FirestoreMessageRepository firestoreRepo;
     private TokenManager tokenManager;
 
+    private FirestoreMessageRepository firestoreRepo;
+    private TokenManager tokenManager;
+
     private String channelId;
     private String currentUserId;
+    private String currentUserName;
     private String currentUserName;
     private String peerName;
 
@@ -93,6 +97,7 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        firestoreRepo.removeListener();
         firestoreRepo.removeListener();
     }
 
@@ -155,7 +160,30 @@ public class DmChatActivity extends AppCompatActivity {
         });
     }
 
+    private void subscribeRealtime() {
+        if (TextUtils.isEmpty(channelId)) return;
+
+        firestoreRepo.listenMessages(channelId, new FirestoreMessageRepository.MessagesListener() {
+            @Override
+            public void onMessages(List<MessageDto> messages) {
+                runOnUiThread(() -> {
+                    List<DmMessageItem> mapped = mapMessages(messages);
+                    adapter.setItems(mapped);
+                    if (!mapped.isEmpty()) {
+                        binding.rvMessages.scrollToPosition(mapped.size() - 1);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                // Không spam snackbar khi lỗi realtime
+            }
+        });
+    }
+
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
+        // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
         // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
         List<MessageDto> ordered = new ArrayList<>(rawMessages);
         Collections.reverse(ordered);
@@ -177,6 +205,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private String formatTime(String rawTime) {
         if (rawTime == null || rawTime.trim().isEmpty()) return "";
+        if (rawTime == null || rawTime.trim().isEmpty()) return "";
         try {
             LocalDateTime dateTime = LocalDateTime.parse(rawTime);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
@@ -185,7 +214,7 @@ public class DmChatActivity extends AppCompatActivity {
             return rawTime;
         }
     }
-
+SƯ
     private String buildMessageSnapshot(List<MessageDto> messages) {
         if (messages == null || messages.isEmpty()) {
             return "empty";
