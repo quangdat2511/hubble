@@ -122,4 +122,25 @@
     <string name="channel_general">General</string>
     <string name="channel_announcements">Announcements</string>
     <string name="channel_lounge">Lounge</string>
+
+    <!-- Direct message MVP -->
+    <string name="dm_title">Messages</string>
+    <string name="dm_add_friend">Add Friends</string>
+    <string name="dm_new_message">Tin nhắn mới</string>
+    <string name="dm_default_user">Danzg</string>
+    <string name="dm_me">Bạn</string>
+    <string name="dm_message_hint">Message @%1$s</string>
+    <string name="dm_message_hint_static">Message</string>
+    <string name="dm_send">Gửi tin nhắn</string>
+    <string name="dm_send_demo_hint">MVP UI: đã nhận thao tác gửi tin nhắn</string>
+    <string name="cd_call">Gọi thoại</string>
+    <string name="cd_video">Gọi video</string>
+
+    <string name="new_message_title">New Message</string>
+    <string name="new_message_search_hint">To: Search your friends</string>
+    <string name="new_message_new_group">New Group</string>
+    <string name="new_message_add_friend">Add a Friend</string>
+    <string name="new_message_suggested">Suggested</string>
+    <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
+    <string name="cd_close">Close</string>
 </resources>

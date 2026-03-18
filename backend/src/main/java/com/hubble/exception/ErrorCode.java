@@ -23,6 +23,7 @@ public enum ErrorCode {
     FILE_TYPE_NOT_ALLOWED(1009, "File type is not allowed", HttpStatus.BAD_REQUEST),
     UPLOAD_FAILED(1010, "Failed to upload file to storage", HttpStatus.BAD_REQUEST),
 
+    CANNOT_DM_SELF(1007, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
     // Xác thực
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),

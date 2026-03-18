@@ -13,7 +13,6 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateMessageRequest {
     UUID channelId;
-    UUID authorId;
     UUID replyToId;
     String content;
     private String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
