@@ -12,7 +12,7 @@ import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.realtime.FirestoreMessageRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
