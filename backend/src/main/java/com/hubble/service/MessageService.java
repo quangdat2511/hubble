@@ -3,11 +3,15 @@ package com.hubble.service;
 import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.event.MessageEvent;
 import com.hubble.dto.request.EditMessageRequest;
+import com.hubble.dto.response.AttachmentResponse;
 import com.hubble.dto.response.MessageResponse;
+import com.hubble.entity.Attachment;
 import com.hubble.entity.Message;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
+import com.hubble.mapper.AttachmentMapper;
 import com.hubble.mapper.MessageMapper;
+import com.hubble.repository.AttachmentRepository;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
 import com.hubble.repository.MessageRepository;
@@ -22,7 +26,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,10 +36,13 @@ import java.util.UUID;
 public class MessageService {
 
     MessageRepository messageRepository;
+    AttachmentRepository attachmentRepository;
     MessageMapper messageMapper;
     SimpMessagingTemplate messagingTemplate;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    AttachmentMapper attachmentMapper;          // inject this
+
 
     public MessageResponse sendMessage(UUID currentUserId, CreateMessageRequest request) {
         UUID channelId = request.getChannelId();
@@ -52,7 +61,12 @@ public class MessageService {
         Message newMessage = messageMapper.toMessage(request, currentUserId);
 
         Message savedMessage = messageRepository.save(newMessage);
-        MessageResponse response = messageMapper.toMessageResponse(savedMessage);
+        if (request.getAttachmentIds() != null && !request.getAttachmentIds().isEmpty()) {
+            List<Attachment> attachments = attachmentRepository.findAllById(request.getAttachmentIds());
+            attachments.forEach(a -> a.setMessageId(savedMessage.getId()));
+            attachmentRepository.saveAll(attachments);
+        }
+        MessageResponse response = buildResponse(savedMessage);
 
         messagingTemplate.convertAndSend(
                 "/topic/channel/" + savedMessage.getChannelId(),
@@ -69,7 +83,7 @@ public class MessageService {
         message.setEditedAt(LocalDateTime.now());
         Message saved = messageRepository.save(message);
 
-        MessageResponse response = messageMapper.toMessageResponse(saved);
+        MessageResponse response = buildResponse(saved);
         messagingTemplate.convertAndSend(
                 "/topic/channel/" + saved.getChannelId(),
                 MessageEvent.builder().action("EDIT").message(response).build()
@@ -92,11 +106,58 @@ public class MessageService {
                         .build()
         );
     }
+//    public List<MessageResponse> getMessagesByChannel(UUID channelId, int page, int size) {
+//        Pageable pageable = PageRequest.of(page, size);
+//        return messageRepository.findByChannelIdOrderByCreatedAtDesc(channelId, pageable)
+//                .stream()
+//                .map(messageMapper::toMessageResponse)
+//                .toList();
+//    }
+
     public List<MessageResponse> getMessagesByChannel(UUID channelId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return messageRepository.findByChannelIdOrderByCreatedAtDesc(channelId, pageable)
+
+        List<Message> messages = messageRepository
+                .findByChannelIdOrderByCreatedAtDesc(channelId, pageable)
                 .stream()
-                .map(messageMapper::toMessageResponse)
                 .toList();
+
+        if (messages.isEmpty()) return List.of();
+
+        // Single batched query — no N+1
+        List<UUID> messageIds = messages.stream()
+                .map(Message::getId)
+                .toList();
+
+        Map<UUID, List<AttachmentResponse>> attachmentsByMessageId = attachmentRepository
+                .findByMessageIdIn(messageIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Attachment::getMessageId,
+                        Collectors.mapping(attachmentMapper::toAttachmentResponse, Collectors.toList())
+                ));
+
+        return messages.stream()
+                .map(msg -> messageMapper.toMessageResponse(
+                        msg,
+                        attachmentsByMessageId.getOrDefault(msg.getId(), List.of())
+                ))
+                .toList();
+    }
+
+    private MessageResponse buildResponse(Message message) {
+        List<AttachmentResponse> attachments = attachmentRepository
+                .findByMessageId(message.getId())
+                .stream()
+                .map(a -> AttachmentResponse.builder()
+                        .id(a.getId())
+                        .filename(a.getFilename())
+                        .url(a.getUrl())
+                        .contentType(a.getContentType())
+                        .sizeBytes(a.getSizeBytes())
+                        .build())
+                .toList();
+
+        return messageMapper.toMessageResponse(message, attachments);
     }
 }

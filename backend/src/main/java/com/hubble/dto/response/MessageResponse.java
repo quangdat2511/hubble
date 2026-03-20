@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -23,4 +24,5 @@ public class MessageResponse {
     Boolean isPinned;
     LocalDateTime editedAt;
     LocalDateTime createdAt;
+    List<AttachmentResponse> attachments;
 }

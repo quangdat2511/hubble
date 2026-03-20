@@ -1,11 +1,13 @@
 package com.hubble.mapper;
 
 import com.hubble.dto.request.CreateMessageRequest;
+import com.hubble.dto.response.AttachmentResponse;
 import com.hubble.dto.response.MessageResponse;
 import com.hubble.entity.Message;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.List;
 import java.util.UUID;
 
 @Mapper(componentModel = "spring")
@@ -21,5 +23,11 @@ public interface MessageMapper {
     Message toMessage(CreateMessageRequest request, UUID authorId);
 
     MessageResponse toMessageResponse(Message message);
+
+    default MessageResponse toMessageResponse(Message message, List<AttachmentResponse> attachments) {
+        MessageResponse response = toMessageResponse(message);
+        response.setAttachments(attachments);
+        return response;
+    }
 
 }

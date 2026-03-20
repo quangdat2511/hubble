@@ -72,7 +72,7 @@ app:
     access-key: minioadmin
     secret-key: minioadmin
     bucket: hubble-media
-    public-url: http://localhost:9000/hubble-media
+    public-url: http://10.0.2.2:9000/hubble-media
     max-file-size-mb: 25
     allowed-types:
       - image/jpeg
