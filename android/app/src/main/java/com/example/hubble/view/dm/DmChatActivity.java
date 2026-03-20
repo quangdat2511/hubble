@@ -161,19 +161,29 @@ public class DmChatActivity extends AppCompatActivity {
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
 
+        // Raw WebSocket URL (không dùng SockJS)
         String wsUrl = BuildConfig.BASE_URL
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
-                + "ws/websocket";
+                + "ws";
 
-        String token = tokenManager.getAccessToken();
         stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
 
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(event -> {}, throwable -> {}));
+                .subscribe(event -> {
+                    if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) {
+                        // Subscribe sau khi kết nối STOMP đã được thiết lập
+                        subscribeToChannel();
+                    }
+                }, throwable -> {}));
 
+        stompClient.connect();
+    }
+
+    private void subscribeToChannel() {
+        if (TextUtils.isEmpty(channelId) || stompClient == null) return;
         disposables.add(stompClient
                 .topic("/topic/channels/" + channelId)
                 .subscribeOn(Schedulers.io())
@@ -181,12 +191,9 @@ public class DmChatActivity extends AppCompatActivity {
                 .subscribe(stompMessage -> {
                     MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
                     if (dto == null) return;
-                    // Bỏ qua tin nhắn của chính mình (đã add qua REST callback)
                     boolean isFromMe = currentUserId != null && currentUserId.equals(dto.getAuthorId());
                     if (!isFromMe) appendMessage(dto);
                 }, throwable -> {}));
-
-        stompClient.connect();
     }
 
     private void disconnectStomp() {
