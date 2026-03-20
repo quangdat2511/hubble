@@ -1,11 +1,11 @@
 server:
-  port: ${PORT:8080}
+  port: 8080
 
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
+    username: postgres.qexzpkwrfjlblrvtqvuh
+    password: hubble@56183
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,9 +19,8 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: localhost
+      port: 6379
 
   servlet:
     multipart:
@@ -31,8 +30,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: huychienthan999@gmail.com
+    password: fkhifplujjzuqkub
     properties:
       mail:
         smtp:
@@ -44,19 +43,19 @@ spring:
             trust: smtp.gmail.com
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=
   access-token-expiration: 3600000
   refresh-token-expiration: 2592000000
 
 aws:
   s3:
-    bucket-name: ${AWS_S3_BUCKET:hubble-media}
-    region: ${AWS_REGION:ap-southeast-1}
-    access-key: ${AWS_ACCESS_KEY}
-    secret-key: ${AWS_SECRET_KEY}
+    bucket-name: hubble-media
+    region: ap-southeast-1
+    access-key: YOUR_AWS_ACCESS_KEY
+    secret-key: YOUR_AWS_SECRET_KEY
 
 google:
-  client-id: ${GOOGLE_CLIENT_ID}
+  client-id: 571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com
 
 otp:
   expiry-minutes: 5
