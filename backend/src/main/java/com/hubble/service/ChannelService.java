@@ -32,6 +32,8 @@ public class ChannelService {
     UserRepository userRepository;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    MessageService messageService;
+
     @Transactional
     public ChannelResponse getOrCreateDirectChannel(UUID currentUserId, UUID otherUserId){
         if (currentUserId.equals(otherUserId)) {
@@ -133,4 +135,9 @@ public class ChannelService {
                 response.setPeerAvatarUrl(peerUser.getAvatarUrl());
                 response.setPeerStatus(peerUser.getStatus() != null ? peerUser.getStatus().name() : null);
         }
+    @Transactional
+    public void deleteChannel(UUID channelId) {
+        messageService.deleteMessagesByChannel(channelId);
+        channelRepository.deleteById(channelId);
+    }
 }
