@@ -1,6 +1,8 @@
 package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
+import com.hubble.dto.request.UpdateCustomStatusRequest;
+import com.hubble.dto.request.UpdateProfileRequest;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.service.UserService;
 import lombok.AccessLevel;
@@ -9,7 +11,9 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -32,4 +36,63 @@ public class UserController {
         UserResponse userResponse = userService.getUserById(userId);
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder().result(userResponse).build());
     }
+
+    // =========================
+    // ✅ UPDATE PROFILE (ME)
+    // =========================
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            Authentication authentication,
+            @RequestBody UpdateProfileRequest request
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+
+        UserResponse response = userService.updateProfile(userId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .result(response)
+                        .build()
+        );
+    }
+
+    // =========================
+    // ✅ UPDATE CUSTOM STATUS
+    // =========================
+    @PutMapping("/me/custom-status")
+    public ResponseEntity<ApiResponse<UserResponse>> updateCustomStatus(
+            Authentication authentication,
+            @RequestBody UpdateCustomStatusRequest request
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+
+        UserResponse response = userService.updateCustomStatus(userId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .result(response)
+                        .build()
+        );
+    }
+
+    // =========================
+    // ✅ UPLOAD AVATAR
+    // =========================
+    @PostMapping("/me/avatar")
+    public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        UUID userId = UUID.fromString(authentication.getName());
+
+        UserResponse response = userService.updateAvatar(userId, file);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .result(response)
+                        .build()
+        );
+    }
+
+
 }
