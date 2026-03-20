@@ -151,7 +151,11 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void sendMessage(String content) {
-        dmRepository.sendMessage(channelId, content, result -> {});
+        dmRepository.sendMessage(channelId, content, result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> appendMessage(result.getData()));
+            }
+        });
     }
 
     private void connectStomp() {
@@ -176,7 +180,10 @@ public class DmChatActivity extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(stompMessage -> {
                     MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
-                    if (dto != null) appendMessage(dto);
+                    if (dto == null) return;
+                    // Bỏ qua tin nhắn của chính mình (đã add qua REST callback)
+                    boolean isFromMe = currentUserId != null && currentUserId.equals(dto.getAuthorId());
+                    if (!isFromMe) appendMessage(dto);
                 }, throwable -> {}));
 
         stompClient.connect();
