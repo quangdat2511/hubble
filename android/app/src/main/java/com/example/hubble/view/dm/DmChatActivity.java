@@ -214,7 +214,7 @@ public class DmChatActivity extends AppCompatActivity {
             return rawTime;
         }
     }
-SƯ
+    SƯ
     private String buildMessageSnapshot(List<MessageDto> messages) {
         if (messages == null || messages.isEmpty()) {
             return "empty";
@@ -305,5 +305,3 @@ SƯ
         return -1;
     }
 }
-
-
