@@ -75,24 +75,4 @@ public class UserController {
         );
     }
 
-    // =========================
-    // ✅ UPLOAD AVATAR
-    // =========================
-    @PostMapping("/me/avatar")
-    public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
-            Authentication authentication,
-            @RequestParam("file") MultipartFile file
-    ) throws IOException {
-        UUID userId = UUID.fromString(authentication.getName());
-
-        UserResponse response = userService.updateAvatar(userId, file);
-
-        return ResponseEntity.ok(
-                ApiResponse.<UserResponse>builder()
-                        .result(response)
-                        .build()
-        );
-    }
-
-
 }

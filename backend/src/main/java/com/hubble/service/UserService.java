@@ -26,8 +26,6 @@ public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
 
-    private static final String AVATAR_FOLDER = "uploads/avatars/";
-
     public UserResponse getUserById(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -65,38 +63,6 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setCustomStatus(request.getCustomStatus());
-
-        userRepository.save(user);
-
-        return userMapper.toUserResponse(user);
-    }
-
-    public UserResponse updateAvatar(UUID userId, MultipartFile file) throws IOException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // create folder if not exists
-        File folder = new File(AVATAR_FOLDER);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        // safe filename
-        String originalName = file.getOriginalFilename();
-        String extension = "";
-
-        if (originalName != null && originalName.contains(".")) {
-            extension = originalName.substring(originalName.lastIndexOf("."));
-        }
-
-        String fileName = UUID.randomUUID() + extension;
-        String filePath = AVATAR_FOLDER + fileName;
-
-        File dest = new File(filePath);
-        file.transferTo(dest);
-
-        // ⚠️ IMPORTANT: URL should NOT be local path
-        user.setAvatarUrl("/uploads/avatars/" + fileName);
 
         userRepository.save(user);
 
