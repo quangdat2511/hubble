@@ -2,12 +2,19 @@ package com.example.hubble.view;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
+import android.widget.ImageView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.adapter.DmMessageAdapter;
 import com.example.hubble.data.model.AuthResult;
@@ -17,6 +24,8 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.realtime.DmStompClient;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.utils.TokenManager;
+import com.example.hubble.viewmodel.MediaViewModel;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.time.LocalDateTime;
@@ -41,6 +50,9 @@ public class DmChatActivity extends AppCompatActivity {
     private String lastMessageSnapshot = "";
     private final List<MessageDto> cachedMessagesDesc = new ArrayList<>();
 
+    private MediaViewModel mediaViewModel;
+    private final List<String> pendingAttachmentIds = new ArrayList<>();
+
     public static Intent createIntent(Context context, String channelId, String username) {
         Intent intent = new Intent(context, DmChatActivity.class);
         intent.putExtra(EXTRA_CHANNEL_ID, channelId);
@@ -55,6 +67,7 @@ public class DmChatActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         dmRepository = new DmRepository(this);
         dmStompClient = new DmStompClient(new TokenManager(this));
+        mediaViewModel = new ViewModelProvider(this).get(MediaViewModel.class);
         currentUserId = dmRepository.getCurrentUserId();
 
         channelId = getIntent().getStringExtra(EXTRA_CHANNEL_ID);
@@ -86,6 +99,86 @@ public class DmChatActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         unsubscribeRealtime();
+    }
+
+    private final ActivityResultLauncher<String> filePickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), uris -> {
+                if (uris != null && !uris.isEmpty()) {
+                    handleFilesSelected(uris);
+                }
+            });
+
+    private void showAttachmentPreview(Uri uri, String filename, String contentType) {
+        binding.attachmentPreviewBar.setVisibility(View.VISIBLE);
+        binding.llAttachmentPreviews.removeAllViews();
+
+        View previewView = getLayoutInflater()
+                .inflate(R.layout.item_attachment_preview, binding.llAttachmentPreviews, false);
+
+        ImageView ivPreview = previewView.findViewById(R.id.ivPreview);
+        ImageView ivFileIcon = previewView.findViewById(R.id.ivFileIcon);
+        MaterialButton btnRemove = previewView.findViewById(R.id.btnRemove);
+
+        // Show image thumbnail or file icon depending on type
+        if (contentType != null && contentType.startsWith("image/")) {
+            ivPreview.setVisibility(View.VISIBLE);
+            ivFileIcon.setVisibility(View.GONE);
+            Glide.with(this).load(uri).centerCrop().into(ivPreview);
+        } else {
+            ivPreview.setVisibility(View.GONE);
+            ivFileIcon.setVisibility(View.VISIBLE);
+        }
+
+        btnRemove.setOnClickListener(v -> clearAttachmentPreview());
+
+        binding.llAttachmentPreviews.addView(previewView);
+    }
+
+    private void clearAttachmentPreview() {
+        pendingAttachmentIds.clear();   // ← was pendingAttachmentId = null
+        binding.attachmentPreviewBar.setVisibility(View.GONE);
+        binding.llAttachmentPreviews.removeAllViews();
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+        binding.btnAttach.setEnabled(true);
+    }
+
+    private void handleFilesSelected(List<Uri> uris) {
+        binding.btnAttach.setEnabled(false);
+        binding.llAttachmentPreviews.removeAllViews();
+        pendingAttachmentIds.clear();
+
+        // Track how many uploads complete
+        int[] completed = {0};
+        int total = uris.size();
+
+        for (Uri uri : uris) {
+            mediaViewModel.uploadMedia(uri).observe(this, result -> {
+                switch (result.status) {
+                    case LOADING:
+                        break;
+
+                    case SUCCESS:
+                        pendingAttachmentIds.add(result.data.getAttachmentId());
+                        showAttachmentPreview(uri, result.data.getFilename(), result.data.getContentType());
+                        completed[0]++;
+                        if (completed[0] == total) {
+                            binding.btnAttach.setEnabled(true);
+                            Snackbar.make(binding.getRoot(),
+                                    total + " file(s) ready — tap send",
+                                    Snackbar.LENGTH_SHORT).show();
+                        }
+                        break;
+
+                    case ERROR:
+                        completed[0]++;
+                        Snackbar.make(binding.getRoot(), result.errorMessage, Snackbar.LENGTH_SHORT).show();
+                        if (completed[0] == total) {
+                            binding.btnAttach.setEnabled(true);
+                        }
+                        break;
+                }
+            });
+        }
     }
 
     private void setupToolbar(String username) {
@@ -142,27 +235,31 @@ public class DmChatActivity extends AppCompatActivity {
     private void setupComposer() {
         binding.btnSend.setOnClickListener(v -> {
             String content = binding.etComposer.getText() == null
-                    ? ""
-                    : binding.etComposer.getText().toString().trim();
+                    ? "" : binding.etComposer.getText().toString().trim();
 
-            if (content.isEmpty()) {
-                return;
-            }
+            if (content.isEmpty() && pendingAttachmentIds.isEmpty()) return;
 
-            dmRepository.sendMessage(channelId, content, result -> {
+            //  pass the full list
+            String messageType = pendingAttachmentIds.isEmpty() ? "TEXT" : "IMAGE";
+
+            dmRepository.sendMessage(channelId, content, pendingAttachmentIds, messageType, result -> {
                 if (result.getStatus() == AuthResult.Status.SUCCESS) {
-                    binding.etComposer.post(() -> binding.etComposer.setText(""));
+                    binding.etComposer.post(() -> {
+                        binding.etComposer.setText("");
+                        clearAttachmentPreview();
+                    });
                     loadMessages(false);
                     return;
                 }
-
-                String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
+                String error = result.getMessage() != null
+                        ? result.getMessage() : getString(R.string.error_generic);
                 Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_SHORT).show();
             });
-        });
+        });;
 
+        // launches file picker
         binding.btnAttach.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+                filePickerLauncher.launch("image/*"));
 
         binding.btnCall.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
@@ -184,7 +281,8 @@ public class DmChatActivity extends AppCompatActivity {
                     sender,
                     dto.getContent() == null ? "" : dto.getContent(),
                     formatTime(dto.getCreatedAt()),
-                    mine
+                    mine,
+                    dto.getAttachments()
             ));
         }
         return mapped;

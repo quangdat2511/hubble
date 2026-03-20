@@ -5,6 +5,7 @@ import android.content.Context;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
+import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.ChannelDto;
 import com.example.hubble.data.model.CreateMessageRequest;
 import com.example.hubble.data.model.FriendUserDto;
@@ -172,6 +173,34 @@ public class DmRepository {
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
                 callback.onResult(com.example.hubble.data.model.AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void sendMessage(String channelId, String content,
+                            List<String> attachmentIds, String type,
+                            RepositoryCallback<MessageDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+
+        CreateMessageRequest request = new CreateMessageRequest(
+                channelId, null, content, type, attachmentIds
+        );
+
+        apiService.sendMessage(token, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MessageDto>> call,
+                                   Response<ApiResponse<MessageDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error("Không gửi được tin nhắn"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
