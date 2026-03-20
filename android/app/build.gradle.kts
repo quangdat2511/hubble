@@ -18,7 +18,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://10.109.132.250:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
         }
         release {
             isMinifyEnabled = false
@@ -26,8 +26,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Đổi thành URL server production khi deploy thật
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
         }
     }
 
