@@ -1,9 +1,14 @@
 package com.example.hubble.view;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
@@ -11,6 +16,8 @@ import android.widget.ImageView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -28,6 +35,8 @@ import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -49,9 +58,19 @@ public class DmChatActivity extends AppCompatActivity {
     private String peerName;
     private String lastMessageSnapshot = "";
     private final List<MessageDto> cachedMessagesDesc = new ArrayList<>();
-
     private MediaViewModel mediaViewModel;
     private final List<String> pendingAttachmentIds = new ArrayList<>();
+    private final List<String> pendingAttachmentTypes = new ArrayList<>();
+
+    private MediaRecorder mediaRecorder;
+    private File audioFile;
+    private boolean isRecording = false;
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+
+    // Biến cho bộ đếm thời gian
+    private int recordSeconds = 0;
+    private Handler recordHandler = new Handler(Looper.getMainLooper());
+    private Runnable recordRunnable;
 
     public static Intent createIntent(Context context, String channelId, String username) {
         Intent intent = new Intent(context, DmChatActivity.class);
@@ -120,13 +139,15 @@ public class DmChatActivity extends AppCompatActivity {
         MaterialButton btnRemove = previewView.findViewById(R.id.btnRemove);
 
         // Show image thumbnail or file icon depending on type
-        if (contentType != null && contentType.startsWith("image/")) {
+        if (contentType != null && (contentType.startsWith("image/") || contentType.startsWith("video/"))) {
             ivPreview.setVisibility(View.VISIBLE);
             ivFileIcon.setVisibility(View.GONE);
             Glide.with(this).load(uri).centerCrop().into(ivPreview);
         } else {
             ivPreview.setVisibility(View.GONE);
             ivFileIcon.setVisibility(View.VISIBLE);
+            // Lưu ý: Nếu trong layout item_attachment_preview.xml có
+            // TextView để hiện tên file, hãy setText(filename) cho nó ở đây.
         }
 
         btnRemove.setOnClickListener(v -> clearAttachmentPreview());
@@ -135,7 +156,8 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void clearAttachmentPreview() {
-        pendingAttachmentIds.clear();   // ← was pendingAttachmentId = null
+        pendingAttachmentIds.clear();
+        pendingAttachmentTypes.clear();
         binding.attachmentPreviewBar.setVisibility(View.GONE);
         binding.llAttachmentPreviews.removeAllViews();
         binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
@@ -146,6 +168,7 @@ public class DmChatActivity extends AppCompatActivity {
         binding.btnAttach.setEnabled(false);
         binding.llAttachmentPreviews.removeAllViews();
         pendingAttachmentIds.clear();
+        pendingAttachmentTypes.clear();
 
         // Track how many uploads complete
         int[] completed = {0};
@@ -159,6 +182,7 @@ public class DmChatActivity extends AppCompatActivity {
 
                     case SUCCESS:
                         pendingAttachmentIds.add(result.data.getAttachmentId());
+                        pendingAttachmentTypes.add(result.data.getContentType());
                         showAttachmentPreview(uri, result.data.getFilename(), result.data.getContentType());
                         completed[0]++;
                         if (completed[0] == total) {
@@ -239,8 +263,19 @@ public class DmChatActivity extends AppCompatActivity {
 
             if (content.isEmpty() && pendingAttachmentIds.isEmpty()) return;
 
-            //  pass the full list
-            String messageType = pendingAttachmentIds.isEmpty() ? "TEXT" : "IMAGE";
+            String messageType = "TEXT";
+            if (!pendingAttachmentTypes.isEmpty()) {
+                boolean hasFile = false;
+                for (String type : pendingAttachmentTypes) {
+                    if (type != null && !type.startsWith("image/") && !type.startsWith("video/")) {
+                        hasFile = true;
+                        break;
+                    }
+                }
+                // Nếu có ít nhất 1 tệp tài liệu -> đánh dấu là FILE.
+                // Nếu chỉ toàn ảnh/video -> đánh dấu là IMAGE
+                messageType = hasFile ? "FILE" : "IMAGE";
+            }
 
             dmRepository.sendMessage(channelId, content, pendingAttachmentIds, messageType, result -> {
                 if (result.getStatus() == AuthResult.Status.SUCCESS) {
@@ -259,7 +294,21 @@ public class DmChatActivity extends AppCompatActivity {
 
         // launches file picker
         binding.btnAttach.setOnClickListener(v ->
-                filePickerLauncher.launch("image/*"));
+                filePickerLauncher.launch("*/*"));
+
+        binding.btnVoice.setOnClickListener(v -> {
+            if (!isRecording) {
+                startRecording();
+                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause); // Đổi icon sang nút Pause/Stop
+                binding.btnSend.setEnabled(false); // Khóa nút Send text
+                binding.btnAttach.setEnabled(false); // Khóa nút đính kèm
+            } else {
+                stopRecording();
+                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now); // Trả lại icon Mic
+                binding.btnSend.setEnabled(true);
+                binding.btnAttach.setEnabled(true);
+            }
+        });
 
         binding.btnCall.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
@@ -390,5 +439,118 @@ public class DmChatActivity extends AppCompatActivity {
             }
         }
         return -1;
+    }
+
+    private void startRecording() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+            return;
+        }
+
+        String fileName = "voice_" + System.currentTimeMillis() + ".m4a";
+        audioFile = new File(getExternalCacheDir(), fileName);
+
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setOutputFile(audioFile.getAbsolutePath());
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+
+            // Bắt đầu đếm thời gian
+            recordSeconds = 0;
+            recordRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    int minutes = recordSeconds / 60;
+                    int seconds = recordSeconds % 60;
+                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", minutes, seconds));
+                    recordSeconds++;
+                    recordHandler.postDelayed(this, 1000);
+                }
+            };
+            recordHandler.post(recordRunnable);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopRecording() {
+        if (mediaRecorder != null && isRecording) {
+            try {
+                mediaRecorder.stop();
+            } catch (RuntimeException stopException) {
+                // Chặn crash nếu người dùng bấm stop quá nhanh (nhấp nhả liên tục)
+                if (audioFile != null && audioFile.exists()) {
+                    audioFile.delete();
+                }
+            } finally {
+                mediaRecorder.release();
+                mediaRecorder = null;
+                isRecording = false;
+            }
+
+            // Dừng đếm thời gian và UI
+            recordHandler.removeCallbacks(recordRunnable);
+            binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+
+            if (audioFile != null && audioFile.exists()) {
+                long fileSize = audioFile.length();
+                android.util.Log.d("VOICE_TEST", "Dung lượng file ghi âm: " + fileSize + " bytes");
+
+                if (fileSize == 0) {
+                    android.util.Log.e("VOICE_TEST", "Toang! File rỗng 0 byte, có thể do bấm stop quá nhanh hoặc mất quyền mic.");
+                } else {
+                    android.util.Log.d("VOICE_TEST", "Thu âm ngon lành! Lỗi chắc chắn ở phần gọi API Upload.");
+                }
+            }
+
+            // CHỈ UPLOAD NẾU FILE TỒN TẠI, CÓ DUNG LƯỢNG (>0 BYTE) VÀ DÀI HƠN 1 GIÂY
+            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordSeconds >= 1) {
+                uploadVoiceAndSend(audioFile);
+            } else {
+                // Xóa file rác và báo lỗi
+                if (audioFile != null && audioFile.exists()) {
+                    audioFile.delete();
+                }
+                // Import com.google.android.material.snackbar.Snackbar; nếu cần
+                Snackbar.make(binding.getRoot(), "Ghi âm quá ngắn!", Snackbar.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void uploadVoiceAndSend(File file) {
+        Uri fileUri = Uri.fromFile(file);
+
+        mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
+            switch (result.status) {
+                case LOADING:
+                    // Tùy chọn: Hiện một cái ProgressDialog hoặc Toast báo "Đang gửi ghi âm..."
+                    break;
+
+                case SUCCESS:
+                    // 1. Lấy ID file vừa upload xong
+                    List<String> attachIds = new ArrayList<>();
+                    attachIds.add(result.data.getAttachmentId());
+
+                    // 2. Bắn tin nhắn qua WebSocket/API
+                    dmRepository.sendMessage(channelId, "", attachIds, "VOICE", sendResult -> {
+                        if (sendResult.getStatus() == AuthResult.Status.SUCCESS) {
+                            loadMessages(false); // Cập nhật lại list chat
+                        }
+                    });
+                    break;
+
+                case ERROR:
+                    // Hiện thông báo nếu upload file ghi âm bị lỗi
+                    Snackbar.make(binding.getRoot(), "Lỗi gửi ghi âm: " + result.errorMessage, Snackbar.LENGTH_SHORT).show();
+                    break;
+            }
+        });
     }
 }

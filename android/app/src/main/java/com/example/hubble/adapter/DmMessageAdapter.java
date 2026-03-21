@@ -1,20 +1,27 @@
 package com.example.hubble.adapter;
 
+import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.hubble.R;
 import com.example.hubble.data.model.AttachmentResponse;
 import com.example.hubble.data.model.DmMessageItem;
 import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +31,11 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static final int TYPE_OTHER = 2;
 
     private final List<DmMessageItem> items = new ArrayList<>();
+
+    private static MediaPlayer currentMediaPlayer;
+    private static ImageView currentPlayButton;
+    private static Handler audioHandler = new Handler(Looper.getMainLooper());
+    private static Runnable updateSeekBarRunnable;
 
     public void setItems(List<DmMessageItem> newItems) {
         items.clear();
@@ -61,7 +73,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     // ── Shared utility ────────────────────────────────────────────────────────
 
     private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
-        // Always clear recycled views first
         container.removeAllViews();
 
         if (attachments == null || attachments.isEmpty()) {
@@ -69,37 +80,63 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             return;
         }
 
-        boolean hasAny = false;
+        LayoutInflater inflater = LayoutInflater.from(container.getContext());
+
         for (AttachmentResponse att : attachments) {
-            if (att.getContentType() == null || !att.getContentType().startsWith("image/")) continue;
+            String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
+            String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
 
-            hasAny = true;
-            ImageView iv = new ImageView(container.getContext());
+            if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+                // 1. Inflate Layout cho Media
+                View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
+                ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
+                ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
 
-            float density = container.getContext().getResources().getDisplayMetrics().density;
-            int w = Math.round(200 * density);
-            int h = Math.round(150 * density);
-            int gap = Math.round(4 * density);
+                // Hiện nút Play nếu là video
+                ivPlayIcon.setVisibility(mimeType.startsWith("video/") ? View.VISIBLE : View.GONE);
 
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(w, h);
-            params.setMargins(0, 0, 0, gap);
-            iv.setLayoutParams(params);
-            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                Glide.with(container.getContext())
+                        .load(url)
+                        .centerCrop()
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_report_image)
+                        .into(ivMedia);
 
-            String url = att.getUrl() == null ? ""
-                    : att.getUrl().replace("localhost", "10.0.2.2");
+                container.addView(mediaView);
 
-            Glide.with(container.getContext())
-                    .load(url)
-                    .centerCrop()
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_report_image)
-                    .into(iv);
+            }
+            else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
+                // INFLATE LAYOUT VOICE
+                View voiceView = LayoutInflater.from(container.getContext())
+                        .inflate(R.layout.item_attachment_voice, container, false);
 
-            container.addView(iv);
+                ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
+                SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
+                TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
+
+                btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
+
+                container.addView(voiceView);
+            }
+            else {
+                // 2. Inflate Layout cho File tài liệu
+                View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
+                TextView tvFileName = fileView.findViewById(R.id.tvFileName);
+                TextView tvFileType = fileView.findViewById(R.id.tvFileType);
+
+                String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
+                tvFileName.setText(fileName);
+
+                // Gán loại tệp cơ bản để hiển thị cho đẹp
+                if (mimeType.contains("pdf")) tvFileType.setText("Tài liệu PDF");
+                else if (mimeType.contains("zip") || mimeType.contains("rar")) tvFileType.setText("Tệp nén");
+                else tvFileType.setText("Tệp đính kèm");
+
+                container.addView(fileView);
+            }
         }
 
-        container.setVisibility(hasAny ? View.VISIBLE : View.GONE);
+        container.setVisibility(View.VISIBLE);
     }
 
     // ── MeHolder ──────────────────────────────────────────────────────────────
@@ -148,6 +185,78 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             loadAttachments(binding.llAttachments, item.getAttachments());
+        }
+    }
+
+    private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
+        try {
+            if (currentMediaPlayer != null && currentPlayButton == btnPlayPause) {
+                if (currentMediaPlayer.isPlaying()) {
+                    currentMediaPlayer.pause();
+                    btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                } else {
+                    currentMediaPlayer.start();
+                    btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+                    audioHandler.post(updateSeekBarRunnable);
+                }
+                return;
+            }
+
+            if (currentMediaPlayer != null) {
+                currentMediaPlayer.stop();
+                currentMediaPlayer.release();
+                if (currentPlayButton != null) {
+                    currentPlayButton.setImageResource(android.R.drawable.ic_media_play);
+                }
+                audioHandler.removeCallbacks(updateSeekBarRunnable);
+            }
+
+            currentMediaPlayer = new MediaPlayer();
+            currentPlayButton = btnPlayPause;
+
+            currentMediaPlayer.setDataSource(url);
+            currentMediaPlayer.prepareAsync();
+            btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync); // Icon xoay xoay đang load
+
+            currentMediaPlayer.setOnPreparedListener(mp -> {
+                seekBar.setMax(mp.getDuration());
+                mp.start();
+                btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+
+                updateSeekBarRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (currentMediaPlayer != null && currentMediaPlayer.isPlaying()) {
+                            seekBar.setProgress(currentMediaPlayer.getCurrentPosition());
+                            int sec = currentMediaPlayer.getCurrentPosition() / 1000;
+                            tvDuration.setText(String.format("%d:%02d", sec / 60, sec % 60));
+                            audioHandler.postDelayed(this, 100);
+                        }
+                    }
+                };
+                audioHandler.post(updateSeekBarRunnable);
+            });
+
+            currentMediaPlayer.setOnCompletionListener(mp -> {
+                btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                seekBar.setProgress(0);
+                tvDuration.setText("0:00");
+                audioHandler.removeCallbacks(updateSeekBarRunnable);
+            });
+
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser && currentMediaPlayer != null) {
+                        currentMediaPlayer.seekTo(progress);
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+            });
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

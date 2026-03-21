@@ -47,7 +47,22 @@ public class MediaRepository {
         }
 
         String mimeType = context.getContentResolver().getType(fileUri);
-        if (mimeType == null) mimeType = "application/octet-stream";
+
+        // Nếu Android không lấy được type (file trong cache), ta tự ép kiểu theo đuôi file
+        if (mimeType == null || mimeType.equals("application/octet-stream")) {
+            String fileName = file.getName().toLowerCase();
+            if (fileName.endsWith(".m4a") || fileName.endsWith(".mp4")) {
+                mimeType = "audio/mp4";
+            } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                mimeType = "image/jpeg";
+            } else if (fileName.endsWith(".png")) {
+                mimeType = "image/png";
+            } else if (fileName.endsWith(".pdf")) {
+                mimeType = "application/pdf";
+            } else {
+                mimeType = "application/octet-stream";
+            }
+        }
 
         RequestBody requestBody = RequestBody.create(MediaType.parse(mimeType), file);
         MultipartBody.Part filePart = MultipartBody.Part.createFormData(
