@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.KeyEvent;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -119,12 +120,17 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void setupComposer() {
-        binding.btnSend.setOnClickListener(v -> {
-            String content = binding.etComposer.getText() == null
-                    ? "" : binding.etComposer.getText().toString().trim();
-            if (content.isEmpty() || TextUtils.isEmpty(channelId)) return;
-            binding.etComposer.setText("");
-            sendMessage(content);
+        binding.btnSend.setOnClickListener(v -> attemptSendMessage());
+
+        binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.isShiftPressed()) {
+                    return false;
+                }
+                attemptSendMessage();
+                return true;
+            }
+            return false;
         });
 
         binding.btnAttach.setOnClickListener(v ->
@@ -133,6 +139,16 @@ public class DmChatActivity extends AppCompatActivity {
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+    }
+
+    private void attemptSendMessage() {
+        String content = binding.etComposer.getText() == null
+                ? "" : binding.etComposer.getText().toString();
+        if (content.trim().isEmpty() || TextUtils.isEmpty(channelId)) {
+            return;
+        }
+        binding.etComposer.setText("");
+        sendMessage(content);
     }
 
     private void loadMessageHistory() {

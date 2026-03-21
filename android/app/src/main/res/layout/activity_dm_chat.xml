@@ -145,6 +145,8 @@
                 android:id="@+id/etComposer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
+                android:imeOptions="flagNoEnterAction"
                 android:maxLines="4"
                 android:minLines="1" />
 
