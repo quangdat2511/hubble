@@ -46,18 +46,22 @@ public class MediaRepository {
             return result;
         }
 
+        String originalFileName = fileUri.getLastPathSegment();
+        if (originalFileName == null) {
+            originalFileName = file.getName();
+        }
+
         String mimeType = context.getContentResolver().getType(fileUri);
 
-        // Nếu Android không lấy được type (file trong cache), ta tự ép kiểu theo đuôi file
         if (mimeType == null || mimeType.equals("application/octet-stream")) {
-            String fileName = file.getName().toLowerCase();
-            if (fileName.endsWith(".m4a") || fileName.endsWith(".mp4")) {
-                mimeType = "audio/mp4";
-            } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+            String lowerCaseName = originalFileName.toLowerCase();
+            if (lowerCaseName.endsWith(".m4a") || lowerCaseName.endsWith(".mp4")) {
+                mimeType = "audio/mp4"; // Ép chuẩn audio
+            } else if (lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".jpeg")) {
                 mimeType = "image/jpeg";
-            } else if (fileName.endsWith(".png")) {
+            } else if (lowerCaseName.endsWith(".png")) {
                 mimeType = "image/png";
-            } else if (fileName.endsWith(".pdf")) {
+            } else if (lowerCaseName.endsWith(".pdf")) {
                 mimeType = "application/pdf";
             } else {
                 mimeType = "application/octet-stream";
@@ -65,9 +69,10 @@ public class MediaRepository {
         }
 
         RequestBody requestBody = RequestBody.create(MediaType.parse(mimeType), file);
+
         MultipartBody.Part filePart = MultipartBody.Part.createFormData(
                 "file",
-                file.getName(),
+                originalFileName,
                 requestBody
         );
 
@@ -78,6 +83,16 @@ public class MediaRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     result.postValue(UploadResult.success(response.body().getResult()));
                 } else {
+                    String serverMessage = "";
+                    try {
+                        if (response.errorBody() != null) {
+                            serverMessage = response.errorBody().string(); // Đọc lời nhắn từ Spring Boot
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    android.util.Log.e("VOICE_TEST", "Lỗi từ Server: " + serverMessage);
                     result.postValue(UploadResult.error("Upload failed: " + response.code()));
                 }
             }

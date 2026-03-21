@@ -526,29 +526,33 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void uploadVoiceAndSend(File file) {
         Uri fileUri = Uri.fromFile(file);
+        android.util.Log.d("VOICE_TEST", ">>> BƯỚC 1: Bắt đầu gọi API Upload file lên MinIO...");
 
+        // Lưu ý: Sửa lại đường dẫn Enum Status cho đúng với code của bạn
         mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
             switch (result.status) {
                 case LOADING:
-                    // Tùy chọn: Hiện một cái ProgressDialog hoặc Toast báo "Đang gửi ghi âm..."
                     break;
 
                 case SUCCESS:
-                    // 1. Lấy ID file vừa upload xong
+                    android.util.Log.d("VOICE_TEST", ">>> BƯỚC 1 - THÀNH CÔNG! Đã lấy được Attachment ID: " + result.data.getAttachmentId());
+
                     List<String> attachIds = new ArrayList<>();
                     attachIds.add(result.data.getAttachmentId());
 
-                    // 2. Bắn tin nhắn qua WebSocket/API
+                    android.util.Log.d("VOICE_TEST", ">>> BƯỚC 2: Bắt đầu gọi API Gửi tin nhắn với type VOICE...");
                     dmRepository.sendMessage(channelId, "", attachIds, "VOICE", sendResult -> {
                         if (sendResult.getStatus() == AuthResult.Status.SUCCESS) {
-                            loadMessages(false); // Cập nhật lại list chat
+                            android.util.Log.d("VOICE_TEST", ">>> BƯỚC 2 - THÀNH CÔNG! App đã gửi tin nhắn lên STOMP/DB.");
+                            loadMessages(false);
+                        } else {
+                            android.util.Log.e("VOICE_TEST", ">>> BƯỚC 2 - THẤT BẠI: Lỗi khi gọi API Send Message - " + sendResult.getMessage());
                         }
                     });
                     break;
 
                 case ERROR:
-                    // Hiện thông báo nếu upload file ghi âm bị lỗi
-                    Snackbar.make(binding.getRoot(), "Lỗi gửi ghi âm: " + result.errorMessage, Snackbar.LENGTH_SHORT).show();
+                    android.util.Log.e("VOICE_TEST", ">>> BƯỚC 1 - THẤT BẠI: Lỗi Upload MinIO - " + result.errorMessage);
                     break;
             }
         });
