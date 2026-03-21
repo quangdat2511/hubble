@@ -81,5 +81,11 @@ app:
       - image/webp
       - video/mp4
       - audio/mpeg
+      - audio/mp4
       - audio/ogg
+      - audio/aac
+      - audio/m4a
+      - audio/x-m4a
+      - audio/mpeg
       - application/pdf
+      - application/octet-stream

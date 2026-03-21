@@ -1,5 +1,5 @@
 package com.hubble.enums;
 
 public enum MessageType {
-    TEXT, IMAGE, FILE, SYSTEM, VOICE_NOTE
+    TEXT, IMAGE, FILE, SYSTEM, VOICE_NOTE, VOICE
 }

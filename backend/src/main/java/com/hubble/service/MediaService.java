@@ -66,6 +66,9 @@ public class MediaService {
             throw new AppException(ErrorCode.FILE_TOO_LARGE);
         }
 
+        String contentType = file.getContentType();
+        log.error("========== KIỂM TRA MIME TYPE TỪ ANDROID GỬI LÊN: {} ==========", contentType);
+
         if (!storageProperties.getAllowedTypes().contains(file.getContentType())) {
             throw new AppException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
         }
