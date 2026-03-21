@@ -184,4 +184,51 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+
+    <!-- Server Settings -->
+    <string name="server_settings_title">Cài đặt máy chủ</string>
+    <string name="server_settings_section_overview">TỔNG QUAN</string>
+    <string name="server_settings_section_members">THÀNH VIÊN</string>
+    <string name="server_settings_section_moderation">KIỂM DUYỆT</string>
+    <string name="server_settings_server_name">Tên máy chủ</string>
+    <string name="server_settings_server_icon">Biểu tượng máy chủ</string>
+    <string name="server_settings_server_description">Mô tả máy chủ</string>
+    <string name="server_settings_members">Thành viên</string>
+    <string name="server_settings_bans">Danh sách cấm</string>
+    <string name="server_settings_invites">Lời mời</string>
+    <string name="server_settings_roles">Vai trò</string>
+    <string name="server_settings_emoji">Emoji</string>
+    <string name="server_settings_stickers">Sticker</string>
+    <string name="server_settings_delete">Xóa máy chủ</string>
+    <string name="server_settings_delete_confirm_title">Xóa máy chủ</string>
+    <string name="server_settings_delete_confirm_message">Thao tác này không thể hoàn tác. Bạn có chắc chắn?</string>
+
+    <!-- Server Profile Bottom Sheet -->
+    <string name="server_profile_member_count">%1$d Thành viên  •  %2$d Trực tuyến</string>
+    <string name="server_profile_requests">Yêu cầu</string>
+    <string name="server_profile_announcements">Thông báo</string>
+    <string name="server_profile_events">Sự kiện</string>
+    <string name="server_profile_more">Thêm</string>
+    <string name="server_profile_create_channel">Tạo kênh</string>
+    <string name="server_profile_create_category">Tạo danh mục</string>
+    <string name="server_profile_invite_people">Mời mọi người</string>
+    <string name="server_profile_notification_settings">Cài đặt thông báo</string>
+    <string name="server_profile_privacy_settings">Cài đặt quyền riêng tư</string>
+
+    <!-- Member Management -->
+    <string name="members_search_hint">Tìm kiếm thành viên</string>
+    <string name="members_section_label">THÀNH VIÊN — %1$d</string>
+    <string name="member_action_kick">Kick %1$s</string>
+    <string name="member_action_ban">Ban %1$s</string>
+    <string name="member_action_transfer_ownership">Chuyển quyền sở hữu</string>
+    <string name="member_action_manage_roles">Quản lý vai trò</string>
+    <string name="member_action_message">Nhắn tin</string>
+    <string name="member_kick_confirm_title">Kick thành viên</string>
+    <string name="member_kick_confirm_message">Kick %1$s khỏi máy chủ?</string>
+    <string name="member_ban_confirm_title">Ban thành viên</string>
+    <string name="member_ban_confirm_message">Ban %1$s khỏi máy chủ? Họ sẽ không thể tham gia lại.</string>
+    <string name="member_transfer_confirm_title">Chuyển quyền sở hữu</string>
+    <string name="member_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Không thể hoàn tác.</string>
+    <string name="member_kicked_success">Đã kick %1$s</string>
+    <string name="member_banned_success">Đã ban %1$s</string>
 </resources>

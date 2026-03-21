@@ -43,4 +43,8 @@ public class RetrofitClient {
     public static ServerService getServerService(Context context) {
         return getRetrofit(context).create(ServerService.class);
     }
+
+    public static ServerMemberService getServerMemberService(Context context) {
+        return getRetrofit(context).create(ServerMemberService.class);
+    }
 }
