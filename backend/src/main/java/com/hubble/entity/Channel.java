@@ -19,7 +19,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "channels")
 public class Channel {
-
+    // Khóa chính
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
