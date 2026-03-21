@@ -1,6 +1,10 @@
 package com.example.hubble.adapter;
 
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
@@ -10,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -102,6 +107,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         .error(android.R.drawable.ic_menu_report_image)
                         .into(ivMedia);
 
+                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+
                 container.addView(mediaView);
 
             }
@@ -131,6 +138,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 if (mimeType.contains("pdf")) tvFileType.setText("Tài liệu PDF");
                 else if (mimeType.contains("zip") || mimeType.contains("rar")) tvFileType.setText("Tệp nén");
                 else tvFileType.setText("Tệp đính kèm");
+
+                fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
 
                 container.addView(fileView);
             }
@@ -187,6 +196,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             loadAttachments(binding.llAttachments, item.getAttachments());
         }
     }
+
+
 
     private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
         try {
@@ -257,6 +268,25 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+    private static void openAttachment(Context context, String url, String mimeType) {
+        if (url == null || url.isEmpty()) return;
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            // Gắn URL và báo cho Android biết đây là loại file gì để nó tìm app phù hợp
+            intent.setDataAndType(Uri.parse(url), mimeType);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(browserIntent);
+            } catch (Exception ex) {
+                Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
