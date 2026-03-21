@@ -8,16 +8,24 @@ import android.text.TextUtils;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
-import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
-import com.example.hubble.data.model.UserResponse;
-import com.example.hubble.data.realtime.FirestoreMessageRepository;
+import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.utils.TokenManager;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.Gson;
+
+import org.java_websocket.client.WebSocketClient;
+import ua.naiksoftware.stomp.Stomp;
+import ua.naiksoftware.stomp.StompClient;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,15 +42,13 @@ public class DmChatActivity extends AppCompatActivity {
     private ActivityDmChatBinding binding;
     private DmMessageAdapter adapter;
     private DmRepository dmRepository;
-    private FirestoreMessageRepository firestoreRepo;
     private TokenManager tokenManager;
-
-    private FirestoreMessageRepository firestoreRepo;
-    private TokenManager tokenManager;
+    private StompClient stompClient;
+    private CompositeDisposable disposables = new CompositeDisposable();
+    private final Gson gson = new Gson();
 
     private String channelId;
     private String currentUserId;
-    private String currentUserName;
     private String currentUserName;
     private String peerName;
 
@@ -60,9 +66,7 @@ public class DmChatActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         dmRepository = new DmRepository(this);
-        firestoreRepo = new FirestoreMessageRepository();
         tokenManager = new TokenManager(this);
-
         currentUserId = dmRepository.getCurrentUserId();
 
         UserResponse user = tokenManager.getUser();
@@ -73,32 +77,30 @@ public class DmChatActivity extends AppCompatActivity {
 
         channelId = getIntent().getStringExtra(EXTRA_CHANNEL_ID);
         peerName = getIntent().getStringExtra(EXTRA_USERNAME);
-        if (TextUtils.isEmpty(peerName)) {
-            peerName = getString(R.string.dm_default_user);
-        }
+        if (TextUtils.isEmpty(peerName)) peerName = getString(R.string.dm_default_user);
 
         setupToolbar(peerName);
         setupMessageList();
         setupComposer();
+        loadMessageHistory();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        subscribeRealtime();
+        connectStomp();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        firestoreRepo.removeListener();
+        disconnectStomp();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        firestoreRepo.removeListener();
-        firestoreRepo.removeListener();
+        disposables.clear();
     }
 
     private void setupToolbar(String username) {
@@ -119,85 +121,107 @@ public class DmChatActivity extends AppCompatActivity {
     private void setupComposer() {
         binding.btnSend.setOnClickListener(v -> {
             String content = binding.etComposer.getText() == null
-                    ? ""
-                    : binding.etComposer.getText().toString().trim();
-
+                    ? "" : binding.etComposer.getText().toString().trim();
             if (content.isEmpty() || TextUtils.isEmpty(channelId)) return;
-
             binding.etComposer.setText("");
-            firestoreRepo.sendMessage(channelId, currentUserId, currentUserName, content);
+            sendMessage(content);
         });
 
         binding.btnAttach.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
-
         binding.btnCall.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
-
         binding.btnVideo.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
     }
 
-    private void subscribeRealtime() {
+    private void loadMessageHistory() {
         if (TextUtils.isEmpty(channelId)) return;
-
-        firestoreRepo.listenMessages(channelId, new FirestoreMessageRepository.MessagesListener() {
-            @Override
-            public void onMessages(List<MessageDto> messages) {
+        dmRepository.getMessages(channelId, 0, 50, result -> {
+            if (result.getData() != null) {
+                List<MessageDto> ordered = new ArrayList<>(result.getData());
+                Collections.reverse(ordered);
                 runOnUiThread(() -> {
-                    List<DmMessageItem> mapped = mapMessages(messages);
-                    adapter.setItems(mapped);
-                    if (!mapped.isEmpty()) {
-                        binding.rvMessages.scrollToPosition(mapped.size() - 1);
-                    }
+                    List<DmMessageItem> items = mapMessages(ordered);
+                    adapter.setItems(items);
+                    if (!items.isEmpty()) binding.rvMessages.scrollToPosition(items.size() - 1);
                 });
-            }
-
-            @Override
-            public void onError(String error) {
-                // Không spam snackbar khi lỗi realtime
             }
         });
     }
 
-    private void subscribeRealtime() {
-        if (TextUtils.isEmpty(channelId)) return;
-
-        firestoreRepo.listenMessages(channelId, new FirestoreMessageRepository.MessagesListener() {
-            @Override
-            public void onMessages(List<MessageDto> messages) {
-                runOnUiThread(() -> {
-                    List<DmMessageItem> mapped = mapMessages(messages);
-                    adapter.setItems(mapped);
-                    if (!mapped.isEmpty()) {
-                        binding.rvMessages.scrollToPosition(mapped.size() - 1);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                // Không spam snackbar khi lỗi realtime
+    private void sendMessage(String content) {
+        dmRepository.sendMessage(channelId, content, result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> appendMessage(result.getData()));
             }
         });
+    }
+
+    private void connectStomp() {
+        if (TextUtils.isEmpty(channelId)) return;
+
+        // Raw WebSocket URL (không dùng SockJS)
+        String wsUrl = BuildConfig.BASE_URL
+                .replace("https://", "wss://")
+                .replace("http://", "ws://")
+                + "ws";
+
+        stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
+
+        disposables.add(stompClient.lifecycle()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) {
+                        // Subscribe sau khi kết nối STOMP đã được thiết lập
+                        subscribeToChannel();
+                    }
+                }, throwable -> {}));
+
+        stompClient.connect();
+    }
+
+    private void subscribeToChannel() {
+        if (TextUtils.isEmpty(channelId) || stompClient == null) return;
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
+                    if (dto == null) return;
+                    boolean isFromMe = currentUserId != null && currentUserId.equals(dto.getAuthorId());
+                    if (!isFromMe) appendMessage(dto);
+                }, throwable -> {}));
+    }
+
+    private void disconnectStomp() {
+        disposables.clear();
+        if (stompClient != null) stompClient.disconnect();
+    }
+
+    private void appendMessage(MessageDto dto) {
+        boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
+        String sender = mine ? getString(R.string.dm_me) : peerName;
+        DmMessageItem item = new DmMessageItem(
+                dto.getId(), sender,
+                dto.getContent() == null ? "" : dto.getContent(),
+                formatTime(dto.getCreatedAt()), mine
+        );
+        adapter.appendItem(item);
+        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
     }
 
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
-        // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
-        // Firestore trả về DESC (mới nhất trước), cần đảo lại để hiển thị đúng thứ tự
-        List<MessageDto> ordered = new ArrayList<>(rawMessages);
-        Collections.reverse(ordered);
-
         List<DmMessageItem> mapped = new ArrayList<>();
-        for (MessageDto dto : ordered) {
+        for (MessageDto dto : rawMessages) {
             boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
             String sender = mine ? getString(R.string.dm_me) : peerName;
             mapped.add(new DmMessageItem(
-                    dto.getId(),
-                    sender,
+                    dto.getId(), sender,
                     dto.getContent() == null ? "" : dto.getContent(),
-                    formatTime(dto.getCreatedAt()),
-                    mine
+                    formatTime(dto.getCreatedAt()), mine
             ));
         }
         return mapped;
@@ -205,105 +229,11 @@ public class DmChatActivity extends AppCompatActivity {
 
     private String formatTime(String rawTime) {
         if (rawTime == null || rawTime.trim().isEmpty()) return "";
-        if (rawTime == null || rawTime.trim().isEmpty()) return "";
         try {
             LocalDateTime dateTime = LocalDateTime.parse(rawTime);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
-            return dateTime.format(formatter);
+            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
         } catch (Exception ignored) {
             return rawTime;
         }
     }
-SƯ
-    private String buildMessageSnapshot(List<MessageDto> messages) {
-        if (messages == null || messages.isEmpty()) {
-            return "empty";
-        }
-
-        MessageDto latest = messages.get(0);
-        String id = latest.getId() == null ? "" : latest.getId();
-        String editedAt = latest.getEditedAt() == null ? "" : latest.getEditedAt();
-        return messages.size() + "|" + id + "|" + editedAt;
-    }
-
-    private void subscribeRealtime() {
-        if (TextUtils.isEmpty(channelId)) {
-            return;
-        }
-
-        dmStompClient.connectAndSubscribe(channelId, new DmStompClient.Listener() {
-            @Override
-            public void onMessage(MessageDto message) {
-                if (message == null) {
-                    return;
-                }
-
-                if (message.getChannelId() != null && !channelId.equals(message.getChannelId())) {
-                    return;
-                }
-
-                runOnUiThread(() -> applyIncomingMessage(message));
-            }
-
-            @Override
-            public void onError(String message) {
-                // Không spam snackbar để tránh ảnh hưởng trải nghiệm chat.
-            }
-        });
-    }
-
-    private void unsubscribeRealtime() {
-        if (dmStompClient != null) {
-            dmStompClient.disconnect();
-        }
-    }
-
-    private void applyIncomingMessage(MessageDto incoming) {
-        String messageId = incoming.getId();
-        if (messageId == null || messageId.trim().isEmpty()) {
-            loadMessages(true);
-            return;
-        }
-
-        boolean changed = false;
-        synchronized (cachedMessagesDesc) {
-            int index = indexOfMessage(cachedMessagesDesc, messageId);
-            if (index >= 0) {
-                cachedMessagesDesc.set(index, incoming);
-                changed = true;
-            } else {
-                // API list đang ở thứ tự createdAt DESC, nên tin mới thêm ở đầu list.
-                cachedMessagesDesc.add(0, incoming);
-                changed = true;
-            }
-        }
-
-        if (!changed) {
-            return;
-        }
-
-        List<MessageDto> rawCopy;
-        synchronized (cachedMessagesDesc) {
-            rawCopy = new ArrayList<>(cachedMessagesDesc);
-        }
-
-        lastMessageSnapshot = buildMessageSnapshot(rawCopy);
-        List<DmMessageItem> mapped = mapMessages(rawCopy);
-        adapter.setItems(mapped);
-        if (!mapped.isEmpty()) {
-            binding.rvMessages.scrollToPosition(mapped.size() - 1);
-        }
-    }
-
-    private int indexOfMessage(List<MessageDto> messages, String messageId) {
-        for (int i = 0; i < messages.size(); i++) {
-            MessageDto dto = messages.get(i);
-            if (dto.getId() != null && dto.getId().equals(messageId)) {
-                return i;
-            }
-        }
-        return -1;
-    }
 }
-
-

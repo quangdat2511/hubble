@@ -28,6 +28,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         notifyDataSetChanged();
     }
 
+    public void appendItem(DmMessageItem item) {
+        if (item == null) return;
+        items.add(item);
+        notifyItemInserted(items.size() - 1);
+    }
+
     @Override
     public int getItemViewType(int position) {
         return items.get(position).isMine() ? TYPE_ME : TYPE_OTHER;

@@ -213,32 +213,19 @@ public class MainViewModel extends ViewModel {
                         && !result.getData().isEmpty()) {
                     MessageDto latest = result.getData().get(0);
                     String preview = latest.getContent();
-                    if (preview == null || preview.trim().isEmpty()) {
-                        preview = "Tin nhắn đa phương tiện";
-                    }
-
+                    if (preview == null || preview.trim().isEmpty()) preview = "Tin nhắn đa phương tiện";
                     String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), item.getDisplayName());
                     String previewText = senderLabel + ": " + preview;
-
                     synchronized (enriched) {
                         DmConversationItem current = enriched.get(index);
                         enriched.set(index, new DmConversationItem(
-                                current.getId(),
-                                current.getChannelId(),
-                                current.getFriendId(),
-                                current.getDisplayName(),
-                                previewText,
-                                toShortTime(latest.getCreatedAt()),
-                                current.isOnline(),
-                                current.isVerified(),
-                                current.isSelected()
+                                current.getId(), current.getChannelId(), current.getFriendId(),
+                                current.getDisplayName(), previewText, toShortTime(latest.getCreatedAt()),
+                                current.isOnline(), current.isVerified(), current.isSelected()
                         ));
                     }
                 }
-
-                if (pending.decrementAndGet() == 0) {
-                    publishConversations(enriched);
-                }
+                if (pending.decrementAndGet() == 0) publishConversations(enriched);
             });
         }
 
@@ -256,7 +243,6 @@ public class MainViewModel extends ViewModel {
         if (createdAt == null || createdAt.trim().isEmpty()) {
             return "";
         }
-
         try {
             OffsetDateTime dateTime = OffsetDateTime.parse(createdAt);
             int hour = dateTime.getHour();

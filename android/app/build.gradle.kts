@@ -1,6 +1,7 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,9 +17,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Đọc BASE_URL từ local.properties nếu có, fallback về Railway
+    val localProps = Properties()
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
+    val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://10.109.132.250:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"$localBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
@@ -26,8 +33,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Đổi thành URL server production khi deploy thật
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
         }
     }
 
@@ -44,10 +50,6 @@ android {
 
 dependencies {
     val lifecycle_version = "2.8.7"
-
-    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
