@@ -101,6 +101,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/divider" />
 
+    <!-- Composer bar -->
     <LinearLayout
         android:id="@+id/composerBar"
         android:layout_width="0dp"
@@ -112,10 +113,11 @@
         android:paddingEnd="@dimen/spacing_sm"
         android:paddingTop="@dimen/spacing_sm"
         android:paddingBottom="@dimen/spacing_sm"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/emojiPickerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
+        <!-- Attach button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAttach"
             style="@style/Widget.Material3.Button.IconButton"
@@ -125,6 +127,7 @@
             app:icon="@drawable/ic_add"
             app:iconTint="?attr/colorOnSurfaceVariant" />
 
+        <!-- Message input -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilComposer"
             style="@style/Widget.Material3.TextInputLayout.FilledBox"
@@ -139,7 +142,9 @@
             app:boxCornerRadiusTopEnd="24dp"
             app:boxCornerRadiusTopStart="24dp"
             app:boxStrokeWidth="0dp"
-            app:boxStrokeWidthFocused="0dp">
+            app:boxStrokeWidthFocused="0dp"
+            app:endIconMode="none"
+            app:startIconDrawable="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etComposer"
@@ -152,6 +157,17 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Emoji toggle button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEmoji"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/cd_emoji_picker"
+            app:icon="@drawable/ic_emoji"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <!-- Send / Mic toggle -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
             style="@style/Widget.Material3.Button.IconButton.Filled"
@@ -162,5 +178,22 @@
             app:iconTint="@color/white" />
 
     </LinearLayout>
+
+    <!-- Emoji picker panel — height is set programmatically to match keyboard height -->
+    <FrameLayout
+        android:id="@+id/emojiPickerContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.example.hubble.view.emoji.EmojiPickerView
+            android:id="@+id/emojiPickerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
