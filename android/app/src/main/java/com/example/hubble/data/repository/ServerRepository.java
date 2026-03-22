@@ -8,6 +8,7 @@ import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.server.CreateServerRequest;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.server.ServerResponse;
@@ -97,6 +98,36 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ServerResponse>>> call, @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
+    public void getServerChannels(String serverId, RepositoryCallback<List<ChannelDto>> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+
+        String token = "Bearer " + accessToken;
+        RetrofitClient.getServerService(appContext).getServerChannels(token, serverId)
+                .enqueue(new Callback<>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<List<ChannelDto>>> call,
+                                           @NonNull Response<ApiResponse<List<ChannelDto>>> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+
+                        String error = response.body() != null ? response.body().getMessage() : null;
+                        callback.onResult(AuthResult.error(error != null ? error : "Không tải được danh sách kênh"));
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<List<ChannelDto>>> call, @NonNull Throwable t) {
                         callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
                     }
                 });

@@ -15,9 +15,11 @@ import com.example.hubble.data.repository.ServerRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,6 +46,11 @@ public class MainViewModel extends ViewModel {
 
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     public final LiveData<String> errorMessage = _errorMessage;
+
+    private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
+    public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
+
+    private final Set<String> collapsedCategories = new HashSet<>();
 
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
@@ -105,6 +112,10 @@ public class MainViewModel extends ViewModel {
 
     public void selectServer(ServerItem server) {
         _selectedServer.setValue(server);
+    }
+
+    public void selectDmPanel() {
+        _selectedServer.setValue(null);
     }
 
     public void refreshDirectMessages() {
@@ -284,6 +295,47 @@ public class MainViewModel extends ViewModel {
             }
         }
         return null;
+    }
+
+    public void loadServerChannels(String serverId) {
+        if (serverId == null || serverId.trim().isEmpty()) {
+            _serverChannels.postValue(AuthResult.error("Máy chủ không hợp lệ"));
+            return;
+        }
+
+        _serverChannels.postValue(AuthResult.loading());
+        serverRepository.getServerChannels(serverId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                _serverChannels.postValue(AuthResult.success(result.getData()));
+                return;
+            }
+
+            if (result.getStatus() == AuthResult.Status.ERROR) {
+                _serverChannels.postValue(AuthResult.error(result.getMessage()));
+            }
+        });
+    }
+
+    public void toggleCategoryCollapse(String categoryId) {
+        if (categoryId == null) {
+            return;
+        }
+
+        if (collapsedCategories.contains(categoryId)) {
+            collapsedCategories.remove(categoryId);
+        } else {
+            collapsedCategories.add(categoryId);
+        }
+
+        // Re-post current success data to trigger adapter rebuild
+        AuthResult<List<ChannelDto>> current = _serverChannels.getValue();
+        if (current != null && current.getStatus() == AuthResult.Status.SUCCESS && current.getData() != null) {
+            _serverChannels.postValue(AuthResult.success(current.getData()));
+        }
+    }
+
+    public Set<String> getCollapsedCategories() {
+        return collapsedCategories;
     }
 }
 
