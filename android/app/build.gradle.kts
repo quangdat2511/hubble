@@ -17,15 +17,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Đọc BASE_URL từ local.properties nếu có, fallback về Railway
+    // Đọc local.properties (BASE_URL, GIPHY_API_KEY, …)
     val localProps = Properties()
     val localPropsFile = rootProject.file("local.properties")
     if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
     val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+    val giphyApiKey  = localProps.getProperty("GIPHY_API_KEY", "")
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"$localBaseUrl\"")
+            buildConfigField("String", "BASE_URL",     "\"$localBaseUrl\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
         release {
             isMinifyEnabled = false
@@ -33,7 +35,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
+            buildConfigField("String", "BASE_URL",     "\"https://hubble-production.up.railway.app/\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
     }
 

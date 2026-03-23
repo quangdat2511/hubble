@@ -199,6 +199,40 @@ public class DmChatActivity extends AppCompatActivity {
         binding.btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
 
         binding.emojiPickerView.setOnEmojiSelectedListener(emoji -> insertEmojiAtCursor(emoji));
+
+        binding.emojiPickerView.setOnMediaSelectedListener(
+                new com.example.hubble.view.emoji.EmojiPickerView.OnMediaSelectedListener() {
+                    @Override
+                    public void onGifSelected(String gifUrl, String previewUrl, String title) {
+                        String content = com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX
+                                + encodeMediaContent(title, gifUrl);
+                        sendMediaMessage(content);
+                    }
+
+                    @Override
+                    public void onStickerSelected(String stickerUrl, String previewUrl, String title) {
+                        String content = com.example.hubble.adapter.dm.DmMessageAdapter.STICKER_PREFIX
+                                + encodeMediaContent(title, stickerUrl);
+                        sendMediaMessage(content);
+                    }
+                });
+    }
+
+    private void sendMediaMessage(String content) {
+        if (TextUtils.isEmpty(channelId)) return;
+        hideEmojiPanel(false);
+        sendMessage(content);
+    }
+
+    /**
+     * Encodes a media title + URL into a single string: "title\nurl".
+     * If title is null/empty, returns just the URL for backward compatibility.
+     */
+    private static String encodeMediaContent(String title, String url) {
+        if (title != null && !title.trim().isEmpty()) {
+            return title.trim() + "\n" + url;
+        }
+        return url;
     }
 
     /**
