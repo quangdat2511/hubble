@@ -2,7 +2,7 @@
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
 
-    <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
+    <string name="splash_tagline">Chào mừng bạn đến với Hubble</string>
 
     <string name="login_title">Chào mừng trở lại!</string>
     <string name="login_subtitle">Rất vui được gặp lại bạn</string>
@@ -166,7 +166,7 @@
 
     <!-- Direct message MVP -->
     <string name="dm_title">Messages</string>
-    <string name="dm_add_friend">Add Friends</string>
+    <string name="dm_add_friend">Thêm bạn bè</string>
     <string name="dm_new_message">Tin nhắn mới</string>
     <string name="dm_default_user">Danzg</string>
     <string name="dm_me">Bạn</string>
@@ -184,4 +184,10 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+
+    <string name="language_title">Ngôn ngữ</string>
+    <string name="language_switch_label">Tiếng Việt</string>
+    <string name="language_current_en">Hiện tại: Tiếng Anh</string>
+    <string name="language_current_vi">Hiện tại: Tiếng Việt</string>
+    <string name="settings_saved">Đã lưu cài đặt</string>
 </resources>

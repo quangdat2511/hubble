@@ -30,6 +30,7 @@ public class LanguageController {
             Authentication authentication,
             @RequestParam String locale
     ) {
+
         UUID userId = UUID.fromString(authentication.getName());
         service.updateLanguage(userId, locale);
         return ResponseEntity.ok().build();

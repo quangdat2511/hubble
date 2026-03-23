@@ -2,374 +2,39 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
 
-    <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         style="@style/Widget.Material3.Toolbar.Surface"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
         android:background="?android:attr/colorBackground"
+        android:fitsSystemWindows="true"
         app:navigationContentDescription="@string/cd_settings_back"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="@string/settings_title"
         app:titleCentered="true" />
 
-    <!-- Scrollable settings list -->
-    <androidx.core.widget.NestedScrollView
+    <com.google.android.material.card.MaterialCardView
+        style="@style/Widget.Material3.CardView.Filled"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="@dimen/spacing_md">
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/spacing_md"
+        app:cardCornerRadius="12dp">
 
-        <LinearLayout
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/languageFragmentContainer"
+            android:name="com.example.hubble.view.settings.LanguageFragment"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="@dimen/spacing_md">
+            android:layout_height="wrap_content" />
 
-            <!-- App section label -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_xs"
-                android:layout_marginBottom="@dimen/spacing_xs"
-                android:text="@string/settings_section_app"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textAllCaps="true" />
-
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_md"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <!-- Language -->
-                    <LinearLayout
-                        android:id="@+id/rowLanguage"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_search"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_language"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <!-- Notifications -->
-                    <LinearLayout
-                        android:id="@+id/rowNotifications"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_notifications"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_notifications"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <!-- Appearance -->
-                    <LinearLayout
-                        android:id="@+id/rowAppearance"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_settings"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_appearance"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <!-- Advanced -->
-                    <LinearLayout
-                        android:id="@+id/rowAdvanced"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_settings"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_advanced"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Support section label -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_xs"
-                android:layout_marginBottom="@dimen/spacing_xs"
-                android:text="@string/settings_section_support"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textAllCaps="true" />
-
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_md"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:id="@+id/rowSupport"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_friends"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_support"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- What's New section label -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_xs"
-                android:layout_marginBottom="@dimen/spacing_xs"
-                android:text="@string/settings_section_info"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textAllCaps="true" />
-
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_md"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:id="@+id/rowChangelog"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="@dimen/spacing_md"
-                    android:paddingEnd="@dimen/spacing_md">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_marginEnd="@dimen/spacing_md"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_notifications"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/settings_changelog"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_expand_more"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Log out card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardLogout"
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="@dimen/spacing_md"
-                    android:paddingEnd="@dimen/spacing_md">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_marginEnd="@dimen/spacing_md"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_logout"
-                        app:tint="?attr/colorError" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_logout"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorError" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-        </LinearLayout>
-
-    </androidx.core.widget.NestedScrollView>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
