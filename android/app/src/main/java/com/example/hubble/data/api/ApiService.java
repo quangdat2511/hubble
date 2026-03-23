@@ -23,6 +23,7 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -96,5 +97,16 @@ public interface ApiService {
         Call<ApiResponse<MessageDto>> sendMessage(
             @Header("Authorization") String token,
             @Body CreateMessageRequest request
+        );
+
+        @PUT("api/settings/theme")
+        Call<ApiResponse<MessageDto>> updateTheme(
+                @Header("Authorization") String token,
+                @Query("theme") String theme
+        );
+
+        @GET("api/settings/theme")
+        Call<ApiResponse<MessageDto>> getTheme(
+                @Header("Authorization") String token
         );
 }

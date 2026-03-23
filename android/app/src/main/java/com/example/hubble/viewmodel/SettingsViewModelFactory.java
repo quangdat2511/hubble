@@ -5,12 +5,13 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.SettingsRepository;
 
 public class SettingsViewModelFactory implements ViewModelProvider.Factory {
 
-    private final AuthRepository repository;
+    private final SettingsRepository repository;
 
-    public SettingsViewModelFactory(AuthRepository repository) {
+    public SettingsViewModelFactory(SettingsRepository repository) {
         this.repository = repository;
     }
 
