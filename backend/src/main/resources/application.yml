@@ -67,12 +67,12 @@ logging:
 
 app:
   storage:
-    provider: minio
-    endpoint: http://localhost:9000
-    access-key: minioadmin
-    secret-key: minioadmin
+    provider: supabase
+    endpoint: https://qexzpkwrfjlblrvtqvuh.supabase.co
+    access-key: ''
+    secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14
     bucket: hubble-media
-    public-url: http://10.0.2.2:9000/hubble-media
+    public-url: https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/hubble-media
     max-file-size-mb: 25
     allowed-types:
       - image/jpeg
