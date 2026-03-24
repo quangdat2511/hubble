@@ -1,41 +1,57 @@
 package com.example.hubble.view.dm;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Rect;
+import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
-import android.view.KeyEvent;
+import android.widget.ImageView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.activity.OnBackPressedCallback;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.utils.TokenManager;
+import com.example.hubble.viewmodel.MediaViewModel;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
-import org.java_websocket.client.WebSocketClient;
 import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -48,25 +64,43 @@ public class DmChatActivity extends AppCompatActivity {
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
 
-    // Minimum height ratio considered "keyboard open"
+    // Constants cho bàn phím
     private static final float KEYBOARD_HEIGHT_RATIO = 0.15f;
-    // Default panel height when keyboard height is unknown (360dp)
     private static final int DEFAULT_PANEL_DP = 300;
 
     private ActivityDmChatBinding binding;
     private DmMessageAdapter adapter;
     private DmRepository dmRepository;
     private TokenManager tokenManager;
+    private MediaViewModel mediaViewModel;
+
+    // STOMP (Từ nhánh main)
     private StompClient stompClient;
     private CompositeDisposable disposables = new CompositeDisposable();
     private final Gson gson = new Gson();
 
+    // Dữ liệu người dùng & UI
     private String channelId;
     private String currentUserId;
     private String currentUserName;
     private String peerName;
+    private String lastMessageSnapshot = "";
+    private final List<MessageDto> cachedMessagesDesc = new ArrayList<>();
 
-    // Emoji/keyboard state
+    // File / Media (Từ nhánh media)
+    private final List<String> pendingAttachmentIds = new ArrayList<>();
+    private final List<String> pendingAttachmentTypes = new ArrayList<>();
+    private MediaRecorder mediaRecorder;
+    private File audioFile;
+    private boolean isRecording = false;
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+
+    // Đếm thời gian ghi âm
+    private int recordSeconds = 0;
+    private Handler recordHandler = new Handler(Looper.getMainLooper());
+    private Runnable recordRunnable;
+
+    // Bàn phím / Emoji (Từ nhánh main)
     private boolean isEmojiPanelVisible = false;
     private int keyboardHeight = 0;
     private boolean pendingShowKeyboard = false;
@@ -86,6 +120,7 @@ public class DmChatActivity extends AppCompatActivity {
 
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
+        mediaViewModel = new ViewModelProvider(this).get(MediaViewModel.class);
         currentUserId = dmRepository.getCurrentUserId();
 
         UserResponse user = tokenManager.getUser();
@@ -103,7 +138,18 @@ public class DmChatActivity extends AppCompatActivity {
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        loadMessageHistory();
+        loadMessages(false);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (isEmojiPanelVisible) {
+                    hideEmojiPanel(false); // Nếu đang mở bảng Emoji thì đóng lại
+                } else {
+                    setEnabled(false); // Tắt cờ bắt sự kiện này
+                    getOnBackPressedDispatcher().onBackPressed(); // Gọi lệnh Back mặc định (thoát ra)
+                }
+            }
+        });
     }
 
     @Override
@@ -124,17 +170,8 @@ public class DmChatActivity extends AppCompatActivity {
         disposables.clear();
     }
 
-    @Override
-    public void onBackPressed() {
-        if (isEmojiPanelVisible) {
-            hideEmojiPanel(false);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
-    // Setup
+    // Setup UI cơ bản
     // ─────────────────────────────────────────────────────────────────────────
 
     private void setupToolbar(String username) {
@@ -151,11 +188,8 @@ public class DmChatActivity extends AppCompatActivity {
         binding.rvMessages.setLayoutManager(layoutManager);
         binding.rvMessages.setAdapter(adapter);
 
-        // Dismiss emoji panel on message list touch
         binding.rvMessages.setOnTouchListener((v, event) -> {
-            if (isEmojiPanelVisible) {
-                hideEmojiPanel(false);
-            }
+            if (isEmojiPanelVisible) hideEmojiPanel(false);
             return false;
         });
     }
@@ -165,148 +199,255 @@ public class DmChatActivity extends AppCompatActivity {
 
         binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (event.isShiftPressed()) {
-                    return false;
-                }
+                if (event.isShiftPressed()) return false;
                 attemptSendMessage();
                 return true;
             }
             return false;
         });
 
-        binding.btnAttach.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
-        binding.btnCall.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
-        binding.btnVideo.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
-
-        // When user taps the EditText while emoji panel is open, swap to keyboard
+        // Click Emoji -> Mở Keyboard
         binding.etComposer.setOnClickListener(v -> {
-            if (isEmojiPanelVisible) {
-                hideEmojiPanel(true);
-            }
+            if (isEmojiPanelVisible) hideEmojiPanel(true);
         });
 
         binding.etComposer.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus && isEmojiPanelVisible) {
-                hideEmojiPanel(true);
+            if (hasFocus && isEmojiPanelVisible) hideEmojiPanel(true);
+        });
+
+        // Nút Media
+        binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
+        binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+        binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+
+        binding.btnVoice.setOnClickListener(v -> {
+            if (!isRecording) {
+                startRecording();
+                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
+                binding.btnSend.setEnabled(false);
+                binding.btnAttach.setEnabled(false);
+            } else {
+                stopRecording();
+                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
+                binding.btnSend.setEnabled(true);
+                binding.btnAttach.setEnabled(true);
             }
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // File Picker & Upload (Nhánh Media)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private final ActivityResultLauncher<String> filePickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), uris -> {
+                if (uris != null && !uris.isEmpty()) handleFilesSelected(uris);
+            });
+
+    private void handleFilesSelected(List<Uri> uris) {
+        binding.btnAttach.setEnabled(false);
+        binding.llAttachmentPreviews.removeAllViews();
+        pendingAttachmentIds.clear();
+        pendingAttachmentTypes.clear();
+
+        int[] completed = {0};
+        int total = uris.size();
+
+        for (Uri uri : uris) {
+            mediaViewModel.uploadMedia(uri).observe(this, result -> {
+                switch (result.status) {
+                    case LOADING: break;
+                    case SUCCESS:
+                        pendingAttachmentIds.add(result.data.getAttachmentId());
+                        pendingAttachmentTypes.add(result.data.getContentType());
+                        showAttachmentPreview(uri, result.data.getFilename(), result.data.getContentType());
+                        completed[0]++;
+                        if (completed[0] == total) {
+                            binding.btnAttach.setEnabled(true);
+                            Snackbar.make(binding.getRoot(), total + " file(s) ready", Snackbar.LENGTH_SHORT).show();
+                        }
+                        break;
+                    case ERROR:
+                        completed[0]++;
+                        Snackbar.make(binding.getRoot(), result.errorMessage, Snackbar.LENGTH_SHORT).show();
+                        if (completed[0] == total) binding.btnAttach.setEnabled(true);
+                        break;
+                }
+            });
+        }
+    }
+
+    private void showAttachmentPreview(Uri uri, String filename, String contentType) {
+        binding.attachmentPreviewBar.setVisibility(View.VISIBLE);
+        binding.llAttachmentPreviews.removeAllViews(); // Fix tạm, đáng ra phải append
+
+        View previewView = getLayoutInflater().inflate(R.layout.item_attachment_preview, binding.llAttachmentPreviews, false);
+        ImageView ivPreview = previewView.findViewById(R.id.ivPreview);
+        ImageView ivFileIcon = previewView.findViewById(R.id.ivFileIcon);
+        MaterialButton btnRemove = previewView.findViewById(R.id.btnRemove);
+
+        if (contentType != null && (contentType.startsWith("image/") || contentType.startsWith("video/"))) {
+            ivPreview.setVisibility(View.VISIBLE);
+            ivFileIcon.setVisibility(View.GONE);
+            Glide.with(this).load(uri).centerCrop().into(ivPreview);
+        } else {
+            ivPreview.setVisibility(View.GONE);
+            ivFileIcon.setVisibility(View.VISIBLE);
+        }
+
+        btnRemove.setOnClickListener(v -> clearAttachmentPreview());
+        binding.llAttachmentPreviews.addView(previewView);
+    }
+
+    private void clearAttachmentPreview() {
+        pendingAttachmentIds.clear();
+        pendingAttachmentTypes.clear();
+        binding.attachmentPreviewBar.setVisibility(View.GONE);
+        binding.llAttachmentPreviews.removeAllViews();
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+        binding.btnAttach.setEnabled(true);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Ghi âm (Nhánh Media)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void startRecording() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+            return;
+        }
+
+        audioFile = new File(getExternalCacheDir(), "voice_" + System.currentTimeMillis() + ".m4a");
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setOutputFile(audioFile.getAbsolutePath());
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+            recordSeconds = 0;
+            recordRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", recordSeconds / 60, recordSeconds % 60));
+                    recordSeconds++;
+                    recordHandler.postDelayed(this, 1000);
+                }
+            };
+            recordHandler.post(recordRunnable);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopRecording() {
+        if (mediaRecorder != null && isRecording) {
+            try {
+                mediaRecorder.stop();
+            } catch (RuntimeException stopException) {
+                if (audioFile != null && audioFile.exists()) audioFile.delete();
+            } finally {
+                mediaRecorder.release();
+                mediaRecorder = null;
+                isRecording = false;
+            }
+
+            recordHandler.removeCallbacks(recordRunnable);
+            binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+
+            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordSeconds >= 1) {
+                uploadVoiceAndSend(audioFile);
+            } else {
+                if (audioFile != null && audioFile.exists()) audioFile.delete();
+                Snackbar.make(binding.getRoot(), "Ghi âm quá ngắn!", Snackbar.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void uploadVoiceAndSend(File file) {
+        Uri fileUri = Uri.fromFile(file);
+        mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
+            if (result.status == com.example.hubble.data.repository.MediaRepository.UploadResult.Status.SUCCESS) {
+                List<String> attachIds = new ArrayList<>();
+                attachIds.add(result.data.getAttachmentId());
+                dmRepository.sendMessage(channelId, "", attachIds, "VOICE", sendResult -> {
+                    if (sendResult.getStatus() == AuthResult.Status.SUCCESS) loadMessages(false);
+                });
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Emoji & Bàn phím (Nhánh Main)
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void setupEmojiPanel() {
         binding.btnEmoji.setOnClickListener(v -> toggleEmojiPanel());
-
-        binding.emojiPickerView.setOnEmojiSelectedListener(emoji -> insertEmojiAtCursor(emoji));
-
-        binding.emojiPickerView.setOnMediaSelectedListener(
-                new com.example.hubble.view.emoji.EmojiPickerView.OnMediaSelectedListener() {
-                    @Override
-                    public void onGifSelected(String gifUrl, String previewUrl, String title) {
-                        String content = com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX
-                                + encodeMediaContent(title, gifUrl);
-                        sendMediaMessage(content);
-                    }
-
-                    @Override
-                    public void onStickerSelected(String stickerUrl, String previewUrl, String title) {
-                        String content = com.example.hubble.adapter.dm.DmMessageAdapter.STICKER_PREFIX
-                                + encodeMediaContent(title, stickerUrl);
-                        sendMediaMessage(content);
-                    }
-                });
+        binding.emojiPickerView.setOnEmojiSelectedListener(this::insertEmojiAtCursor);
+        binding.emojiPickerView.setOnMediaSelectedListener(new com.example.hubble.view.emoji.EmojiPickerView.OnMediaSelectedListener() {
+            @Override
+            public void onGifSelected(String gifUrl, String previewUrl, String title) {
+                sendMediaMessage(DmMessageAdapter.GIF_PREFIX + encodeMediaContent(title, gifUrl));
+            }
+            @Override
+            public void onStickerSelected(String stickerUrl, String previewUrl, String title) {
+                sendMediaMessage(DmMessageAdapter.STICKER_PREFIX + encodeMediaContent(title, stickerUrl));
+            }
+        });
     }
 
     private void sendMediaMessage(String content) {
         if (TextUtils.isEmpty(channelId)) return;
         hideEmojiPanel(false);
-        sendMessage(content);
+        // Gửi Giphy/Sticker như một TEXT kèm danh sách đính kèm trống
+        dmRepository.sendMessage(channelId, content, new ArrayList<>(), "TEXT", result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS) loadMessages(false);
+        });
     }
 
-    /**
-     * Encodes a media title + URL into a single string: "title\nurl".
-     * If title is null/empty, returns just the URL for backward compatibility.
-     */
     private static String encodeMediaContent(String title, String url) {
-        if (title != null && !title.trim().isEmpty()) {
-            return title.trim() + "\n" + url;
-        }
+        if (title != null && !title.trim().isEmpty()) return title.trim() + "\n" + url;
         return url;
     }
 
-    /**
-     * Detects keyboard height by monitoring root view layout changes.
-     * When the soft keyboard appears, the root view's visible frame shrinks.
-     */
     private void setupKeyboardHeightDetection() {
-        binding.getRoot().getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        Rect visibleFrame = new Rect();
-                        binding.getRoot().getWindowVisibleDisplayFrame(visibleFrame);
-                        int screenHeight = binding.getRoot().getRootView().getHeight();
-                        int detectedKeyboardHeight = screenHeight - visibleFrame.bottom;
+        binding.getRoot().getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            Rect visibleFrame = new Rect();
+            binding.getRoot().getWindowVisibleDisplayFrame(visibleFrame);
+            int screenHeight = binding.getRoot().getRootView().getHeight();
+            int detectedKeyboardHeight = screenHeight - visibleFrame.bottom;
 
-                        if (detectedKeyboardHeight > screenHeight * KEYBOARD_HEIGHT_RATIO) {
-                            // Keyboard is visible — update our stored height
-                            if (detectedKeyboardHeight != keyboardHeight) {
-                                keyboardHeight = detectedKeyboardHeight;
-                                // If emoji panel needs resize to match new keyboard height
-                                if (isEmojiPanelVisible) {
-                                    setPanelHeight(keyboardHeight);
-                                }
-                            }
-                            // Keyboard appeared → close emoji panel silently
-                            if (isEmojiPanelVisible && !pendingShowKeyboard) {
-                                // User opened keyboard manually (tapped EditText etc.)
-                                collapseEmojiPanel();
-                            }
-                            pendingShowKeyboard = false;
-                        }
-                    }
-                });
+            if (detectedKeyboardHeight > screenHeight * KEYBOARD_HEIGHT_RATIO) {
+                if (detectedKeyboardHeight != keyboardHeight) {
+                    keyboardHeight = detectedKeyboardHeight;
+                    if (isEmojiPanelVisible) setPanelHeight(keyboardHeight);
+                }
+                if (isEmojiPanelVisible && !pendingShowKeyboard) collapseEmojiPanel();
+                pendingShowKeyboard = false;
+            }
+        });
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Emoji / Keyboard switching
-    // ─────────────────────────────────────────────────────────────────────────
-
     private void toggleEmojiPanel() {
-        if (isEmojiPanelVisible) {
-            // Switch back to keyboard
-            hideEmojiPanel(true);
-        } else {
-            showEmojiPanel();
-        }
+        if (isEmojiPanelVisible) hideEmojiPanel(true);
+        else showEmojiPanel();
     }
 
     private void showEmojiPanel() {
         isEmojiPanelVisible = true;
         binding.btnEmoji.setIconResource(R.drawable.ic_keyboard_open);
-
         int height = resolveEmojiPanelHeight();
-
-        // Hide soft keyboard first
         hideKeyboard();
-
-        // Set container height and make it visible
         setPanelHeight(height);
         binding.emojiPickerContainer.setVisibility(View.VISIBLE);
-
-        // Slide up animation
         binding.emojiPickerContainer.setTranslationY(height);
-        binding.emojiPickerContainer.animate()
-                .translationY(0)
-                .setDuration(220)
-                .setInterpolator(new DecelerateInterpolator(1.5f))
-                .start();
+        binding.emojiPickerContainer.animate().translationY(0).setDuration(220).setInterpolator(new DecelerateInterpolator(1.5f)).start();
     }
 
-    /**
-     * @param showKeyboard if true, reveals keyboard after hiding panel
-     */
     private void hideEmojiPanel(boolean showKeyboard) {
         if (!isEmojiPanelVisible) return;
         collapseEmojiPanel();
@@ -317,21 +458,16 @@ public class DmChatActivity extends AppCompatActivity {
         }
     }
 
-    /** Just collapses the panel without touching the keyboard */
     private void collapseEmojiPanel() {
         isEmojiPanelVisible = false;
         binding.btnEmoji.setIconResource(R.drawable.ic_emoji);
         int height = resolveEmojiPanelHeight();
-        binding.emojiPickerContainer.animate()
-                .translationY(height)
-                .setDuration(180)
-                .setInterpolator(new DecelerateInterpolator(1.5f))
+        binding.emojiPickerContainer.animate().translationY(height).setDuration(180).setInterpolator(new DecelerateInterpolator(1.5f))
                 .withEndAction(() -> {
                     binding.emojiPickerContainer.setVisibility(View.GONE);
                     binding.emojiPickerContainer.setTranslationY(0);
                     setPanelHeight(0);
-                })
-                .start();
+                }).start();
     }
 
     private void setPanelHeight(int height) {
@@ -341,28 +477,19 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private int resolveEmojiPanelHeight() {
-        if (keyboardHeight > 0) return keyboardHeight;
-        return (int) (DEFAULT_PANEL_DP * getResources().getDisplayMetrics().density);
+        return keyboardHeight > 0 ? keyboardHeight : (int) (DEFAULT_PANEL_DP * getResources().getDisplayMetrics().density);
     }
 
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         View focusedView = getCurrentFocus();
-        if (focusedView != null && imm != null) {
-            imm.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
-        }
+        if (focusedView != null && imm != null) imm.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
     }
 
     private void showKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.showSoftInput(binding.etComposer, InputMethodManager.SHOW_IMPLICIT);
-        }
+        if (imm != null) imm.showSoftInput(binding.etComposer, InputMethodManager.SHOW_IMPLICIT);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Emoji insertion — inserts at cursor position in the EditText
-    // ─────────────────────────────────────────────────────────────────────────
 
     private void insertEmojiAtCursor(String emoji) {
         Editable editable = binding.etComposer.getText();
@@ -372,70 +499,81 @@ public class DmChatActivity extends AppCompatActivity {
         }
         int start = Math.max(binding.etComposer.getSelectionStart(), 0);
         int end = Math.max(binding.etComposer.getSelectionEnd(), 0);
-        if (start > end) {
-            int tmp = start; start = end; end = tmp;
-        }
+        if (start > end) { int tmp = start; start = end; end = tmp; }
         editable.replace(start, end, emoji);
-        // Move cursor to after inserted emoji
         binding.etComposer.setSelection(start + emoji.length());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Messaging
+    // Gửi và Tải Tin nhắn (Kết hợp Main + Media)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void attemptSendMessage() {
-        String content = binding.etComposer.getText() == null
-                ? "" : binding.etComposer.getText().toString();
-        if (content.trim().isEmpty() || TextUtils.isEmpty(channelId)) {
-            return;
+        String content = binding.etComposer.getText() == null ? "" : binding.etComposer.getText().toString().trim();
+        if (content.isEmpty() && pendingAttachmentIds.isEmpty()) return;
+
+        String messageType = "TEXT";
+        if (!pendingAttachmentTypes.isEmpty()) {
+            boolean hasFile = false;
+            for (String type : pendingAttachmentTypes) {
+                if (type != null && !type.startsWith("image/") && !type.startsWith("video/")) {
+                    hasFile = true; break;
+                }
+            }
+            messageType = hasFile ? "FILE" : "IMAGE";
         }
-        binding.etComposer.setText("");
-        sendMessage(content);
+
+        dmRepository.sendMessage(channelId, content, pendingAttachmentIds, messageType, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS) {
+                binding.etComposer.post(() -> {
+                    binding.etComposer.setText("");
+                    clearAttachmentPreview();
+                });
+                loadMessages(false);
+            } else {
+                String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
+                Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private void loadMessageHistory() {
+    private void loadMessages(boolean silent) {
         if (TextUtils.isEmpty(channelId)) return;
         dmRepository.getMessages(channelId, 0, 50, result -> {
-            if (result.getData() != null) {
-                List<MessageDto> ordered = new ArrayList<>(result.getData());
-                Collections.reverse(ordered);
-                runOnUiThread(() -> {
-                    List<DmMessageItem> items = mapMessages(ordered);
-                    adapter.setItems(items);
-                    if (!items.isEmpty()) binding.rvMessages.scrollToPosition(items.size() - 1);
-                });
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                String snapshot = buildMessageSnapshot(result.getData());
+                if (snapshot.equals(lastMessageSnapshot)) return;
+
+                List<DmMessageItem> mapped = mapMessages(result.getData());
+                synchronized (cachedMessagesDesc) {
+                    cachedMessagesDesc.clear();
+                    cachedMessagesDesc.addAll(result.getData());
+                }
+                adapter.setItems(mapped);
+                lastMessageSnapshot = snapshot;
+                if (!mapped.isEmpty()) binding.rvMessages.scrollToPosition(mapped.size() - 1);
+            } else if (!silent) {
+                String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
+                Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void sendMessage(String content) {
-        dmRepository.sendMessage(channelId, content, result -> {
-            if (result.getData() != null) {
-                runOnUiThread(() -> appendMessage(result.getData()));
-            }
-        });
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // STOMP Connection (Từ nhánh Main) + Render list (Từ nhánh Media)
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
-
-        String wsUrl = BuildConfig.BASE_URL
-                .replace("https://", "wss://")
-                .replace("http://", "ws://")
-                + "ws";
-
+        String wsUrl = BuildConfig.BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "ws";
         stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
 
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(event -> {
-                    if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) {
-                        subscribeToChannel();
-                    }
+                    if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) subscribeToChannel();
                 }, throwable -> {}));
-
         stompClient.connect();
     }
 
@@ -448,8 +586,7 @@ public class DmChatActivity extends AppCompatActivity {
                 .subscribe(stompMessage -> {
                     MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
                     if (dto == null) return;
-                    boolean isFromMe = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-                    if (!isFromMe) appendMessage(dto);
+                    runOnUiThread(() -> applyIncomingMessage(dto));
                 }, throwable -> {}));
     }
 
@@ -458,27 +595,58 @@ public class DmChatActivity extends AppCompatActivity {
         if (stompClient != null) stompClient.disconnect();
     }
 
-    private void appendMessage(MessageDto dto) {
-        boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-        String sender = mine ? getString(R.string.dm_me) : peerName;
-        DmMessageItem item = new DmMessageItem(
-                dto.getId(), sender,
-                dto.getContent() == null ? "" : dto.getContent(),
-                formatTime(dto.getCreatedAt()), mine
-        );
-        adapter.appendItem(item);
-        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+    private void applyIncomingMessage(MessageDto incoming) {
+        String messageId = incoming.getId();
+        if (messageId == null || messageId.trim().isEmpty()) {
+            loadMessages(true);
+            return;
+        }
+
+        boolean changed = false;
+        synchronized (cachedMessagesDesc) {
+            int index = indexOfMessage(cachedMessagesDesc, messageId);
+            if (index >= 0) {
+                cachedMessagesDesc.set(index, incoming);
+                changed = true;
+            } else {
+                cachedMessagesDesc.add(0, incoming);
+                changed = true;
+            }
+        }
+
+        if (!changed) return;
+
+        List<MessageDto> rawCopy;
+        synchronized (cachedMessagesDesc) { rawCopy = new ArrayList<>(cachedMessagesDesc); }
+
+        lastMessageSnapshot = buildMessageSnapshot(rawCopy);
+        List<DmMessageItem> mapped = mapMessages(rawCopy);
+        adapter.setItems(mapped);
+        if (!mapped.isEmpty()) binding.rvMessages.scrollToPosition(mapped.size() - 1);
     }
 
+    private int indexOfMessage(List<MessageDto> messages, String messageId) {
+        for (int i = 0; i < messages.size(); i++) {
+            if (messages.get(i).getId() != null && messages.get(i).getId().equals(messageId)) return i;
+        }
+        return -1;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
+        List<MessageDto> ordered = new ArrayList<>(rawMessages);
+        Collections.reverse(ordered);
         List<DmMessageItem> mapped = new ArrayList<>();
-        for (MessageDto dto : rawMessages) {
+        for (MessageDto dto : ordered) {
             boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
             String sender = mine ? getString(R.string.dm_me) : peerName;
             mapped.add(new DmMessageItem(
                     dto.getId(), sender,
                     dto.getContent() == null ? "" : dto.getContent(),
-                    formatTime(dto.getCreatedAt()), mine
+                    formatTime(dto.getCreatedAt()), mine, dto.getAttachments()
             ));
         }
         return mapped;
@@ -492,5 +660,11 @@ public class DmChatActivity extends AppCompatActivity {
         } catch (Exception ignored) {
             return rawTime;
         }
+    }
+
+    private String buildMessageSnapshot(List<MessageDto> messages) {
+        if (messages == null || messages.isEmpty()) return "empty";
+        MessageDto latest = messages.get(0);
+        return messages.size() + "|" + (latest.getId() == null ? "" : latest.getId()) + "|" + (latest.getEditedAt() == null ? "" : latest.getEditedAt());
     }
 }

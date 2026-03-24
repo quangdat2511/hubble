@@ -1,5 +1,6 @@
 package com.example.hubble.data.api;
 
+import okhttp3.MultipartBody;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
@@ -18,11 +19,15 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.UploadResponse;
+
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
+import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -59,6 +64,13 @@ public interface ApiService {
 
     @POST("api/auth/phone/verify")
     Call<ApiResponse<TokenResponse>> verifyPhoneOtp(@Body PhoneVerifyOtpRequest request);
+
+    @Multipart
+    @POST("api/media/upload")
+    Call<ApiResponse<UploadResponse>> uploadMedia(
+            @Part MultipartBody.Part file,
+            @Query("folder") String folder
+    );
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);

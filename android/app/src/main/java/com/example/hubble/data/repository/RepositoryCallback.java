@@ -1,6 +1,6 @@
 package com.example.hubble.data.repository;
 
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 
 /**
  * Generic callback interface for Repository → ViewModel communication

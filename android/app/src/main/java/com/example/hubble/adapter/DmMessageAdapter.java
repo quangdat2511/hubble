@@ -1,4 +1,4 @@
-package com.example.hubble.adapter.dm;
+package com.example.hubble.adapter;
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -32,57 +32,20 @@ import java.util.List;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    // Prefix từ nhánh main
-    public static final String GIF_PREFIX = "{gif}";
-    public static final String STICKER_PREFIX = "{sticker}";
-
     private static final int TYPE_ME = 1;
     private static final int TYPE_OTHER = 2;
 
     private final List<DmMessageItem> items = new ArrayList<>();
 
-    // Biến cho Voice Message từ nhánh media
     private static MediaPlayer currentMediaPlayer;
     private static ImageView currentPlayButton;
     private static Handler audioHandler = new Handler(Looper.getMainLooper());
     private static Runnable updateSeekBarRunnable;
 
-    // ── Helpers (Main) ──────────────────────────────────────────────────────
-
-    public static boolean isGif(String content) {
-        return content != null && content.startsWith(GIF_PREFIX);
-    }
-
-    public static boolean isSticker(String content) {
-        return content != null && content.startsWith(STICKER_PREFIX);
-    }
-
-    public static boolean isMedia(String content) {
-        return isGif(content) || isSticker(content);
-    }
-
-    public static String extractMediaUrl(String content) {
-        String body = null;
-        if (isGif(content)) body = content.substring(GIF_PREFIX.length());
-        else if (isSticker(content)) body = content.substring(STICKER_PREFIX.length());
-        else return content;
-
-        int nl = body.indexOf('\n');
-        return nl >= 0 ? body.substring(nl + 1) : body;
-    }
-
-    // ── Adapter interface ──────────────────────────────────────────────────
-
     public void setItems(List<DmMessageItem> newItems) {
         items.clear();
         if (newItems != null) items.addAll(newItems);
         notifyDataSetChanged();
-    }
-
-    public void appendItem(DmMessageItem item) {
-        if (item == null) return;
-        items.add(item);
-        notifyItemInserted(items.size() - 1);
     }
 
     @Override
@@ -112,7 +75,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return items.size();
     }
 
-    // ── Attachments Utility (Media) ─────────────────────────────────────────
+    // ── Shared utility ────────────────────────────────────────────────────────
 
     private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
         container.removeAllViews();
@@ -129,10 +92,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
 
             if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+                // 1. Inflate Layout cho Media
                 View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
                 ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
                 ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
 
+                // Hiện nút Play nếu là video
                 ivPlayIcon.setVisibility(mimeType.startsWith("video/") ? View.VISIBLE : View.GONE);
 
                 Glide.with(container.getContext())
@@ -143,18 +108,25 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         .into(ivMedia);
 
                 mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+
                 container.addView(mediaView);
 
-            } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
-                View voiceView = inflater.inflate(R.layout.item_attachment_voice, container, false);
+            }
+            else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
+                // INFLATE LAYOUT VOICE
+                View voiceView = LayoutInflater.from(container.getContext())
+                        .inflate(R.layout.item_attachment_voice, container, false);
+
                 ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
                 SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
                 TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
 
                 btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
-                container.addView(voiceView);
 
-            } else {
+                container.addView(voiceView);
+            }
+            else {
+                // 2. Inflate Layout cho File tài liệu
                 View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
                 TextView tvFileName = fileView.findViewById(R.id.tvFileName);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
@@ -162,91 +134,70 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
                 tvFileName.setText(fileName);
 
+                // Gán loại tệp cơ bản để hiển thị cho đẹp
                 if (mimeType.contains("pdf")) tvFileType.setText("Tài liệu PDF");
                 else if (mimeType.contains("zip") || mimeType.contains("rar")) tvFileType.setText("Tệp nén");
                 else tvFileType.setText("Tệp đính kèm");
 
                 fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+
                 container.addView(fileView);
             }
         }
+
         container.setVisibility(View.VISIBLE);
     }
 
-    // ── ViewHolders (Gộp Main + Media) ──────────────────────────────────────
+    // ── MeHolder ──────────────────────────────────────────────────────────────
 
     static class MeHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageMeBinding b;
+        private final ItemDmMessageMeBinding binding;
 
         MeHolder(ItemDmMessageMeBinding binding) {
             super(binding.getRoot());
-            this.b = binding;
+            this.binding = binding;
         }
 
         void bind(DmMessageItem item) {
-            b.tvTime.setText(item.getTimestamp());
-            String content = item.getContent();
+            binding.tvTime.setText(item.getTimestamp());
 
-            // Xử lý Text/GIF từ Main
-            if (isMedia(content)) {
-                b.cardMine.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext()).asGif().load(url).into(b.ivMedia);
+            if (item.getContent() != null && !item.getContent().isEmpty()) {
+                binding.tvMessage.setVisibility(View.VISIBLE);
+                binding.tvMessage.setText(item.getContent());
             } else {
-                b.cardMine.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-
-                if (content != null && !content.isEmpty()) {
-                    b.tvMessage.setVisibility(View.VISIBLE);
-                    b.tvMessage.setText(content);
-                } else {
-                    b.tvMessage.setVisibility(View.GONE);
-                }
+                binding.tvMessage.setVisibility(View.GONE);
             }
 
-            // Xử lý đính kèm File/Voice từ Media
-            loadAttachments(b.llAttachments, item.getAttachments());
+            loadAttachments(binding.llAttachments, item.getAttachments());
         }
     }
 
+    // ── OtherHolder ───────────────────────────────────────────────────────────
+
     static class OtherHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageOtherBinding b;
+        private final ItemDmMessageOtherBinding binding;
 
         OtherHolder(ItemDmMessageOtherBinding binding) {
             super(binding.getRoot());
-            this.b = binding;
+            this.binding = binding;
         }
 
         void bind(DmMessageItem item) {
-            b.tvName.setText(item.getSenderName());
-            b.tvTime.setText(item.getTimestamp());
-            String content = item.getContent();
+            binding.tvName.setText(item.getSenderName());
+            binding.tvTime.setText(item.getTimestamp());
 
-            if (isMedia(content)) {
-                b.cardOther.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext()).asGif().load(url).into(b.ivMedia);
+            if (item.getContent() != null && !item.getContent().isEmpty()) {
+                binding.tvMessage.setVisibility(View.VISIBLE);
+                binding.tvMessage.setText(item.getContent());
             } else {
-                b.cardOther.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-
-                if (content != null && !content.isEmpty()) {
-                    b.tvMessage.setVisibility(View.VISIBLE);
-                    b.tvMessage.setText(content);
-                } else {
-                    b.tvMessage.setVisibility(View.GONE);
-                }
+                binding.tvMessage.setVisibility(View.GONE);
             }
 
-            loadAttachments(b.llAttachments, item.getAttachments());
+            loadAttachments(binding.llAttachments, item.getAttachments());
         }
     }
 
-    // ── Audio & File Open Utilities ─────────────────────────────────────────
+
 
     private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
         try {
@@ -273,9 +224,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
             currentMediaPlayer = new MediaPlayer();
             currentPlayButton = btnPlayPause;
+
             currentMediaPlayer.setDataSource(url);
             currentMediaPlayer.prepareAsync();
-            btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync);
+            btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync); // Icon xoay xoay đang load
 
             currentMediaPlayer.setOnPreparedListener(mp -> {
                 seekBar.setMax(mp.getDuration());
@@ -318,11 +270,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             e.printStackTrace();
         }
     }
-
     private static void openAttachment(Context context, String url, String mimeType) {
         if (url == null || url.isEmpty()) return;
+
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
+            // Gắn URL và báo cho Android biết đây là loại file gì để nó tìm app phù hợp
             intent.setDataAndType(Uri.parse(url), mimeType);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);

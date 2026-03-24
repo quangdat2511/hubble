@@ -1,5 +1,10 @@
 package com.example.hubble.data.model.dm;
 
+import com.google.gson.annotations.SerializedName;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class MessageDto {
     private String id;
     private String channelId;
@@ -10,6 +15,10 @@ public class MessageDto {
     private Boolean isPinned;
     private String editedAt;
     private String createdAt;
+
+    @SerializedName("attachments")
+    private List<AttachmentResponse> attachments;
+
 
     public String getId() {
         return id;
@@ -47,6 +56,10 @@ public class MessageDto {
         return createdAt;
     }
 
+    public List<AttachmentResponse> getAttachments() {
+        return attachments != null ? attachments : new ArrayList<>();
+    }
+
     public void setId(String id) { this.id = id; }
     public void setChannelId(String channelId) { this.channelId = channelId; }
     public void setAuthorId(String authorId) { this.authorId = authorId; }
@@ -57,4 +70,3 @@ public class MessageDto {
     public void setEditedAt(String editedAt) { this.editedAt = editedAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }
-
