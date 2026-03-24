@@ -18,7 +18,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://10.109.132.250:8080/\"")
+//            buildConfigField("String", "BASE_URL", "\"http://10.109.132.250:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
         }
         release {
             isMinifyEnabled = false
@@ -48,6 +49,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.github.bumptech.glide:glide:5.0.5")
+    implementation("com.github.yalantis:ucrop:2.2.11")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")

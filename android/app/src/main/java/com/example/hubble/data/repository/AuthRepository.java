@@ -31,10 +31,19 @@ public class AuthRepository {
     public AuthRepository(Context context) {
         this.context = context.getApplicationContext();
         this.tokenManager = new TokenManager(context);
-        this.apiService = RetrofitClient.getApiService(context); // Khởi tạo
+        this.apiService = RetrofitClient.getApiService(context);
     }
+
     public UserResponse getCurrentUser() {
         return tokenManager.getUser();
+    }
+
+    public String getAccessToken() {
+        return tokenManager.getAccessToken();
+    }
+
+    public ApiService getApiService() {
+        return apiService;
     }
 
     public void loginWithEmail(String email, String password, RepositoryCallback<UserResponse> callback) {
@@ -171,6 +180,7 @@ public class AuthRepository {
             }
         });
     }
+
     public void sendPhoneOtp(String phoneNumber, RepositoryCallback<String> callback) {
         callback.onResult(AuthResult.loading());
         PhoneSendOtpRequest request = new PhoneSendOtpRequest(phoneNumber);

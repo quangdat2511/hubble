@@ -23,7 +23,7 @@ import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
-import com.example.hubble.view.dm.DmChatActivity;
+//import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.viewmodel.home.MainViewModel;
@@ -140,7 +140,7 @@ public class HomeFragment extends Fragment {
 
         conversationAdapter.setOnConversationClickListener(item -> {
             if (item.hasChannelId()) {
-                startActivity(DmChatActivity.createIntent(requireContext(), item.getChannelId(), item.getDisplayName()));
+//                startActivity(DmChatActivity.createIntent(requireContext(), item.getChannelId(), item.getDisplayName()));
                 return;
             }
 
@@ -159,11 +159,11 @@ public class HomeFragment extends Fragment {
             }
 
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                startActivity(DmChatActivity.createIntent(
-                        requireContext(),
-                        result.getData().getId(),
-                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user)
-                ));
+//                startActivity(DmChatActivity.createIntent(
+//                        requireContext(),
+//                        result.getData().getId(),
+//                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user)
+//                ));
                 pendingDmDisplayName = null;
                 viewModel.consumeOpenDmState();
                 return;
