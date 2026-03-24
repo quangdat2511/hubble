@@ -11,6 +11,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserCreationRequest;
 import com.example.hubble.data.model.auth.UserResponse;
@@ -20,6 +21,7 @@ import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
@@ -32,6 +34,15 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Body UserCreationRequest request
     );
+
+    @GET("api/sessions")
+    Call<ApiResponse<java.util.List<SessionDto>>> getActiveSessions(@Header("Authorization") String token);
+
+    @DELETE("api/sessions/{sessionId}")
+    Call<ApiResponse<String>> revokeSession(@Header("Authorization") String token, @Path("sessionId") String sessionId);
+
+    @POST("api/auth/logout")
+    Call<ApiResponse<String>> logout(@Body RefreshTokenRequest request);
 
     @POST("api/auth/login")
     Call<ApiResponse<TokenResponse>> loginWithEmail(@Body LoginRequest request);

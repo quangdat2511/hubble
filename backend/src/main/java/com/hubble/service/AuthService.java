@@ -263,6 +263,9 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
 
+        String ipAddress = "Unknown";
+        String deviceName = "Unknown Device";
+
         UserSession session = UserSession.builder()
                 .userId(user.getId())
                 .refreshToken(refreshToken)
