@@ -15,6 +15,7 @@ import com.hubble.repository.UserRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.GoogleTokenVerifier;
 import com.hubble.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.UUID;
 
@@ -260,20 +263,36 @@ public class AuthService {
     }
 
     private TokenResponse createTokenResponse(User user) {
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
 
         String ipAddress = "Unknown";
         String deviceName = "Unknown Device";
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                ipAddress = request.getHeader("X-Forwarded-For");
+                if (ipAddress == null || ipAddress.isEmpty()) {
+                    ipAddress = request.getRemoteAddr();
+                }
+                String userAgent = request.getHeader("User-Agent");
+                if (userAgent != null && !userAgent.isEmpty()) {
+                    deviceName = userAgent;
+                }
+            }
+        } catch (Exception ignored) {}
 
         UserSession session = UserSession.builder()
                 .userId(user.getId())
                 .refreshToken(refreshToken)
                 .deviceType(DeviceType.MOBILE)
+                .deviceName(deviceName)
+                .ipAddress(ipAddress)
                 .isActive(true)
                 .build();
+        session = userSessionRepository.save(session);
 
-        userSessionRepository.save(session);
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), session.getId());
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
