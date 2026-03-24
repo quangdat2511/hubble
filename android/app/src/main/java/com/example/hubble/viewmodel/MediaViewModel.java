@@ -8,7 +8,6 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.hubble.data.model.UploadResponse;
 import com.example.hubble.data.repository.MediaRepository;
 
 import java.util.ArrayList;

@@ -3,7 +3,7 @@ package com.example.hubble.utils;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.google.gson.Gson;
 
 public class TokenManager {
@@ -36,6 +36,10 @@ public class TokenManager {
 
     public String getAccessToken() {
         return prefs.getString("ACCESS_TOKEN", null);
+    }
+
+    public String getRefreshToken() {
+        return prefs.getString("REFRESH_TOKEN", null);
     }
 
     public void clear() {

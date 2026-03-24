@@ -21,8 +21,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
-import com.example.hubble.data.model.AttachmentResponse;
-import com.example.hubble.data.model.DmMessageItem;
+import com.example.hubble.data.model.dm.AttachmentResponse;
+import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
 

@@ -47,8 +47,10 @@ public enum ErrorCode {
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
 
     // Tin nhắn
-    MESSAGE_NOT_FOUND(4001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
-    MESSAGE_NOT_OWNER(4002, "Bạn không phải chủ tin nhắn này", HttpStatus.FORBIDDEN);
+    MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
+    MESSAGE_NOT_OWNER(5002, "Bạn không có quyền thực hiện thao tác này với tin nhắn", HttpStatus.FORBIDDEN),
+
+    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
 
     final int code;
     final String message;

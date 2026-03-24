@@ -1,26 +1,18 @@
 package com.hubble.dto.response;
 
-import com.hubble.enums.MessageType;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
+@Setter
 public class MessageResponse {
-
-    UUID id;
-    UUID channelId;
-    UUID authorId;
-    UUID replyToId;
-    String content;
-    MessageType type;
-    Boolean isPinned;
-    LocalDateTime editedAt;
-    LocalDateTime createdAt;
+    private String id;
+    private String channelId;
+    private String authorId;
+    private String replyToId;
+    private String content;
+    private String type;
+    private Boolean isPinned;
+    private String editedAt;
+    private String createdAt;
 }

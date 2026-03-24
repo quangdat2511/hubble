@@ -38,7 +38,7 @@ public class Message {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type")
+    @Column(name = "type", nullable = false, columnDefinition = "message_type")
     @Builder.Default
     MessageType type = MessageType.TEXT;
 
@@ -60,5 +60,4 @@ public class Message {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
-
 }

@@ -11,7 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.UploadResponse;
+import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.utils.FileUtils;
 
 import java.io.File;
@@ -30,7 +30,7 @@ public class MediaRepository {
 
     public MediaRepository(Context context) {
         this.context = context.getApplicationContext();
-        this.apiService = RetrofitClient.getApiService();  // ← your actual client
+        this.apiService = RetrofitClient.getApiService(context);
     }
 
     public LiveData<UploadResult> uploadMedia(Uri fileUri, String folder) {

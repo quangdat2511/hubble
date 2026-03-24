@@ -134,7 +134,7 @@
         android:paddingEnd="@dimen/spacing_sm"
         android:paddingTop="@dimen/spacing_sm"
         android:paddingBottom="@dimen/spacing_sm"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/emojiPickerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -170,16 +170,29 @@
             app:boxCornerRadiusTopEnd="24dp"
             app:boxCornerRadiusTopStart="24dp"
             app:boxStrokeWidth="0dp"
-            app:boxStrokeWidthFocused="0dp">
+            app:boxStrokeWidthFocused="0dp"
+            app:endIconMode="none"
+            app:startIconDrawable="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etComposer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
+                android:imeOptions="flagNoEnterAction"
                 android:maxLines="4"
                 android:minLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEmoji"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/cd_emoji_picker"
+            app:icon="@drawable/ic_emoji"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
@@ -191,5 +204,21 @@
             app:iconTint="@color/white" />
 
     </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/emojiPickerContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.example.hubble.view.emoji.EmojiPickerView
+            android:id="@+id/emojiPickerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

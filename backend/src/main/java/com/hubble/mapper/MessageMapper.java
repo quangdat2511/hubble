@@ -1,25 +1,19 @@
 package com.hubble.mapper;
 
-import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
 import com.hubble.entity.Message;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.util.UUID;
-
 @Mapper(componentModel = "spring")
 public interface MessageMapper {
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "isPinned", ignore = true)
-    @Mapping(target = "isDeleted", ignore = true)
-    @Mapping(target = "editedAt", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "authorId", source = "authorId")
-    Message toMessage(CreateMessageRequest request, UUID authorId);
-
+    @Mapping(target = "id", expression = "java(message.getId().toString())")
+    @Mapping(target = "channelId", expression = "java(message.getChannelId().toString())")
+    @Mapping(target = "authorId", expression = "java(message.getAuthorId().toString())")
+    @Mapping(target = "replyToId", expression = "java(message.getReplyToId() != null ? message.getReplyToId().toString() : null)")
+    @Mapping(target = "type", expression = "java(message.getType().name())")
+    @Mapping(target = "createdAt", expression = "java(message.getCreatedAt() != null ? message.getCreatedAt().toString() : null)")
+    @Mapping(target = "editedAt", expression = "java(message.getEditedAt() != null ? message.getEditedAt().toString() : null)")
     MessageResponse toMessageResponse(Message message);
-
 }

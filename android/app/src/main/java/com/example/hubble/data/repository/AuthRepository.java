@@ -2,19 +2,20 @@ package com.example.hubble.data.repository;
 
 import android.content.Context;
 
+import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
-import com.example.hubble.data.model.EmailVerifyOtpRequest;
-import com.example.hubble.data.model.ForgotPasswordRequest;
-import com.example.hubble.data.model.GoogleLoginRequest;
-import com.example.hubble.data.model.LoginRequest;
-import com.example.hubble.data.model.PhoneSendOtpRequest;
-import com.example.hubble.data.model.PhoneVerifyOtpRequest;
-import com.example.hubble.data.model.RegisterRequest;
-import com.example.hubble.data.model.ResetPasswordRequest;
-import com.example.hubble.data.model.TokenResponse;
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
+import com.example.hubble.data.model.auth.ForgotPasswordRequest;
+import com.example.hubble.data.model.auth.GoogleLoginRequest;
+import com.example.hubble.data.model.auth.LoginRequest;
+import com.example.hubble.data.model.auth.PhoneSendOtpRequest;
+import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
+import com.example.hubble.data.model.auth.RegisterRequest;
+import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.TokenResponse;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.utils.TokenManager;
 
 import retrofit2.Call;
@@ -24,11 +25,14 @@ import retrofit2.Response;
 public class AuthRepository {
 
     private final TokenManager tokenManager;
+    private final ApiService apiService;
+    private final Context context;
 
     public AuthRepository(Context context) {
-        tokenManager = new TokenManager(context);
+        this.context = context.getApplicationContext();
+        this.tokenManager = new TokenManager(context);
+        this.apiService = RetrofitClient.getApiService(context); // Khởi tạo
     }
-
     public UserResponse getCurrentUser() {
         return tokenManager.getUser();
     }
@@ -37,7 +41,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         LoginRequest request = new LoginRequest(email, password);
 
-        RetrofitClient.getApiService().loginWithEmail(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+        apiService.loginWithEmail(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
@@ -61,7 +65,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         RegisterRequest request = new RegisterRequest(username, username, email, password);
 
-        RetrofitClient.getApiService().registerWithEmail(request).enqueue(new Callback<ApiResponse<String>>() {
+        apiService.registerWithEmail(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -82,7 +86,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         EmailVerifyOtpRequest request = new EmailVerifyOtpRequest(email, otpCode);
 
-        RetrofitClient.getApiService().verifyEmailOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+        apiService.verifyEmailOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
@@ -106,7 +110,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         GoogleLoginRequest request = new GoogleLoginRequest(idToken);
 
-        RetrofitClient.getApiService().loginWithGoogle(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+        apiService.loginWithGoogle(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
@@ -130,7 +134,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         ForgotPasswordRequest request = new ForgotPasswordRequest(email);
 
-        RetrofitClient.getApiService().forgotPassword(request).enqueue(new Callback<ApiResponse<String>>() {
+        apiService.forgotPassword(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -151,7 +155,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         ResetPasswordRequest request = new ResetPasswordRequest(email, otpCode, newPassword);
 
-        RetrofitClient.getApiService().resetPassword(request).enqueue(new Callback<ApiResponse<String>>() {
+        apiService.resetPassword(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -171,7 +175,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         PhoneSendOtpRequest request = new PhoneSendOtpRequest(phoneNumber);
 
-        RetrofitClient.getApiService().sendPhoneOtp(request).enqueue(new Callback<ApiResponse<String>>() {
+        apiService.sendPhoneOtp(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
                 if (response.isSuccessful()) {
@@ -192,7 +196,7 @@ public class AuthRepository {
         callback.onResult(AuthResult.loading());
         PhoneVerifyOtpRequest request = new PhoneVerifyOtpRequest(phone, code);
 
-        RetrofitClient.getApiService().verifyPhoneOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
+        apiService.verifyPhoneOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
@@ -211,7 +215,6 @@ public class AuthRepository {
             }
         });
     }
-
 
     public void logout() {
         tokenManager.clear();
