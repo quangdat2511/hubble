@@ -1,6 +1,23 @@
 package com.example.hubble.data.api;
 
-import com.example.hubble.data.model.*;
+import com.example.hubble.data.model.ApiResponse;
+import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
+import com.example.hubble.data.model.auth.ForgotPasswordRequest;
+import com.example.hubble.data.model.auth.GoogleLoginRequest;
+import com.example.hubble.data.model.auth.LoginRequest;
+import com.example.hubble.data.model.auth.PhoneLoginRequest;
+import com.example.hubble.data.model.auth.PhoneSendOtpRequest;
+import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
+import com.example.hubble.data.model.auth.RefreshTokenRequest;
+import com.example.hubble.data.model.auth.RegisterRequest;
+import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.TokenResponse;
+import com.example.hubble.data.model.auth.UserCreationRequest;
+import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.data.model.dm.ChannelDto;
+import com.example.hubble.data.model.dm.CreateMessageRequest;
+import com.example.hubble.data.model.dm.FriendUserDto;
+import com.example.hubble.data.model.dm.MessageDto;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -42,6 +59,9 @@ public interface ApiService {
 
     @POST("api/auth/phone/verify")
     Call<ApiResponse<TokenResponse>> verifyPhoneOtp(@Body PhoneVerifyOtpRequest request);
+
+    @POST("api/auth/refresh")
+    Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
 
         @GET("api/friends/friends")
         Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(

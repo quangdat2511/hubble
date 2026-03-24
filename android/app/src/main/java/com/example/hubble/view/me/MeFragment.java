@@ -1,7 +1,6 @@
 package com.example.hubble.view.me;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,10 +9,12 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.data.model.UserResponse;
+import com.example.hubble.R;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
 import com.example.hubble.view.settings.SettingsActivity;
@@ -63,7 +64,7 @@ public class MeFragment extends Fragment {
 
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(Color.parseColor("#5865F2"));
+        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
         binding.ivAvatar.setImageDrawable(null);
         binding.ivAvatar.setBackground(bg);
         binding.ivAvatar.setShapeAppearanceModel(
@@ -73,7 +74,7 @@ public class MeFragment extends Fragment {
         binding.tvAvatarInitials.setText(initials);
 
         // Joined date placeholder
-        binding.tvJoinedDate.setText(getString(com.example.hubble.R.string.app_name));
+        binding.tvJoinedDate.setText(getString(R.string.app_name));
     }
 
     private void setupActions(View view) {
@@ -84,19 +85,19 @@ public class MeFragment extends Fragment {
         // Stub actions
         binding.btnAddStatus.setOnClickListener(v ->
                 Snackbar.make(view,
-                        getString(com.example.hubble.R.string.main_coming_soon),
+                        getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
         binding.btnEditProfile.setOnClickListener(v ->
                 Snackbar.make(view,
-                        getString(com.example.hubble.R.string.main_coming_soon),
+                        getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
         binding.cardFriends.setOnClickListener(v ->
                 Snackbar.make(view,
-                        getString(com.example.hubble.R.string.main_coming_soon),
+                        getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
         binding.cardNotes.setOnClickListener(v ->
                 Snackbar.make(view,
-                        getString(com.example.hubble.R.string.main_coming_soon),
+                        getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
     }
 

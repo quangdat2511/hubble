@@ -1,6 +1,7 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,13 +17,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Đọc local.properties (BASE_URL, GIPHY_API_KEY, …)
+    val localProps = Properties()
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
+    val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+    val giphyApiKey  = localProps.getProperty("GIPHY_API_KEY", "")
+
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL",     "\"$localBaseUrl\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "BASE_URL",     "\"https://hubble-production.up.railway.app/\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
     }
 
@@ -33,15 +47,12 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
 dependencies {
     val lifecycle_version = "2.8.7"
-
-    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
@@ -62,6 +73,11 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("androidx.fragment:fragment:1.8.6")
+
+    // Glide for GIF loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

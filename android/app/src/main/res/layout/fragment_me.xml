@@ -201,6 +201,7 @@
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_md"
                 app:cardCornerRadius="12dp">
 
                 <LinearLayout
@@ -229,6 +230,7 @@
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
 
         </LinearLayout>
 

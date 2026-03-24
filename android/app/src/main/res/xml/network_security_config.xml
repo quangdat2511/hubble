@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Cho phép HTTP cleartext chỉ cho emulator local (10.0.2.2 = localhost của host machine) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
+    <!-- Railway và mọi HTTPS domain khác: Android cho phép mặc định, không cần khai báo -->
 </network-security-config>

@@ -37,7 +37,9 @@
         app:layout_constraintBaseline_toBaselineOf="@id/tvName"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Text message bubble (shown for normal text) -->
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardOther"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
@@ -61,5 +63,20 @@
             android:textColor="?attr/colorOnSurface" />
 
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- GIF / Sticker image (shown instead of card for media messages) -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivMedia"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="@null"
+        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toBottomOf="@id/tvName" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

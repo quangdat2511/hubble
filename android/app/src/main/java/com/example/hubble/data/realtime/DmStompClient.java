@@ -1,7 +1,7 @@
 package com.example.hubble.data.realtime;
 
 import com.example.hubble.data.api.RetrofitClient;
-import com.example.hubble.data.model.MessageDto;
+import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
 

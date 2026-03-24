@@ -22,6 +22,7 @@ public interface MessageMapper {
     @Mapping(target = "authorId", source = "authorId")
     Message toMessage(CreateMessageRequest request, UUID authorId);
 
+    @Mapping(target = "attachments", ignore = true)
     MessageResponse toMessageResponse(Message message);
 
     default MessageResponse toMessageResponse(Message message, List<AttachmentResponse> attachments) {
@@ -29,5 +30,4 @@ public interface MessageMapper {
         response.setAttachments(attachments);
         return response;
     }
-
 }
