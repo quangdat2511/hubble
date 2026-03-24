@@ -260,8 +260,7 @@ public class DmChatActivity extends AppCompatActivity {
                     case SUCCESS:
                         pendingAttachmentIds.add(result.data.getAttachmentId());
                         pendingAttachmentTypes.add(result.data.getContentType());
-                        showAttachmentPreview(uri, result.data.getFilename(), result.data.getContentType());
-                        completed[0]++;
+                        showAttachmentPreview(uri, result.data.getAttachmentId(), result.data.getContentType(), result.data.getFilename());                        completed[0]++;
                         if (completed[0] == total) {
                             binding.btnAttach.setEnabled(true);
                             Snackbar.make(binding.getRoot(), total + " file(s) ready", Snackbar.LENGTH_SHORT).show();
@@ -277,14 +276,13 @@ public class DmChatActivity extends AppCompatActivity {
         }
     }
 
-    private void showAttachmentPreview(Uri uri, String filename, String contentType) {
+    private void showAttachmentPreview(Uri uri, String attachmentId, String contentType, String filename) {
         binding.attachmentPreviewBar.setVisibility(View.VISIBLE);
-        binding.llAttachmentPreviews.removeAllViews(); // Fix tạm, đáng ra phải append
 
         View previewView = getLayoutInflater().inflate(R.layout.item_attachment_preview, binding.llAttachmentPreviews, false);
         ImageView ivPreview = previewView.findViewById(R.id.ivPreview);
         ImageView ivFileIcon = previewView.findViewById(R.id.ivFileIcon);
-        MaterialButton btnRemove = previewView.findViewById(R.id.btnRemove);
+        View btnRemove = previewView.findViewById(R.id.btnRemove); // Đổi kiểu thành View chung
 
         if (contentType != null && (contentType.startsWith("image/") || contentType.startsWith("video/"))) {
             ivPreview.setVisibility(View.VISIBLE);
@@ -295,7 +293,21 @@ public class DmChatActivity extends AppCompatActivity {
             ivFileIcon.setVisibility(View.VISIBLE);
         }
 
-        btnRemove.setOnClickListener(v -> clearAttachmentPreview());
+        btnRemove.setOnClickListener(v -> {
+            binding.llAttachmentPreviews.removeView(previewView); // Chỉ xóa đúng cái ảnh này
+
+            int index = pendingAttachmentIds.indexOf(attachmentId);
+            if (index != -1) {
+                pendingAttachmentIds.remove(index);
+                pendingAttachmentTypes.remove(index);
+            }
+
+            // Nếu đã bấm X xóa hết sạch ảnh rồi thì ẩn luôn thanh cuộn đi
+            if (pendingAttachmentIds.isEmpty()) {
+                clearAttachmentPreview();
+            }
+        });
+
         binding.llAttachmentPreviews.addView(previewView);
     }
 

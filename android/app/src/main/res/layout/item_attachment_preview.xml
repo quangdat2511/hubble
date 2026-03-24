@@ -12,7 +12,6 @@
         android:layout_width="72dp"
         android:layout_height="72dp">
 
-        <!-- Image preview (shown for image/* types) -->
         <ImageView
             android:id="@+id/ivPreview"
             android:layout_width="match_parent"
@@ -20,7 +19,6 @@
             android:contentDescription="@string/cd_user_avatar"
             android:scaleType="centerCrop" />
 
-        <!-- File icon fallback (shown for non-image types) -->
         <ImageView
             android:id="@+id/ivFileIcon"
             android:layout_width="32dp"
@@ -30,21 +28,27 @@
             android:visibility="gone"
             app:tint="?attr/colorOnSurfaceVariant" />
 
-        <!-- Remove button -->
-        <com.google.android.material.button.MaterialButton
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/btnRemove"
-            style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:layout_gravity="top|end"
             android:layout_margin="4dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_close"
-            app:iconSize="12dp"
-            app:iconTint="@color/white" />
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="#80000000"
+            app:cardCornerRadius="11dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_close"
+                app:tint="@android:color/white" />
+
+        </com.google.android.material.card.MaterialCardView>
 
     </FrameLayout>
 
