@@ -42,7 +42,11 @@ public enum ErrorCode {
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
 
-    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
+    // File / Avatar
+    INVALID_FILE(4001, "File không hợp lệ", HttpStatus.BAD_REQUEST),
+    UNSUPPORTED_FILE_TYPE(4002, "File không được hỗ trợ", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(4003, "File quá lớn", HttpStatus.BAD_REQUEST),
+    AVATAR_NOT_FOUND(4004, "Avatar không tồn tại", HttpStatus.NOT_FOUND);
 
     final int code;
     final String message;
@@ -54,3 +58,4 @@ public enum ErrorCode {
         this.httpStatusCode = httpStatusCode;
     }
 }
+

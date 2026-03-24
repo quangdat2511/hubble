@@ -1,11 +1,13 @@
 package com.example.hubble.view.me;
 
 import android.content.Intent;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.view.*;
-import androidx.annotation.*;
-import androidx.core.content.ContextCompat;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -13,14 +15,17 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.utils.TokenManager;
+import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MeFragment extends Fragment {
+public class MeFragment extends Fragment implements AvatarFragment.AvatarListener {
 
     private FragmentMeBinding binding;
+    private AuthViewModel vm;
 
     @Nullable
     @Override
@@ -35,63 +40,56 @@ public class MeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        AuthViewModel vm = new ViewModelProvider(requireActivity(),
-                new AuthViewModelFactory(new AuthRepository(requireContext())))
-                .get(AuthViewModel.class);
+        vm = new ViewModelProvider(
+                requireActivity(),
+                new AuthViewModelFactory(new AuthRepository(requireContext()))
+        ).get(AuthViewModel.class);
+
 
         populateUserInfo(vm.getCurrentUser());
+        setupAvatarFragment();
         setupActions(view);
+    }
+
+    private void setupAvatarFragment() {
+        if (getChildFragmentManager().findFragmentById(R.id.avatarFragmentContainer) == null) {
+            getChildFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.avatarFragmentContainer, new AvatarFragment())
+                    .commit();
+        }
     }
 
     private void populateUserInfo(@Nullable UserResponse user) {
         if (user == null) return;
 
-        // Set text
         binding.tvUsername.setText(user.getUsername());
-        binding.tvDisplayName.setText(user.getDisplayName());
-        binding.tvPhone.setText(user.getPhone());
-        binding.tvBio.setText(user.getBio());
-        binding.tvStatus.setText(user.getStatus());
-
-        // Avatar initials
-        String name = user.getDisplayName() != null ? user.getDisplayName() : "U";
-        String initials = name.substring(0, 1).toUpperCase();
-        binding.tvAvatarInitials.setText(initials);
-
-        // Avatar background
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
-        binding.ivAvatar.setBackground(bg);
-
-        // Status dot color
-        int color;
-        switch (user.getStatus()) {
-            case "ONLINE":
-                color = android.R.color.holo_green_light;
-                break;
-            case "OFFLINE":
-                color = android.R.color.darker_gray;
-                break;
-            default:
-                color = android.R.color.holo_orange_light;
-        }
-
-        GradientDrawable dot = (GradientDrawable) binding.viewOnlineStatus.getBackground();
-        dot.setColor(ContextCompat.getColor(requireContext(), color));
     }
 
     private void setupActions(View view) {
         binding.btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), SettingsActivity.class)));
+        binding.btnLogout.setOnClickListener(v -> logout());
+    }
 
-        binding.btnEditProfile.setOnClickListener(v ->
-                Snackbar.make(view, "Edit coming soon", Snackbar.LENGTH_SHORT).show());
+    @Override
+    public void onAvatarUpdated(@NonNull UserResponse updatedUser) {
+        populateUserInfo(updatedUser);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    private void logout() {
+        new TokenManager(requireContext()).clear();
+
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+
+        requireActivity().finish();
     }
 }
