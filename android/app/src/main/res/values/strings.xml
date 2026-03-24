@@ -184,4 +184,6 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+    <string name="cd_emoji_picker">Emoji picker</string>
+    <string name="emoji_search_hint">Find the perfect emoji</string>
 </resources>
