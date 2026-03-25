@@ -1,9 +1,15 @@
 package com.example.hubble.view.base;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.view.View;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.LiveData;
 
 import com.example.hubble.R;
@@ -20,6 +26,40 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
 
     protected abstract View getRootView();
     protected abstract View getProgressBar();
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // Opt-in to edge-to-edge before the window is laid out
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        super.onCreate(savedInstanceState);
+    }
+
+    // ─── Edge-to-Edge helper ─────────────────────────────────────
+
+    /**
+     * Call this AFTER setContentView(). Applies status-bar top padding and
+     * navigation-bar bottom padding to the given root view, preserving any
+     * padding already declared in the layout XML.
+     */
+    protected void applyEdgeToEdge(View rootView) {
+        // Snapshot padding set in XML before any inset listener fires
+        final int origLeft   = rootView.getPaddingLeft();
+        final int origTop    = rootView.getPaddingTop();
+        final int origRight  = rootView.getPaddingRight();
+        final int origBottom = rootView.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(
+                    origLeft   + bars.left,
+                    origTop    + bars.top,
+                    origRight  + bars.right,
+                    origBottom + bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
 
     // ─── Navigation ──────────────────────────────────────────────
 
@@ -55,13 +95,9 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
 
     /**
      * Standard observer for AuthResult LiveData:
-     * - LOADING → show progress
-     * - SUCCESS → hide progress, reset state, run onSuccess
-     * - ERROR   → hide progress, reset state, show error message
-     *
-     * @param liveData   the LiveData to observe (read-only)
-     * @param resetState runnable to reset the ViewModel state
-     * @param onSuccess  action to perform on success
+     * - LOADING  → show progress
+     * - SUCCESS  → hide progress, reset state, run onSuccess
+     * - ERROR    → hide progress, reset state, show error message
      */
     protected <T> void observeAuthResult(
             LiveData<AuthResult<T>> liveData,
@@ -70,11 +106,7 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
         observeAuthResult(liveData, resetState, onSuccess, this::showError);
     }
 
-    /**
-     * Observer with custom error handler.
-     *
-     * @param onError receives the error message for custom UI handling
-     */
+    /** Observer with custom error handler. */
     protected <T> void observeAuthResult(
             LiveData<AuthResult<T>> liveData,
             Runnable resetState,

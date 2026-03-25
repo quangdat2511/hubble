@@ -3,6 +3,10 @@ package com.example.hubble.view;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
@@ -33,9 +37,21 @@ public class MainActivity extends BaseAuthActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Must be called before setContentView to enable edge-to-edge on API 35+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Apply system bar insets so nothing is hidden under status / nav bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            // Fragment container: add top padding = status bar height
+            binding.fragmentContainer.setPadding(0, bars.top, 0, 0);
+            // Bottom nav: add bottom padding = navigation bar height
+            binding.bottomNav.setPadding(0, 0, 0, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         AuthViewModel authViewModel = new ViewModelProvider(this,
                 new AuthViewModelFactory(new AuthRepository(this)))
