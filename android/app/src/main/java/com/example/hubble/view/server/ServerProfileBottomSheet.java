@@ -55,7 +55,10 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
 
             // Populate server info
             binding.tvServerName.setText(serverName);
-            binding.tvMemberCount.setText(getString(R.string.server_profile_member_count, memberCount, onlineCount));
+            binding.tvOnlineCount.setText(
+                    getString(R.string.server_profile_online_count, onlineCount));
+            binding.tvMemberCount.setText(
+                    getString(R.string.server_profile_member_count_only, memberCount));
 
             // Load icon or show initials
             if (iconUrl != null && !iconUrl.isEmpty()) {
@@ -71,24 +74,37 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                 );
             }
 
-            // Settings gear button
+            // Settings gear button (header)
             binding.btnSettings.setOnClickListener(v -> {
                 dismiss();
                 startActivity(ServerSettingsActivity.createIntent(requireContext(), serverId, serverName));
             });
 
-            // Quick action buttons
-            binding.rowRequests.setOnClickListener(v -> showComingSoon());
-            binding.rowAnnouncements.setOnClickListener(v -> showComingSoon());
-            binding.rowEvents.setOnClickListener(v -> showComingSoon());
-            binding.rowMore.setOnClickListener(v -> showComingSoon());
+            // ── Quick action buttons ──────────────────────────────────────
+            binding.rowUpgrade.setOnClickListener(v -> showComingSoon());
 
-            // List items
+            // Lời mời → opens Discord-style InvitePeopleBottomSheet
+            binding.rowInvitePeople.setOnClickListener(v -> {
+                dismiss();
+                InvitePeopleBottomSheet.newInstance(serverId, serverName)
+                        .show(requireActivity().getSupportFragmentManager(), "invite_people");
+            });
+
+            binding.rowNotificationsQuick.setOnClickListener(v -> showComingSoon());
+            binding.rowSettingsQuick.setOnClickListener(v -> {
+                dismiss();
+                startActivity(ServerSettingsActivity.createIntent(requireContext(), serverId, serverName));
+            });
+
+            // ── List items ────────────────────────────────────────────────
+            binding.rowMarkAsRead.setOnClickListener(v -> showComingSoon());
             binding.rowCreateChannel.setOnClickListener(v -> showComingSoon());
             binding.rowCreateCategory.setOnClickListener(v -> showComingSoon());
-            binding.rowInvitePeople.setOnClickListener(v -> showComingSoon());
-            binding.rowNotificationSettings.setOnClickListener(v -> showComingSoon());
-            binding.rowPrivacySettings.setOnClickListener(v -> showComingSoon());
+            binding.rowCreateEvent.setOnClickListener(v -> showComingSoon());
+            binding.rowEditServerProfile.setOnClickListener(v -> showComingSoon());
+            binding.rowHideMuted.setOnClickListener(v ->
+                    binding.switchHideMuted.setChecked(!binding.switchHideMuted.isChecked()));
+
         }
     }
 

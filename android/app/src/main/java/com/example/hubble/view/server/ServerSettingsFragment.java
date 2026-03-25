@@ -84,7 +84,12 @@ public class ServerSettingsFragment extends Fragment {
         });
 
         binding.rowBans.setOnClickListener(v -> showComingSoon());
-        binding.rowInvites.setOnClickListener(v -> showComingSoon());
+        binding.rowInvites.setOnClickListener(v -> {
+            if (serverId != null) {
+                ((ServerSettingsActivity) requireActivity()).navigateTo(
+                        ServerInviteFragment.newInstance(serverId, serverName), true);
+            }
+        });
         binding.rowRoles.setOnClickListener(v -> showComingSoon());
         binding.rowEmoji.setOnClickListener(v -> showComingSoon());
         binding.rowStickers.setOnClickListener(v -> showComingSoon());

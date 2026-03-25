@@ -73,19 +73,33 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
         // Rebuild member object (simplified version)
         member = new ServerMemberItem(userId, username, displayName, avatarUrl, bgColor, null, status, isOwner);
 
-        // Get ViewModel from parent fragment
-        viewModel = new ViewModelProvider(requireParentFragment()).get(ServerSettingsViewModel.class);
+        // Get ViewModel shared with Activity
+        viewModel = new ViewModelProvider(requireActivity()).get(ServerSettingsViewModel.class);
 
-        // Check if current user is owner
+        // Get current user ID
         TokenManager tokenManager = new TokenManager(requireContext());
         String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : "";
-        boolean isCurrentUserOwner = isOwner || (member.isOwner()); // Simplified check
-        this.isCurrentUserOwner = isCurrentUserOwner;
+        
+        // Find if current user is owner in the member list
+        boolean isMeOwner = false;
+        if (viewModel.getMembersState().getValue() != null && 
+            viewModel.getMembersState().getValue().getData() != null) {
+            for (ServerMemberItem m : viewModel.getMembersState().getValue().getData()) {
+                if (m.getUserId().equals(currentUserId) && m.isOwner()) {
+                    isMeOwner = true;
+                    break;
+                }
+            }
+        }
+        this.isCurrentUserOwner = isMeOwner;
+
+        // Is looking at self?
+        boolean isSelf = userId.equals(currentUserId);
 
         // Populate UI
         String displayText = displayName != null && !displayName.isEmpty() ? displayName : username;
         binding.tvMemberUsername.setText(displayText);
-        binding.tvMemberDiscriminator.setText("#" + userId.substring(0, Math.min(4, userId.length())));
+        binding.tvMemberDiscriminator.setText("#" + userId.substring(0, Math.min(4, Math.max(0, userId.length()))));
 
         // Avatar
         if (avatarUrl != null && !avatarUrl.isEmpty()) {
@@ -109,17 +123,42 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
                     android.content.res.ColorStateList.valueOf(statusColor));
         }
 
-        // Roles (mock - in real case would come from member object)
-        binding.chipGroupRoles.removeAllViews();
-
-        // Action buttons
+        // Action buttons labels
         binding.tvKickLabel.setText(getString(R.string.member_action_kick, username));
         binding.tvBanLabel.setText(getString(R.string.member_action_ban, username));
 
-        // Show transfer ownership only if current user is owner and member is not owner
-        if (isCurrentUserOwner && !isOwner) {
-            binding.rowTransferOwnership.setVisibility(View.VISIBLE);
-            binding.dividerTransferOwnership.setVisibility(View.VISIBLE);
+        // Visibility of actions
+        if (isSelf) {
+            // Hide all server management actions for self
+            binding.rowKick.setVisibility(View.GONE);
+            binding.rowBan.setVisibility(View.GONE);
+            binding.rowTransferOwnership.setVisibility(View.GONE);
+            binding.dividerTransferOwnership.setVisibility(View.GONE);
+            binding.rowManageRoles.setVisibility(View.GONE);
+        } else if (!isMeOwner) {
+            // Hide owner actions if current user is not owner
+            binding.rowKick.setVisibility(View.GONE);
+            binding.rowBan.setVisibility(View.GONE);
+            binding.rowTransferOwnership.setVisibility(View.GONE);
+            binding.dividerTransferOwnership.setVisibility(View.GONE);
+            binding.rowManageRoles.setVisibility(View.GONE);
+        } else {
+            // Current user is owner
+            binding.rowKick.setVisibility(View.VISIBLE);
+            binding.rowBan.setVisibility(View.VISIBLE);
+            binding.rowManageRoles.setVisibility(View.VISIBLE);
+            
+            // Show transfer ownership ONLY if target is NOT already the owner (though owner shouldn't be clicking self anyway)
+            if (!isOwner) {
+                binding.rowTransferOwnership.setVisibility(View.VISIBLE);
+                binding.dividerTransferOwnership.setVisibility(View.VISIBLE);
+            } else {
+                binding.rowTransferOwnership.setVisibility(View.GONE);
+                binding.dividerTransferOwnership.setVisibility(View.GONE);
+                // Also can't kick/ban the owner (self or other owner if multiple exist, though usually one)
+                binding.rowKick.setVisibility(View.GONE);
+                binding.rowBan.setVisibility(View.GONE);
+            }
         }
 
         // Click listeners
@@ -137,31 +176,31 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
         // Observe action states
         viewModel.getKickState().observe(getViewLifecycleOwner(), result -> {
             if (result != null && result.getStatus() == AuthResult.Status.SUCCESS) {
+                viewModel.consumeKickState();
                 dismiss();
-                Snackbar.make(binding.getRoot(),
+                Snackbar.make(requireActivity().findViewById(android.R.id.content),
                         getString(R.string.member_kicked_success, username),
                         Snackbar.LENGTH_SHORT).show();
-                viewModel.consumeKickState();
             }
         });
 
         viewModel.getBanState().observe(getViewLifecycleOwner(), result -> {
             if (result != null && result.getStatus() == AuthResult.Status.SUCCESS) {
+                viewModel.consumeBanState();
                 dismiss();
-                Snackbar.make(binding.getRoot(),
+                Snackbar.make(requireActivity().findViewById(android.R.id.content),
                         getString(R.string.member_banned_success, username),
                         Snackbar.LENGTH_SHORT).show();
-                viewModel.consumeBanState();
             }
         });
 
         viewModel.getTransferOwnershipState().observe(getViewLifecycleOwner(), result -> {
             if (result != null && result.getStatus() == AuthResult.Status.SUCCESS) {
+                viewModel.consumeTransferOwnershipState();
                 dismiss();
-                Snackbar.make(binding.getRoot(),
+                Snackbar.make(requireActivity().findViewById(android.R.id.content),
                         R.string.main_coming_soon,
                         Snackbar.LENGTH_SHORT).show();
-                viewModel.consumeTransferOwnershipState();
             }
         });
     }

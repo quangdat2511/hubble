@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.hubble.R;
@@ -13,6 +17,7 @@ import com.example.hubble.databinding.ActivityServerSettingsBinding;
 public class ServerSettingsActivity extends AppCompatActivity {
     public static final String EXTRA_SERVER_ID = "extra_server_id";
     public static final String EXTRA_SERVER_NAME = "extra_server_name";
+    public static final String EXTRA_OPEN_INVITES = "extra_open_invites";
 
     private ActivityServerSettingsBinding binding;
     private String serverId;
@@ -20,10 +25,18 @@ public class ServerSettingsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
 
         binding = ActivityServerSettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Push content below the status bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.fragmentContainer.setPadding(0, bars.top, 0, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         Intent intent = getIntent();
         serverId = intent.getStringExtra(EXTRA_SERVER_ID);
@@ -31,6 +44,9 @@ public class ServerSettingsActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             navigateTo(ServerSettingsFragment.newInstance(serverId, serverName), false);
+            if (intent.getBooleanExtra(EXTRA_OPEN_INVITES, false)) {
+                navigateTo(ServerInviteFragment.newInstance(serverId, serverName), true);
+            }
         }
     }
 

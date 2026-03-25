@@ -207,12 +207,21 @@
 
     <!-- Server Profile Bottom Sheet -->
     <string name="server_profile_member_count">%1$d Thành viên  •  %2$d Trực tuyến</string>
+    <string name="server_profile_online_count">%1$d Trực tuyến</string>
+    <string name="server_profile_member_count_only">%1$d Thành Viên</string>
     <string name="server_profile_requests">Yêu cầu</string>
     <string name="server_profile_announcements">Thông báo</string>
     <string name="server_profile_events">Sự kiện</string>
     <string name="server_profile_more">Thêm</string>
+    <string name="server_profile_upgrade">Nâng Cấp</string>
+    <string name="server_profile_notifications">Các Thông Báo</string>
+    <string name="server_profile_invite_people_short">Lời mời</string>
     <string name="server_profile_create_channel">Tạo kênh</string>
-    <string name="server_profile_create_category">Tạo danh mục</string>
+    <string name="server_profile_create_category">Tạo Danh Mục</string>
+    <string name="server_profile_create_event">Tạo Sự kiện</string>
+    <string name="server_profile_mark_as_read">Đánh Dấu Đã Đọc</string>
+    <string name="server_profile_edit_server_profile">Chỉnh Sửa Hồ Sơ Theo Máy Chủ</string>
+    <string name="server_profile_hide_muted">Ẩn Các Kênh Bị Tắt Âm</string>
     <string name="server_profile_invite_people">Mời mọi người</string>
     <string name="server_profile_notification_settings">Cài đặt thông báo</string>
     <string name="server_profile_privacy_settings">Cài đặt quyền riêng tư</string>
@@ -233,4 +242,26 @@
     <string name="member_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Không thể hoàn tác.</string>
     <string name="member_kicked_success">Đã kick %1$s</string>
     <string name="member_banned_success">Đã ban %1$s</string>
+
+    <!-- Server Invites -->
+    <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>
+    <string name="invite_section_pending_label">LỜI MỜI ĐANG CHỜ</string>
+    <string name="invite_people_title">Mời mọi người</string>
+    <string name="invite_to_server">vào %1$s</string>
+    <string name="invite_send_short">Gửi</string>
+    <string name="invite_recent_header">ĐÃ GỬI GẦN ĐÂY</string>
+    <string name="invite_no_recent">Chưa có lời mời nào được gửi</string>
+    <string name="invite_empty_server">Chưa có lời mời nào cho máy chủ này</string>
+    <string name="invite_create_btn">Mời người dùng</string>
+    <string name="invite_create_title">Mời người dùng</string>
+    <string name="invite_dialog_subtitle">Nhập tên người dùng để gửi lời mời tham gia máy chủ.</string>
+    <string name="invite_username_hint">Tên người dùng</string>
+    <string name="invite_send_btn">Gửi lời mời</string>
+    <string name="invite_sent_success">Đã gửi lời mời thành công!</string>
+    <string name="invite_created_at">Tạo lúc: %1$s</string>
+    <string name="invite_from_inviter">Từ %1$s</string>
+    <string name="invite_accept">Chấp nhận</string>
+    <string name="invite_decline">Từ chối</string>
+    <string name="invite_respond_success">Đã phản hồi lời mời</string>
+    <string name="invite_error_empty_username">Vui lòng nhập tên người dùng</string>
 </resources>
