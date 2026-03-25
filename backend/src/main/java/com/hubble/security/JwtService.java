@@ -24,11 +24,14 @@ public class JwtService {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
 
-    public String generateAccessToken(UUID userId, String email) {
+    public String generateAccessToken(UUID userId, String email, UUID sessionId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "access");
         if (email != null) {
             claims.put("email", email);
+        }
+        if (sessionId != null) {
+            claims.put("sessionId", sessionId.toString());
         }
         return buildToken(claims, userId.toString(), accessTokenExpiration);
     }
@@ -37,6 +40,12 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");
         return buildToken(claims, userId.toString(), refreshTokenExpiration);
+    }
+
+    public UUID getSessionIdFromToken(String token) {
+        Claims claims = extractAllClaims(token);
+        String sessionId = claims.get("sessionId", String.class);
+        return sessionId != null ? UUID.fromString(sessionId) : null;
     }
 
     public UUID getUserIdFromToken(String token) {
