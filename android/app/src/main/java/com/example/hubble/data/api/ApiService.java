@@ -18,6 +18,7 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -63,38 +64,53 @@ public interface ApiService {
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
 
-        @GET("api/friends/friends")
-        Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
+
+    @POST("api/friends/requests/{userId}")
+    Call<ApiResponse<Object>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
+    @GET("api/friends/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
-        );
+    );
 
-            @GET("api/contacts/friends")
-            Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
-                @Header("Authorization") String token
-            );
-
-        @GET("api/channels/dm")
-        Call<java.util.List<ChannelDto>> getDirectChannels(
+    @GET("api/contacts/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
             @Header("Authorization") String token
-        );
+    );
 
-        @POST("api/channels/dm/{otherUserId}")
-        Call<ChannelDto> getOrCreateDirectChannel(
+    @GET("api/channels/dm")
+    Call<java.util.List<ChannelDto>> getDirectChannels(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/channels/dm/{otherUserId}")
+    Call<ChannelDto> getOrCreateDirectChannel(
             @Header("Authorization") String token,
             @Path("otherUserId") String otherUserId
-        );
+    );
 
-        @GET("api/messages/{channelId}")
-        Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
+    @GET("api/messages/{channelId}")
+    Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
             @Path("channelId") String channelId,
             @Query("page") int page,
             @Query("size") int size
-        );
+    );
 
-        @POST("api/messages")
-        Call<ApiResponse<MessageDto>> sendMessage(
+    @POST("api/messages")
+    Call<ApiResponse<MessageDto>> sendMessage(
             @Header("Authorization") String token,
             @Body CreateMessageRequest request
-        );
+    );
 }

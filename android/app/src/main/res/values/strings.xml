@@ -184,4 +184,24 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+    <string name="me_qr_title">Mã QR hồ sơ</string>
+    <string name="me_qr_hint">Người khác có thể quét mã này để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_view_full">Mở QR toàn màn hình</string>
+    <string name="me_qr_unavailable">Không tạo được mã QR lúc này.</string>
+    <string name="me_qr_toolbar_title">QR của bạn</string>
+    <string name="me_qr_opening_hint">Chia sẻ mã này để người khác quét và thêm bạn nhanh hơn.</string>
+    <string name="me_qr_scan_title">Hồ sơ được quét</string>
+    <string name="me_qr_add_friend">Gửi lời mời kết bạn</string>
+    <string name="me_qr_request_sent">Đã gửi lời mời kết bạn.</string>
+    <string name="me_qr_loading">Đang tải hồ sơ từ QR...</string>
+    <string name="me_qr_invalid">QR không hợp lệ hoặc đã hết hạn.</string>
+    <string name="me_qr_empty">Chưa nhận được dữ liệu QR.</string>
+    <string name="me_qr_you">Đây là bạn</string>
+    <string name="me_qr_save_png">Lưu QR thành PNG</string>
+    <string name="me_qr_saved">Đã lưu mã QR: %1$s</string>
+    <string name="me_qr_save_failed">Không lưu được mã QR.</string>
+    <string name="me_qr_save_unavailable">QR chưa tải xong để lưu.</string>
+    <string name="me_qr_scan_button">Quét QR</string>
+    <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
 </resources>

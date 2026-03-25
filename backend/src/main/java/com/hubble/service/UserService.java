@@ -6,16 +6,14 @@ import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.UserMapper;
 import com.hubble.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.UUID;
@@ -59,24 +57,27 @@ public class UserService {
     }
 
     public UUID parseQrToken(String token) {
+        try {
+            Key key = Keys.hmacShaKeyFor(QR_SECRET.getBytes());
 
-        Key key = Keys.hmacShaKeyFor(QR_SECRET.getBytes());
+            String userId = Jwts.parser()
+                    .verifyWith((javax.crypto.SecretKey) key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
 
-        String userId = Jwts.parser()
-                .verifyWith((javax.crypto.SecretKey) key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
-
-        return UUID.fromString(userId);
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException | JwtException e) {
+            throw new AppException(ErrorCode.QR_TOKEN_INVALID);
+        }
     }
 
     public UserResponse getUserFromQr(String token) {
         UUID userId = parseQrToken(token);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         return userMapper.toUserResponse(user);
     }
