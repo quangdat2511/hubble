@@ -34,7 +34,10 @@ public final class ThemeManager {
     }
 
     public static String normalizeTheme(String theme) {
-        return THEME_LIGHT.equalsIgnoreCase(theme) ? THEME_LIGHT : THEME_DARK;
+        if (theme == null) {
+            return THEME_DARK;
+        }
+        return THEME_LIGHT.equalsIgnoreCase(theme.trim()) ? THEME_LIGHT : THEME_DARK;
     }
 
     public static void applyTheme(String theme) {

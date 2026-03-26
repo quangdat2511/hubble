@@ -25,6 +25,7 @@ import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
+import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.utils.TokenManager;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
@@ -80,6 +81,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityDmChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

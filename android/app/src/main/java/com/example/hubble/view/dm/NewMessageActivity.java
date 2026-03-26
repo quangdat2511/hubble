@@ -16,6 +16,7 @@ import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.NewMessageItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityNewMessageBinding;
+import com.example.hubble.utils.ThemeManager;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class NewMessageActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityNewMessageBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -104,6 +106,7 @@ public class NewMessageActivity extends AppCompatActivity {
                     friend.getId(),
                     displayName,
                     username,
+                    friend.getAvatarUrl(),
                     null,
                     "ONLINE".equalsIgnoreCase(friend.getStatus())
             ));

@@ -21,7 +21,11 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
@@ -29,6 +33,7 @@ import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentAvatarBinding;
+import com.example.hubble.utils.AvatarUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
@@ -154,7 +159,7 @@ public class AvatarFragment extends Fragment {
 
     private void loadMyAvatar() {
         if (token == null || token.trim().isEmpty()) {
-            showInitialsFallback();
+            renderCachedAvatarFallback();
             return;
         }
 
@@ -181,7 +186,7 @@ public class AvatarFragment extends Fragment {
                             }
                         }
 
-                        showInitialsFallback();
+                        renderCachedAvatarFallback();
                     }
 
                     @Override
@@ -191,9 +196,18 @@ public class AvatarFragment extends Fragment {
                         }
 
                         setAvatarLoading(false);
-                        showInitialsFallback();
+                        renderCachedAvatarFallback();
                     }
                 });
+    }
+
+    private void renderCachedAvatarFallback() {
+        UserResponse cachedUser = authViewModel != null ? authViewModel.getCurrentUser() : null;
+        if (cachedUser != null && cachedUser.getAvatarUrl() != null && !cachedUser.getAvatarUrl().trim().isEmpty()) {
+            displayAvatar(cachedUser.getAvatarUrl());
+            return;
+        }
+        showInitialsFallback();
     }
 
     private void launchCrop(@NonNull Uri sourceUri) {
@@ -307,14 +321,37 @@ public class AvatarFragment extends Fragment {
             return;
         }
 
+        String resolvedAvatarUrl = AvatarUtils.resolveAvatarUrl(avatarUrl);
+        if (resolvedAvatarUrl.isEmpty()) {
+            showInitialsFallback();
+            return;
+        }
+
         binding.tvAvatarInitials.setVisibility(View.GONE);
         Drawable previous = binding.ivAvatar.getDrawable();
 
         Glide.with(this)
-                .load(toAbsoluteAvatarUrl(avatarUrl))
+                .load(resolvedAvatarUrl)
                 .transform(new CircleCrop())
                 .placeholder(previous)
                 .error(previous)
+                .listener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                                Target<Drawable> target, boolean isFirstResource) {
+                        if (binding != null) {
+                            showInitialsFallback();
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Drawable resource, Object model,
+                                                   Target<Drawable> target, DataSource dataSource,
+                                                   boolean isFirstResource) {
+                        return false;
+                    }
+                })
                 .into(binding.ivAvatar);
     }
 
@@ -365,21 +402,6 @@ public class AvatarFragment extends Fragment {
         binding.tvAvatarHint.setText(loading
                 ? getString(R.string.me_avatar_uploading)
                 : getString(R.string.me_avatar_hint));
-    }
-
-    private String toAbsoluteAvatarUrl(@NonNull String avatarUrl) {
-        if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
-            return avatarUrl;
-        }
-
-        String baseUrl = RetrofitClient.BASE_URL;
-        if (baseUrl.endsWith("/") && avatarUrl.startsWith("/")) {
-            return baseUrl.substring(0, baseUrl.length() - 1) + avatarUrl;
-        }
-        if (!baseUrl.endsWith("/") && !avatarUrl.startsWith("/")) {
-            return baseUrl + "/" + avatarUrl;
-        }
-        return baseUrl + avatarUrl;
     }
 
     @Override

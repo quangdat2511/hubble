@@ -5,6 +5,7 @@ import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserSettingsRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -22,6 +23,7 @@ public class ThemeService {
         this.repo = repo;
     }
 
+    @Transactional(readOnly = true)
     public String getTheme(UUID userId) {
         return repo.findById(userId)
                 .map(UserSettings::getTheme)
@@ -29,17 +31,21 @@ public class ThemeService {
                 .orElse(DEFAULT_THEME);
     }
 
+    @Transactional
     public String updateTheme(UUID userId, String theme) {
         String normalizedTheme = normalizeRequestedTheme(theme);
-        UserSettings settings = repo.findById(userId)
-                .orElse(new UserSettings());
+        LocalDateTime updatedAt = LocalDateTime.now();
+        int updatedRows = repo.updateThemeByUserId(userId, normalizedTheme, updatedAt);
+        if (updatedRows > 0) {
+            return normalizedTheme;
+        }
 
-        settings.setUserId(userId);
+        UserSettings settings = buildDefaultSettings(userId);
         settings.setTheme(normalizedTheme);
-        settings.setUpdatedAt(LocalDateTime.now());
+        settings.setUpdatedAt(updatedAt);
 
-        repo.save(settings);
-        return normalizedTheme;
+        UserSettings savedSettings = repo.saveAndFlush(settings);
+        return normalizeStoredTheme(savedSettings.getTheme());
     }
 
     private String normalizeRequestedTheme(String theme) {
@@ -66,5 +72,16 @@ public class ThemeService {
 
     private boolean isSupportedTheme(String theme) {
         return LIGHT_THEME.equals(theme) || DEFAULT_THEME.equals(theme);
+    }
+
+    private UserSettings buildDefaultSettings(UUID userId) {
+        return UserSettings.builder()
+                .userId(userId)
+                .theme(DEFAULT_THEME)
+                .locale("vi")
+                .notificationEnabled(true)
+                .notificationSound(true)
+                .updatedAt(LocalDateTime.now())
+                .build();
     }
 }

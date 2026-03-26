@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.hubble.adapter.settings.SessionAdapter;
 import com.example.hubble.data.repository.SessionRepository;
 import com.example.hubble.databinding.ActivitySessionManagementBinding;
+import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.viewmodel.SessionViewModel;
 import com.example.hubble.viewmodel.SessionViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -21,6 +22,7 @@ public class SessionManagementActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivitySessionManagementBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

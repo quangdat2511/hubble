@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
+import com.example.hubble.utils.AvatarUtils;
 import com.google.android.material.color.MaterialColors;
 
 import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
@@ -68,6 +69,10 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             binding.tvName.setText(item.getDisplayName());
             binding.tvPreview.setText(formatPreview(item.getLastMessage()));
             binding.tvTime.setText(item.getTimeLabel());
+            binding.tvInitial.setText(item.getDisplayName().isEmpty()
+                    ? "?"
+                    : item.getDisplayName().substring(0, 1).toUpperCase());
+            AvatarUtils.loadAvatar(binding.getRoot(), binding.ivAvatar, binding.tvInitial, item.getAvatarUrl());
             binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
             binding.chipOfficial.setVisibility(item.isVerified() ? View.VISIBLE : View.GONE);
             int cardColor = item.isSelected()

@@ -1,6 +1,7 @@
 package com.example.hubble.view.me;
 
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,11 +14,18 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.FragmentProfileQrBinding;
+import com.example.hubble.utils.AvatarUtils;
 import com.example.hubble.utils.QrBitmapHelper;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
@@ -68,17 +76,20 @@ public class ProfileQrFragment extends Fragment {
 
         boolean embedded = isEmbeddedMode();
         bindCurrentUser(authViewModel.getCurrentUser());
-        configureToolbar(embedded);
+        configureChrome(embedded);
         loadQrCode();
     }
 
-    private void configureToolbar(boolean embedded) {
+    private void configureChrome(boolean embedded) {
+        binding.toolbar.setVisibility(embedded ? View.GONE : View.VISIBLE);
+        binding.layoutEmbeddedHeader.setVisibility(embedded ? View.VISIBLE : View.GONE);
+        binding.btnOpenFullQr.setOnClickListener(v -> openFullScreenQr());
+
         if (embedded) {
-            binding.toolbar.setNavigationIcon(null);
-            binding.toolbar.setTitle(R.string.me_qr_title);
             return;
         }
 
+        binding.toolbar.setTitle(R.string.me_qr_toolbar_title);
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity()
                 .getSupportFragmentManager()
                 .popBackStack());
@@ -86,7 +97,8 @@ public class ProfileQrFragment extends Fragment {
 
     private void bindCurrentUser(@Nullable UserResponse user) {
         String displayName = user != null && user.getDisplayName() != null
-                ? user.getDisplayName()
+                && !user.getDisplayName().trim().isEmpty()
+                ? user.getDisplayName().trim()
                 : "User";
         String username = user != null && user.getUsername() != null && !user.getUsername().trim().isEmpty()
                 ? "@" + user.getUsername()
@@ -105,6 +117,38 @@ public class ProfileQrFragment extends Fragment {
         binding.ivAvatar.setShapeAppearanceModel(
                 ShapeAppearanceModel.builder().setAllCornerSizes(999f).build());
         binding.tvAvatarInitials.setText(initials);
+
+        String resolvedAvatarUrl = AvatarUtils.resolveAvatarUrl(user != null ? user.getAvatarUrl() : null);
+        if (resolvedAvatarUrl.isEmpty()) {
+            AvatarUtils.showFallback(binding.getRoot(), binding.ivAvatar, binding.tvAvatarInitials);
+            return;
+        }
+
+        binding.tvAvatarInitials.setVisibility(View.GONE);
+        Glide.with(binding.getRoot())
+                .load(resolvedAvatarUrl)
+                .transform(new CircleCrop())
+                .listener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                                Target<Drawable> target, boolean isFirstResource) {
+                        if (binding != null) {
+                            AvatarUtils.showFallback(binding.getRoot(), binding.ivAvatar, binding.tvAvatarInitials);
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Drawable resource, Object model,
+                                                   Target<Drawable> target, DataSource dataSource,
+                                                   boolean isFirstResource) {
+                        if (binding != null) {
+                            binding.tvAvatarInitials.setVisibility(View.GONE);
+                        }
+                        return false;
+                    }
+                })
+                .into(binding.ivAvatar);
     }
 
     private void loadQrCode() {
@@ -151,6 +195,20 @@ public class ProfileQrFragment extends Fragment {
     private boolean isEmbeddedMode() {
         Bundle args = getArguments();
         return args != null && args.getBoolean(ARG_EMBEDDED, false);
+    }
+
+    private void openFullScreenQr() {
+        if (!isAdded()) {
+            return;
+        }
+
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.fragmentContainer, ProfileQrFragment.newInstance())
+                .addToBackStack(ProfileQrFragment.class.getSimpleName())
+                .commit();
     }
 
     @Override

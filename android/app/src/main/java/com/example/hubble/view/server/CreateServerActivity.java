@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.R;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.viewmodel.CreateServerViewModel;
 import com.example.hubble.viewmodel.CreateServerViewModelFactory;
 
@@ -22,6 +23,7 @@ public class CreateServerActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_server);
 

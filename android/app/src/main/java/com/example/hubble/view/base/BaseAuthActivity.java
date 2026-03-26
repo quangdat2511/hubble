@@ -2,6 +2,9 @@ package com.example.hubble.view.base;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,7 +12,9 @@ import androidx.lifecycle.LiveData;
 
 import com.example.hubble.R;
 import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.MainActivity;
 import com.example.hubble.view.auth.LoginActivity;
 import com.google.android.material.snackbar.Snackbar;
@@ -20,6 +25,13 @@ import com.google.android.material.snackbar.Snackbar;
  */
 public abstract class BaseAuthActivity extends AppCompatActivity {
 
+    private static final long THEME_FETCH_TIMEOUT_MS = 4000L;
+
+    private final Handler navigationHandler = new Handler(Looper.getMainLooper());
+
+    private boolean navigatingToMain;
+    private Runnable pendingMainNavigationTimeout;
+
     protected abstract View getRootView();
     protected abstract View getProgressBar();
 
@@ -29,9 +41,42 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
     }
 
-    // ─── Navigation ──────────────────────────────────────────────
-
     protected void navigateToMain() {
+        if (navigatingToMain) {
+            return;
+        }
+
+        String accessToken = new TokenManager(this).getAccessToken();
+        if (TextUtils.isEmpty(accessToken)) {
+            launchMainActivity();
+            return;
+        }
+
+        navigatingToMain = true;
+        SettingsRepository settingsRepository = new SettingsRepository(this);
+        pendingMainNavigationTimeout = this::launchMainActivity;
+        navigationHandler.postDelayed(pendingMainNavigationTimeout, THEME_FETCH_TIMEOUT_MS);
+
+        settingsRepository.fetchTheme("Bearer " + accessToken, new SettingsRepository.ThemeFetchCallback() {
+            @Override
+            public void onSuccess(String theme) {
+                ThemeManager.saveTheme(BaseAuthActivity.this, theme);
+                launchMainActivity();
+            }
+
+            @Override
+            public void onError(String message) {
+                launchMainActivity();
+            }
+        });
+    }
+
+    private void launchMainActivity() {
+        if (pendingMainNavigationTimeout != null) {
+            navigationHandler.removeCallbacks(pendingMainNavigationTimeout);
+            pendingMainNavigationTimeout = null;
+        }
+
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -47,8 +92,6 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
         finish();
     }
 
-    // ─── UI Helpers ──────────────────────────────────────────────
-
     protected void showError(String message) {
         Snackbar.make(getRootView(),
                 message != null ? message : getString(R.string.error_generic),
@@ -59,18 +102,6 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
         getProgressBar().setVisibility(isLoading ? View.VISIBLE : View.GONE);
     }
 
-    // ─── LiveData Observer Helper ────────────────────────────────
-
-    /**
-     * Standard observer for AuthResult LiveData:
-     * - LOADING → show progress
-     * - SUCCESS → hide progress, reset state, run onSuccess
-     * - ERROR   → hide progress, reset state, show error message
-     *
-     * @param liveData   the LiveData to observe (read-only)
-     * @param resetState runnable to reset the ViewModel state
-     * @param onSuccess  action to perform on success
-     */
     protected <T> void observeAuthResult(
             LiveData<AuthResult<T>> liveData,
             Runnable resetState,
@@ -78,11 +109,6 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
         observeAuthResult(liveData, resetState, onSuccess, this::showError);
     }
 
-    /**
-     * Observer with custom error handler.
-     *
-     * @param onError receives the error message for custom UI handling
-     */
     protected <T> void observeAuthResult(
             LiveData<AuthResult<T>> liveData,
             Runnable resetState,
@@ -102,5 +128,11 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
                 onError.accept(result.getMessage());
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        navigationHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 }

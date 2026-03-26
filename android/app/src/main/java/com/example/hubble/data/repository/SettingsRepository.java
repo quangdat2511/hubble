@@ -22,6 +22,14 @@ public class SettingsRepository {
 
     private static final String TAG = "SettingsRepository";
     private static final String DEFAULT_LANGUAGE = "vi";
+    private static final String THEME_FETCH_ERROR = "Khong tai duoc giao dien";
+    private static final String THEME_UPDATE_ERROR = "Khong cap nhat duoc giao dien";
+    private static final String NETWORK_ERROR_PREFIX = "Loi ket noi: ";
+
+    public interface ThemeFetchCallback {
+        void onSuccess(String theme);
+        void onError(String message);
+    }
 
     private final ApiService apiService;
 
@@ -88,6 +96,22 @@ public class SettingsRepository {
         MutableLiveData<AuthResult<String>> data = new MutableLiveData<>();
         data.setValue(AuthResult.loading());
 
+        fetchTheme(authHeader, new ThemeFetchCallback() {
+            @Override
+            public void onSuccess(String theme) {
+                data.setValue(AuthResult.success(theme));
+            }
+
+            @Override
+            public void onError(String message) {
+                data.setValue(AuthResult.error(message));
+            }
+        });
+
+        return data;
+    }
+
+    public void fetchTheme(String authHeader, ThemeFetchCallback callback) {
         Log.d(TAG, "getTheme() called");
         Log.d(TAG, "Authorization = " + authHeader);
 
@@ -99,7 +123,7 @@ public class SettingsRepository {
                 Log.d(TAG, "getTheme onResponse: successful = " + response.isSuccessful());
 
                 if (response.body() != null) {
-                    Log.d(TAG, "getTheme body = " + response.body().toString());
+                    Log.d(TAG, "getTheme body = " + response.body());
                 } else {
                     Log.d(TAG, "getTheme body = null");
                 }
@@ -107,22 +131,27 @@ public class SettingsRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     String theme = response.body().getResult();
                     Log.d(TAG, "Parsed theme = " + theme);
-                    data.setValue(AuthResult.success(theme));
+                    if (callback != null) {
+                        callback.onSuccess(theme);
+                    }
                 } else {
-                    String errorMessage = extractErrorMessage(response, "Không tải được giao diện");
+                    String errorMessage = extractErrorMessage(response, THEME_FETCH_ERROR);
                     Log.e(TAG, "getTheme failed: " + errorMessage);
-                    data.setValue(AuthResult.error(errorMessage));
+                    if (callback != null) {
+                        callback.onError(errorMessage);
+                    }
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                String message = NETWORK_ERROR_PREFIX + t.getMessage();
                 Log.e(TAG, "getTheme onFailure: " + t.getMessage(), t);
-                data.setValue(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                if (callback != null) {
+                    callback.onError(message);
+                }
             }
         });
-
-        return data;
     }
 
     public LiveData<AuthResult<String>> updateTheme(String authHeader, String theme) {
@@ -141,7 +170,7 @@ public class SettingsRepository {
                 Log.d(TAG, "updateTheme onResponse: successful = " + response.isSuccessful());
 
                 if (response.body() != null) {
-                    Log.d(TAG, "updateTheme body = " + response.body().toString());
+                    Log.d(TAG, "updateTheme body = " + response.body());
                 } else {
                     Log.d(TAG, "updateTheme body = null");
                 }
@@ -149,7 +178,7 @@ public class SettingsRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     data.setValue(AuthResult.success(response.body().getResult()));
                 } else {
-                    String errorMessage = extractErrorMessage(response, "Không cập nhật được giao diện");
+                    String errorMessage = extractErrorMessage(response, THEME_UPDATE_ERROR);
                     Log.e(TAG, "updateTheme failed: " + errorMessage);
                     data.setValue(AuthResult.error(errorMessage));
                 }
@@ -158,7 +187,7 @@ public class SettingsRepository {
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
                 Log.e(TAG, "updateTheme onFailure: " + t.getMessage(), t);
-                data.setValue(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                data.setValue(AuthResult.error(NETWORK_ERROR_PREFIX + t.getMessage()));
             }
         });
 

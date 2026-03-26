@@ -17,6 +17,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,18 +81,31 @@ class ThemeServiceTest {
     @Test
     void updateTheme_MissingSettingsRow_CreatesNewRowWithNormalizedTheme() {
         UUID userId = UUID.randomUUID();
-        when(userSettingsRepository.findById(userId)).thenReturn(Optional.empty());
-        when(userSettingsRepository.save(any(UserSettings.class)))
+        when(userSettingsRepository.updateThemeByUserId(eq(userId), eq("DARK"), any()))
+                .thenReturn(0);
+        when(userSettingsRepository.saveAndFlush(any(UserSettings.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         String result = themeService.updateTheme(userId, " DARK ");
 
         ArgumentCaptor<UserSettings> settingsCaptor = ArgumentCaptor.forClass(UserSettings.class);
-        verify(userSettingsRepository).save(settingsCaptor.capture());
+        verify(userSettingsRepository).saveAndFlush(settingsCaptor.capture());
 
         UserSettings savedSettings = settingsCaptor.getValue();
         assertEquals("DARK", result);
         assertEquals(userId, savedSettings.getUserId());
         assertEquals("DARK", savedSettings.getTheme());
+    }
+
+    @Test
+    void updateTheme_ExistingSettingsRow_UpdatesThemeDirectly() {
+        UUID userId = UUID.randomUUID();
+        when(userSettingsRepository.updateThemeByUserId(eq(userId), eq("LIGHT"), any()))
+                .thenReturn(1);
+
+        String result = themeService.updateTheme(userId, " light ");
+
+        assertEquals("LIGHT", result);
+        verify(userSettingsRepository).updateThemeByUserId(eq(userId), eq("LIGHT"), any());
     }
 }

@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmStoryBinding;
+import com.example.hubble.utils.AvatarUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHold
 
         void bind(DmConversationItem item) {
             binding.tvInitial.setText(item.getDisplayName().substring(0, 1).toUpperCase());
+            AvatarUtils.loadAvatar(binding.getRoot(), binding.ivAvatar, binding.tvInitial, item.getAvatarUrl());
             binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
         }
     }

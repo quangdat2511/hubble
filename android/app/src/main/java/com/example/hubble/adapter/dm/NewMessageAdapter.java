@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.hubble.data.model.dm.NewMessageItem;
 import com.example.hubble.databinding.ItemNewMessageFriendBinding;
 import com.example.hubble.databinding.ItemNewMessageSectionBinding;
+import com.example.hubble.utils.AvatarUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +100,7 @@ public class NewMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             binding.tvInitial.setText(friend.getDisplayName().isEmpty()
                     ? "?"
                     : friend.getDisplayName().substring(0, 1).toUpperCase());
+            AvatarUtils.loadAvatar(binding.getRoot(), binding.ivAvatar, binding.tvInitial, friend.getAvatarUrl());
             binding.viewPresence.setVisibility(friend.isOnline() ? View.VISIBLE : View.GONE);
 
             if (friend.getBadge() == null || friend.getBadge().trim().isEmpty()) {

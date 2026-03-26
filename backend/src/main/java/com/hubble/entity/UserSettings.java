@@ -83,7 +83,7 @@ public class UserSettings {
 
     private void normalizeFields() {
         normalizeTheme();
-        if (theme != null) {
+        if (locale != null) {
             locale = locale.trim().toLowerCase(Locale.ROOT);
         }
     }

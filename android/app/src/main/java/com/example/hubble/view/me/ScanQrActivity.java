@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 
 import com.example.hubble.R;
 import com.example.hubble.databinding.ActivityScanQrBinding;
+import com.example.hubble.utils.ThemeManager;
 import com.google.android.material.snackbar.Snackbar;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
@@ -32,6 +33,7 @@ public class ScanQrActivity extends androidx.appcompat.app.AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityScanQrBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

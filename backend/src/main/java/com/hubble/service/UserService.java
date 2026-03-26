@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -116,6 +117,9 @@ public class UserService {
         String avatarUrl = userRepository.findAvatarUrlById(userId)
                 .filter(url -> !url.isBlank())
                 .orElseThrow(() -> new AppException(ErrorCode.AVATAR_NOT_FOUND));
+        if (!isManagedUploadAvatarUrl(avatarUrl)) {
+            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+        }
 
         String fileName = Paths.get(avatarUrl).getFileName().toString();
         Path avatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
@@ -135,6 +139,13 @@ public class UserService {
         String avatarUrl = user.getAvatarUrl();
         if (avatarUrl == null || avatarUrl.isBlank()) {
             throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+        }
+        if (isExternalAvatarUrl(avatarUrl)) {
+            return AvatarResponse.builder()
+                    .avatarUrl(avatarUrl)
+                    .fileName(extractAvatarFileName(avatarUrl))
+                    .contentType("image/*")
+                    .build();
         }
 
         Path avatarPath = getAvatarPath(userId);
@@ -215,6 +226,9 @@ public class UserService {
         if (avatarUrl == null || avatarUrl.isBlank()) {
             return;
         }
+        if (!isManagedUploadAvatarUrl(avatarUrl)) {
+            return;
+        }
 
         try {
             String fileName = Paths.get(avatarUrl).getFileName().toString();
@@ -226,5 +240,29 @@ public class UserService {
         } catch (Exception ignored) {
             System.err.println("Warning: could not delete old avatar: " + avatarUrl);
         }
+    }
+
+    private boolean isExternalAvatarUrl(String avatarUrl) {
+        return avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://");
+    }
+
+    private boolean isManagedUploadAvatarUrl(String avatarUrl) {
+        return avatarUrl.startsWith(AVATAR_URL_PREFIX);
+    }
+
+    private String extractAvatarFileName(String avatarUrl) {
+        try {
+            URI uri = URI.create(avatarUrl);
+            String path = uri.getPath();
+            if (path != null && !path.isBlank()) {
+                String fileName = Paths.get(path).getFileName().toString();
+                if (!fileName.isBlank()) {
+                    return fileName;
+                }
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        return Paths.get(avatarUrl).getFileName().toString();
     }
 }

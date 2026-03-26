@@ -175,6 +175,11 @@ public class MainViewModel extends ViewModel {
                             channel.getId(),
                             peerUserId,
                             peerName,
+                            coalesce(
+                                    channel.getPeerAvatarUrl(),
+                                    matchedFriend != null ? matchedFriend.getAvatarUrl() : null,
+                                    null
+                            ),
                             preview,
                             "now",
                             online,
@@ -247,7 +252,8 @@ public class MainViewModel extends ViewModel {
                         DmConversationItem current = enriched.get(index);
                         enriched.set(index, new DmConversationItem(
                                 current.getId(), current.getChannelId(), current.getFriendId(),
-                                current.getDisplayName(), previewText, toShortTime(latest.getCreatedAt()),
+                                current.getDisplayName(), current.getAvatarUrl(),
+                                previewText, toShortTime(latest.getCreatedAt()),
                                 current.isOnline(), current.isVerified(), current.isSelected()
                         ));
                     }

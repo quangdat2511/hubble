@@ -17,24 +17,40 @@
         android:layout_height="wrap_content"
         android:padding="@dimen/spacing_sm">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivAvatar"
+        <FrameLayout
+            android:id="@+id/avatarFrame"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:contentDescription="@string/cd_user_avatar"
-            android:src="@mipmap/ic_launcher_round"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/cd_user_avatar"
+                android:src="@mipmap/ic_launcher_round"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+            <TextView
+                android:id="@+id/tvInitial"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
+        </FrameLayout>
 
         <View
             android:id="@+id/viewPresence"
             android:layout_width="14dp"
             android:layout_height="14dp"
             android:background="@drawable/bg_online_status_dot"
-            app:layout_constraintBottom_toBottomOf="@id/ivAvatar"
-            app:layout_constraintEnd_toEndOf="@id/ivAvatar" />
+            app:layout_constraintBottom_toBottomOf="@id/avatarFrame"
+            app:layout_constraintEnd_toEndOf="@id/avatarFrame" />
 
         <TextView
             android:id="@+id/tvName"
@@ -47,8 +63,8 @@
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@id/tvTime"
-            app:layout_constraintStart_toEndOf="@id/ivAvatar"
-            app:layout_constraintTop_toTopOf="@id/ivAvatar" />
+            app:layout_constraintStart_toEndOf="@id/avatarFrame"
+            app:layout_constraintTop_toTopOf="@id/avatarFrame" />
 
         <TextView
             android:id="@+id/tvTime"
