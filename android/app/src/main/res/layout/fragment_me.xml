@@ -126,6 +126,41 @@
                 app:icon="@drawable/ic_edit"
                 app:iconTint="@color/white" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_md"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpenSettings"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="@string/me_settings"
+                    app:cornerRadius="26dp"
+                    app:icon="@drawable/ic_settings"
+                    app:iconTint="?attr/colorOnSurface" />
+
+                <Space
+                    android:layout_width="@dimen/spacing_sm"
+                    android:layout_height="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLogout"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="@string/settings_logout"
+                    app:cornerRadius="26dp"
+                    app:icon="@drawable/ic_logout"
+                    app:iconTint="?attr/colorError"
+                    app:strokeColor="?attr/colorOutline" />
+
+            </LinearLayout>
+
             <!-- Info card: Joined since -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"

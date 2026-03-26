@@ -67,11 +67,11 @@ public class NewMessageActivity extends AppCompatActivity {
         adapter.setOnFriendClickListener(friend ->
                 dmRepository.getOrCreateDirectChannel(friend.getId(), result -> {
                     if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                        startActivity(DmChatActivity.createIntent(
-                                this,
-                                result.getData().getId(),
-                                friend.getDisplayName()
-                        ));
+//                        startActivity(DmChatActivity.createIntent(
+//                                this,
+//                                result.getData().getId(),
+//                                friend.getDisplayName()
+//                        ));
                         return;
                     }
                     String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);

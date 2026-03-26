@@ -91,6 +91,7 @@
     <string name="me_title">Bạn</string>
     <string name="me_add_status">Thêm trạng thái</string>
     <string name="me_edit_profile">Sửa Hồ Sơ</string>
+    <string name="me_settings">Cài đặt</string>
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
@@ -105,6 +106,13 @@
     <string name="settings_section_info">Có Gì Mới</string>
     <string name="settings_language">Ngôn ngữ</string>
     <string name="settings_notifications">Các Thông Báo</string>
+    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
+    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
+    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
+    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
+    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
+    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
+    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
     <string name="settings_appearance">Giao diện</string>
     <string name="settings_advanced">Nâng cao</string>
     <string name="settings_support">Hỗ trợ</string>

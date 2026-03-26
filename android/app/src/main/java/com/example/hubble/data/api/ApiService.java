@@ -18,12 +18,15 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.settings.PushConfigRequest;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
+import retrofit2.http.PUT;
 import retrofit2.http.Query;
 
 public interface ApiService {
@@ -62,6 +65,17 @@ public interface ApiService {
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
+
+    @GET("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> getPushConfig(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> updatePushConfig(
+            @Header("Authorization") String token,
+            @Body PushConfigRequest request
+    );
 
         @GET("api/friends/friends")
         Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(

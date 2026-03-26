@@ -17,15 +17,18 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.snackbar.Snackbar;
 
 public class MeFragment extends Fragment {
 
     private FragmentMeBinding binding;
+    private AuthViewModel authViewModel;
 
     @Nullable
     @Override
@@ -40,7 +43,7 @@ public class MeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        AuthViewModel authViewModel = new ViewModelProvider(requireActivity(),
+        authViewModel = new ViewModelProvider(requireActivity(),
                 new AuthViewModelFactory(new AuthRepository(requireContext())))
                 .get(AuthViewModel.class);
 
@@ -49,7 +52,6 @@ public class MeFragment extends Fragment {
     }
 
     private void populateUserInfo(@Nullable UserResponse user) {
-        // Avatar: colored circle with initials
         String displayName = user != null && user.getDisplayName() != null
                 ? user.getDisplayName() : "User";
         String email = user != null && user.getEmail() != null
@@ -58,7 +60,6 @@ public class MeFragment extends Fragment {
         binding.tvDisplayName.setText(displayName);
         binding.tvUsername.setText(email);
 
-        // Build initials avatar
         String initials = displayName.isEmpty() ? "U"
                 : String.valueOf(displayName.charAt(0)).toUpperCase();
 
@@ -70,19 +71,15 @@ public class MeFragment extends Fragment {
         binding.ivAvatar.setShapeAppearanceModel(
                 ShapeAppearanceModel.builder().setAllCornerSizes(999f).build());
 
-        // Overlay initials on avatar (reuse a tag-based approach)
         binding.tvAvatarInitials.setText(initials);
-
-        // Joined date placeholder
         binding.tvJoinedDate.setText(getString(R.string.app_name));
     }
 
     private void setupActions(View view) {
-        // Settings gear → SettingsActivity
-        binding.btnSettings.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), SettingsActivity.class)));
+        binding.btnSettings.setOnClickListener(v -> openSettings());
+        binding.btnOpenSettings.setOnClickListener(v -> openSettings());
+        binding.btnLogout.setOnClickListener(v -> confirmLogout());
 
-        // Stub actions
         binding.btnAddStatus.setOnClickListener(v ->
                 Snackbar.make(view,
                         getString(R.string.main_coming_soon),
@@ -99,6 +96,31 @@ public class MeFragment extends Fragment {
                 Snackbar.make(view,
                         getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
+    }
+
+    private void openSettings() {
+        startActivity(new Intent(requireContext(), SettingsActivity.class));
+    }
+
+    private void confirmLogout() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.settings_logout_confirm_title))
+                .setMessage(getString(R.string.settings_logout_confirm_message))
+                .setNegativeButton(getString(R.string.settings_logout_confirm_no),
+                        (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
+                        (dialog, which) -> {
+                            authViewModel.logout();
+                            navigateToLogin();
+                        })
+                .show();
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        requireActivity().finish();
     }
 
     @Override

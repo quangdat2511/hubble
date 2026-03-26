@@ -1,35 +1,62 @@
 package com.hubble.service;
 
+import com.hubble.dto.request.PushConfigUpdateRequest;
+import com.hubble.dto.response.PushConfigResponse;
 import com.hubble.entity.UserSettings;
 import com.hubble.repository.UserSettingsRepository;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PushConfigService {
 
-    private final UserSettingsRepository repo;
+    UserSettingsRepository repo;
 
-    public PushConfigService(UserSettingsRepository repo) {
-        this.repo = repo;
-    }
-
-    public UserSettings getPushConfig(UUID userId) {
-        return repo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User settings not found"));
-    }
-
-    public void updatePushConfig(UUID userId, Boolean enabled, Boolean sound) {
+    public PushConfigResponse getPushConfig(UUID userId) {
         UserSettings settings = repo.findById(userId)
-                .orElse(new UserSettings());
+                .orElseGet(() -> buildDefaultSettings(userId));
 
-        settings.setUserId(userId);
-        settings.setNotificationEnabled(enabled);
-        settings.setNotificationSound(sound);
+        return mapToResponse(settings);
+    }
+
+    public PushConfigResponse updatePushConfig(UUID userId, PushConfigUpdateRequest request) {
+        UserSettings settings = repo.findById(userId)
+                .orElseGet(() -> buildDefaultSettings(userId));
+
+        if (request.getNotificationEnabled() != null) {
+            settings.setNotificationEnabled(request.getNotificationEnabled());
+        }
+        if (request.getNotificationSound() != null) {
+            settings.setNotificationSound(request.getNotificationSound());
+        }
         settings.setUpdatedAt(LocalDateTime.now());
 
-        repo.save(settings);
+        UserSettings savedSettings = repo.save(settings);
+        return mapToResponse(savedSettings);
+    }
+
+    private PushConfigResponse mapToResponse(UserSettings settings) {
+        return PushConfigResponse.builder()
+                .notificationEnabled(Boolean.TRUE.equals(settings.getNotificationEnabled()))
+                .notificationSound(Boolean.TRUE.equals(settings.getNotificationSound()))
+                .build();
+    }
+
+    private UserSettings buildDefaultSettings(UUID userId) {
+        return UserSettings.builder()
+                .userId(userId)
+                .theme("DARK")
+                .locale("vi")
+                .notificationEnabled(true)
+                .notificationSound(true)
+                .updatedAt(LocalDateTime.now())
+                .build();
     }
 }
