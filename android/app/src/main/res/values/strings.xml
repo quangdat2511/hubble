@@ -91,11 +91,30 @@
     <string name="me_title">Bạn</string>
     <string name="me_add_status">Thêm trạng thái</string>
     <string name="me_edit_profile">Sửa Hồ Sơ</string>
+    <string name="me_save_profile">Lưu hồ sơ</string>
+    <string name="me_display_name">Tên hiển thị</string>
+    <string name="me_phone">Số điện thoại</string>
+    <string name="me_bio">Tiểu sử</string>
+    <string name="me_status">Trạng thái</string>
+    <string-array name="status_options">
+        <item>ONLINE</item>
+        <item>IDLE</item>
+        <item>OFFLINE</item>
+        <item>DND</item>
+    </string-array>
+
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="me_avatar_hint">Chọn ảnh, cắt vuông và cập nhật ảnh đại diện</string>
+    <string name="me_avatar_uploading">Đang tải ảnh đại diện...</string>
+    <string name="me_avatar_error_read">Không thể đọc ảnh được chọn</string>
+    <string name="me_avatar_error_upload">Tải ảnh đại diện thất bại</string>
+    <string name="me_avatar_updated">Đã cập nhật ảnh đại diện</string>
+    <string name="me_avatar_picker_title">Chọn ảnh đại diện</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
+    <string name="cd_edit_avatar">Chỉnh ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>
 
     <!-- Settings screen -->
@@ -106,7 +125,11 @@
     <string name="settings_language">Ngôn ngữ</string>
     <string name="settings_notifications">Các Thông Báo</string>
     <string name="settings_appearance">Giao diện</string>
+    <string name="theme_settings_title">Giao diện</string>
+    <string name="theme_mode_label">Chế độ giao diện</string>
+    <string name="theme_dark_mode_label">Chế độ tối</string>
     <string name="settings_advanced">Nâng cao</string>
+    <string name="settings_sessions">Quản lý thiết bị và Phiên</string>
     <string name="settings_support">Hỗ trợ</string>
     <string name="settings_changelog">Có Gì Mới</string>
     <string name="settings_logout">Đăng Xuất</string>
@@ -184,4 +207,26 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+    <string name="cd_emoji_picker">Emoji picker</string>
+    <string name="emoji_search_hint">Find the perfect emoji</string>
+    <string name="me_qr_title">Mã QR hồ sơ</string>
+    <string name="me_qr_hint">Người khác có thể quét mã này để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_view_full">Mở QR toàn màn hình</string>
+    <string name="me_qr_unavailable">Không tạo được mã QR lúc này.</string>
+    <string name="me_qr_toolbar_title">QR của bạn</string>
+    <string name="me_qr_opening_hint">Chia sẻ mã này để người khác quét và thêm bạn nhanh hơn.</string>
+    <string name="me_qr_scan_title">Hồ sơ được quét</string>
+    <string name="me_qr_add_friend">Gửi lời mời kết bạn</string>
+    <string name="me_qr_request_sent">Đã gửi lời mời kết bạn.</string>
+    <string name="me_qr_loading">Đang tải hồ sơ từ QR...</string>
+    <string name="me_qr_invalid">QR không hợp lệ hoặc đã hết hạn.</string>
+    <string name="me_qr_empty">Chưa nhận được dữ liệu QR.</string>
+    <string name="me_qr_you">Đây là bạn</string>
+    <string name="me_qr_save_png">Lưu QR thành PNG</string>
+    <string name="me_qr_saved">Đã lưu mã QR: %1$s</string>
+    <string name="me_qr_save_failed">Không lưu được mã QR.</string>
+    <string name="me_qr_save_unavailable">QR chưa tải xong để lưu.</string>
+    <string name="me_qr_scan_button">Quét QR</string>
+    <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
 </resources>

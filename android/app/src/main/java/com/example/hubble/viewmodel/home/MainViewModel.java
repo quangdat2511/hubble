@@ -15,10 +15,16 @@ import com.example.hubble.data.repository.ServerRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,6 +50,11 @@ public class MainViewModel extends ViewModel {
 
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     public final LiveData<String> errorMessage = _errorMessage;
+
+    private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
+    public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
+
+    private final Set<String> collapsedCategories = new HashSet<>();
 
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
@@ -105,6 +116,10 @@ public class MainViewModel extends ViewModel {
 
     public void selectServer(ServerItem server) {
         _selectedServer.setValue(server);
+    }
+
+    public void selectDmPanel() {
+        _selectedServer.setValue(null);
     }
 
     public void refreshDirectMessages() {
@@ -215,30 +230,29 @@ public class MainViewModel extends ViewModel {
                     String preview = latest.getContent();
                     if (preview == null || preview.trim().isEmpty()) {
                         preview = "Tin nhắn đa phương tiện";
+                    } else if (preview.startsWith("{gif}")) {
+                        String body = preview.substring(5);
+                        int nl = body.indexOf('\n');
+                        String title = nl > 0 ? body.substring(0, nl).trim() : null;
+                        preview = (title != null && !title.isEmpty() ? title : "GIF") + " 🎬";
+                    } else if (preview.startsWith("{sticker}")) {
+                        String body = preview.substring(9);
+                        int nl = body.indexOf('\n');
+                        String title = nl > 0 ? body.substring(0, nl).trim() : null;
+                        preview = (title != null && !title.isEmpty() ? title : "Sticker") + " 🎭";
                     }
-
                     String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), item.getDisplayName());
                     String previewText = senderLabel + ": " + preview;
-
                     synchronized (enriched) {
                         DmConversationItem current = enriched.get(index);
                         enriched.set(index, new DmConversationItem(
-                                current.getId(),
-                                current.getChannelId(),
-                                current.getFriendId(),
-                                current.getDisplayName(),
-                                previewText,
-                                toShortTime(latest.getCreatedAt()),
-                                current.isOnline(),
-                                current.isVerified(),
-                                current.isSelected()
+                                current.getId(), current.getChannelId(), current.getFriendId(),
+                                current.getDisplayName(), previewText, toShortTime(latest.getCreatedAt()),
+                                current.isOnline(), current.isVerified(), current.isSelected()
                         ));
                     }
                 }
-
-                if (pending.decrementAndGet() == 0) {
-                    publishConversations(enriched);
-                }
+                if (pending.decrementAndGet() == 0) publishConversations(enriched);
             });
         }
 
@@ -252,17 +266,39 @@ public class MainViewModel extends ViewModel {
         _dmStories.postValue(conversations.subList(0, Math.min(3, conversations.size())));
     }
 
+    /**
+     * Returns a Discord-style relative time label from an ISO timestamp.
+     * e.g. "now", "5m", "2h", "3d", "1mo", "2y"
+     * Handles both OffsetDateTime ("2024-01-01T10:00:00Z") and
+     * LocalDateTime ("2024-01-01T10:00:00") server formats.
+     */
     private String toShortTime(String createdAt) {
-        if (createdAt == null || createdAt.trim().isEmpty()) {
-            return "";
-        }
-
+        if (createdAt == null || createdAt.trim().isEmpty()) return "";
         try {
-            OffsetDateTime dateTime = OffsetDateTime.parse(createdAt);
-            int hour = dateTime.getHour();
-            int minute = dateTime.getMinute();
-            return String.format(Locale.getDefault(), "%02d:%02d", hour, minute);
-        } catch (DateTimeParseException ignored) {
+            Instant then;
+            try {
+                then = OffsetDateTime.parse(createdAt).toInstant();
+            } catch (DateTimeParseException e) {
+                then = LocalDateTime.parse(createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant();
+            }
+
+            long seconds = Duration.between(then, Instant.now()).getSeconds();
+            if (seconds < 0) seconds = 0;
+
+            if (seconds < 60)        return "Bây giờ";
+            long mins = seconds / 60;
+            if (mins < 60)           return mins + " phút";
+            long hours = mins / 60;
+            if (hours < 24)          return hours + " giờ";
+            long days = hours / 24;
+            if (days < 30)           return days + " ngày";
+            long months = days / 30;
+            if (months < 12)         return months + " tháng";
+            long years = days / 365;
+            return years + " năm";
+        } catch (Exception ignored) {
             return "";
         }
     }
@@ -298,6 +334,47 @@ public class MainViewModel extends ViewModel {
             }
         }
         return null;
+    }
+
+    public void loadServerChannels(String serverId) {
+        if (serverId == null || serverId.trim().isEmpty()) {
+            _serverChannels.postValue(AuthResult.error("Máy chủ không hợp lệ"));
+            return;
+        }
+
+        _serverChannels.postValue(AuthResult.loading());
+        serverRepository.getServerChannels(serverId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                _serverChannels.postValue(AuthResult.success(result.getData()));
+                return;
+            }
+
+            if (result.getStatus() == AuthResult.Status.ERROR) {
+                _serverChannels.postValue(AuthResult.error(result.getMessage()));
+            }
+        });
+    }
+
+    public void toggleCategoryCollapse(String categoryId) {
+        if (categoryId == null) {
+            return;
+        }
+
+        if (collapsedCategories.contains(categoryId)) {
+            collapsedCategories.remove(categoryId);
+        } else {
+            collapsedCategories.add(categoryId);
+        }
+
+        // Re-post current success data to trigger adapter rebuild
+        AuthResult<List<ChannelDto>> current = _serverChannels.getValue();
+        if (current != null && current.getStatus() == AuthResult.Status.SUCCESS && current.getData() != null) {
+            _serverChannels.postValue(AuthResult.success(current.getData()));
+        }
+    }
+
+    public Set<String> getCollapsedCategories() {
+        return collapsedCategories;
     }
 }
 

@@ -11,6 +11,9 @@ import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
 import com.google.android.material.color.MaterialColors;
 
+import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
+import static com.example.hubble.adapter.dm.DmMessageAdapter.STICKER_PREFIX;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,7 +66,7 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
 
         void bind(DmConversationItem item) {
             binding.tvName.setText(item.getDisplayName());
-            binding.tvPreview.setText(item.getLastMessage());
+            binding.tvPreview.setText(formatPreview(item.getLastMessage()));
             binding.tvTime.setText(item.getTimeLabel());
             binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
             binding.chipOfficial.setVisibility(item.isVerified() ? View.VISIBLE : View.GONE);
@@ -82,6 +85,49 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
                     listener.onConversationClick(item);
                 }
             });
+        }
+
+        /**
+         * Replaces raw {gif}/{sticker} prefixed content with a Discord-style human-readable label,
+         * preserving any "SenderName: " prefix that may precede the content.
+         *
+         * Supports both legacy format "{gif}url" and new format "{gif}title\nurl".
+         *
+         * Examples:
+         *   "You: {gif}Cheer\nhttps://..."     → "You: Cheer 🎬"
+         *   "QDat: {gif}https://..."            → "QDat: GIF 🎬"
+         *   "You: {sticker}Hype\nhttps://..."  → "You: Hype 🎭"
+         *   "Hello world"                       → "Hello world"  (unchanged)
+         */
+        private String formatPreview(String raw) {
+            if (raw == null) return "";
+
+            String prefix = null;
+            String mediaContent = null;
+            boolean isGif = false;
+
+            if (raw.contains(GIF_PREFIX)) {
+                int idx = raw.indexOf(GIF_PREFIX);
+                prefix = raw.substring(0, idx);
+                mediaContent = raw.substring(idx + GIF_PREFIX.length());
+                isGif = true;
+            } else if (raw.contains(STICKER_PREFIX)) {
+                int idx = raw.indexOf(STICKER_PREFIX);
+                prefix = raw.substring(0, idx);
+                mediaContent = raw.substring(idx + STICKER_PREFIX.length());
+                isGif = false;
+            }
+
+            if (mediaContent != null) {
+                String icon = isGif ? "🎬" : "🎭";
+                String defaultLabel = isGif ? "GIF" : "Sticker";
+                int nl = mediaContent.indexOf('\n');
+                String title = nl > 0 ? mediaContent.substring(0, nl).trim() : null;
+                String label = (title != null && !title.isEmpty()) ? title : defaultLabel;
+                return prefix + label + " " + icon;
+            }
+
+            return raw;
         }
     }
 }

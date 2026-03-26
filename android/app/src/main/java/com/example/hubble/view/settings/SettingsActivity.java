@@ -1,16 +1,20 @@
 package com.example.hubble.view.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
-import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 
 public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
+    private AuthRepository authRepository;
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -24,16 +28,48 @@ public class SettingsActivity extends BaseAuthActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v ->
-                getOnBackPressedDispatcher().onBackPressed()
-        );
+        authRepository = new AuthRepository(this);
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.themeFragmentContainer, new ThemeFragment())
-                    .commit();
-        }
+        setupToolbar();
+        setupRows();
+        setupLogout();
+    }
+
+    private void setupToolbar() {
+        binding.toolbar.setNavigationOnClickListener(v -> finish());
+    }
+
+    private void setupRows() {
+        View.OnClickListener comingSoon = v ->
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.main_coming_soon),
+                        Snackbar.LENGTH_SHORT).show();
+
+        binding.rowLanguage.setOnClickListener(comingSoon);
+        binding.rowNotifications.setOnClickListener(comingSoon);
+        binding.rowAppearance.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, ThemeSettingsActivity.class)));
+
+        // Mở màn hình quản lý thiết bị/phiên đăng nhập
+        binding.rowAdvanced.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
+
+        binding.rowSupport.setOnClickListener(comingSoon);
+        binding.rowChangelog.setOnClickListener(comingSoon);
+    }
+
+    private void setupLogout() {
+        binding.cardLogout.setOnClickListener(v ->
+                new MaterialAlertDialogBuilder(this)
+                        .setTitle(getString(R.string.settings_logout_confirm_title))
+                        .setMessage(getString(R.string.settings_logout_confirm_message))
+                        .setNegativeButton(getString(R.string.settings_logout_confirm_no),
+                                (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
+                                (dialog, which) -> {
+                                    authRepository.logout();
+                                    navigateToLogin();
+                                })
+                        .show());
     }
 }

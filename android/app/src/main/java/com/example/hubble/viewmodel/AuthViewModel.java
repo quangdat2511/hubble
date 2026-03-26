@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
@@ -11,6 +12,7 @@ import com.example.hubble.data.repository.AuthRepository;
 public class AuthViewModel extends ViewModel {
 
     private final AuthRepository repository;
+    private final ApiService apiService;
 
     private final MutableLiveData<AuthResult<UserResponse>> _loginState = new MutableLiveData<>();
     public final LiveData<AuthResult<UserResponse>> loginState = _loginState;
@@ -32,10 +34,19 @@ public class AuthViewModel extends ViewModel {
 
     public AuthViewModel(AuthRepository repository) {
         this.repository = repository;
+        this.apiService = repository.getApiService();
     }
 
     public UserResponse getCurrentUser() {
         return repository.getCurrentUser();
+    }
+
+    public String getToken() {
+        return repository.getAccessToken();
+    }
+
+    public ApiService getApiService() {
+        return apiService;
     }
 
     public void loginWithEmail(String email, String password) {

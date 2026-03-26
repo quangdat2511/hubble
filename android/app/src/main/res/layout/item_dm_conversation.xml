@@ -48,16 +48,17 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@id/tvTime"
             app:layout_constraintStart_toEndOf="@id/ivAvatar"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/ivAvatar" />
 
         <TextView
             android:id="@+id/tvTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/tvName" />
+            app:layout_constraintBaseline_toBaselineOf="@id/tvName"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipOfficial"
@@ -84,9 +85,8 @@
             android:layout_marginStart="@dimen/spacing_sm"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@id/tvName"
             app:layout_constraintTop_toBottomOf="@id/chipOfficial" />

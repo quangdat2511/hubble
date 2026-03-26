@@ -11,6 +11,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserCreationRequest;
 import com.example.hubble.data.model.auth.UserResponse;
@@ -18,12 +19,19 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.me.AvatarResponse;
+import com.example.hubble.data.model.me.UpdateProfileRequest;
+
+import okhttp3.MultipartBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -33,6 +41,15 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Body UserCreationRequest request
     );
+
+    @GET("api/sessions")
+    Call<ApiResponse<java.util.List<SessionDto>>> getActiveSessions(@Header("Authorization") String token);
+
+    @DELETE("api/sessions/{sessionId}")
+    Call<ApiResponse<String>> revokeSession(@Header("Authorization") String token, @Path("sessionId") String sessionId);
+
+    @POST("api/auth/logout")
+    Call<ApiResponse<String>> logout(@Body RefreshTokenRequest request);
 
     @POST("api/auth/login")
     Call<ApiResponse<TokenResponse>> loginWithEmail(@Body LoginRequest request);
@@ -64,49 +81,93 @@ public interface ApiService {
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
 
-        @GET("api/friends/friends")
-        Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
+
+    @POST("api/friends/requests/{userId}")
+    Call<ApiResponse<Object>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
+    @GET("api/friends/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
-        );
+    );
 
-            @GET("api/contacts/friends")
-            Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
-                @Header("Authorization") String token
-            );
-
-        @GET("api/channels/dm")
-        Call<java.util.List<ChannelDto>> getDirectChannels(
+    @GET("api/contacts/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
             @Header("Authorization") String token
-        );
+    );
 
-        @POST("api/channels/dm/{otherUserId}")
-        Call<ChannelDto> getOrCreateDirectChannel(
+    @GET("api/channels/dm")
+    Call<java.util.List<ChannelDto>> getDirectChannels(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/channels/dm/{otherUserId}")
+    Call<ChannelDto> getOrCreateDirectChannel(
             @Header("Authorization") String token,
             @Path("otherUserId") String otherUserId
-        );
+    );
 
-        @GET("api/messages/{channelId}")
-        Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
+    @GET("api/messages/{channelId}")
+    Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
             @Path("channelId") String channelId,
             @Query("page") int page,
             @Query("size") int size
-        );
+    );
 
-        @POST("api/messages")
-        Call<ApiResponse<MessageDto>> sendMessage(
+    @POST("api/messages")
+    Call<ApiResponse<MessageDto>> sendMessage(
             @Header("Authorization") String token,
             @Body CreateMessageRequest request
-        );
+    );
 
-        @PUT("api/settings/theme")
-        Call<ApiResponse<String>> updateTheme(
-                @Header("Authorization") String token,
-                @Query("theme") String theme
-        );
+    @PUT("api/settings/theme")
+    Call<ApiResponse<String>> updateTheme(
+            @Header("Authorization") String token,
+            @Query("theme") String theme
+    );
 
-        @GET("api/settings/theme")
-        Call<ApiResponse<String>> getTheme(
-                @Header("Authorization") String token
-        );
+    @GET("api/settings/theme")
+    Call<ApiResponse<String>> getTheme(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/users/me")
+    Call<ApiResponse<UserResponse>> updateProfile(
+            @Header("Authorization") String token,
+            @Body UpdateProfileRequest profile
+    );
+
+    @GET("api/users/me")
+    Call<ApiResponse<UserResponse>> getProfile(
+            @Header("Authorization") String token
+    );
+
+    @Multipart
+    @POST("api/users/me/avatar")
+    Call<ApiResponse<UserResponse>> uploadMyAvatar(
+            @Header("Authorization") String token,
+            @Part MultipartBody.Part file
+    );
+
+    @GET("api/users/me/avatar")
+    Call<ApiResponse<AvatarResponse>> getMyAvatar(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/{userId}/avatar")
+    Call<ApiResponse<AvatarResponse>> getUserAvatar(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 }

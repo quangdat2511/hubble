@@ -3,6 +3,7 @@ package com.hubble.controller;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.service.ThemeService;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,9 @@ class ThemeControllerTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private UserSessionRepository userSessionRepository;
 
     @Test
     void getTheme_Authenticated_ReturnsTheme() throws Exception {

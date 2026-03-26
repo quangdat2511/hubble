@@ -12,6 +12,7 @@ import com.example.hubble.data.model.auth.GoogleLoginRequest;
 import com.example.hubble.data.model.auth.LoginRequest;
 import com.example.hubble.data.model.auth.PhoneSendOtpRequest;
 import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
+import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
@@ -31,10 +32,19 @@ public class AuthRepository {
     public AuthRepository(Context context) {
         this.context = context.getApplicationContext();
         this.tokenManager = new TokenManager(context);
-        this.apiService = RetrofitClient.getApiService(context); // Khởi tạo
+        this.apiService = RetrofitClient.getApiService(context);
     }
+
     public UserResponse getCurrentUser() {
         return tokenManager.getUser();
+    }
+
+    public String getAccessToken() {
+        return tokenManager.getAccessToken();
+    }
+
+    public ApiService getApiService() {
+        return apiService;
     }
 
     public void loginWithEmail(String email, String password, RepositoryCallback<UserResponse> callback) {
@@ -171,6 +181,7 @@ public class AuthRepository {
             }
         });
     }
+
     public void sendPhoneOtp(String phoneNumber, RepositoryCallback<String> callback) {
         callback.onResult(AuthResult.loading());
         PhoneSendOtpRequest request = new PhoneSendOtpRequest(phoneNumber);
@@ -217,6 +228,18 @@ public class AuthRepository {
     }
 
     public void logout() {
+        String refreshToken = tokenManager.getRefreshToken();
+        if (refreshToken != null) {
+            apiService.logout(new RefreshTokenRequest(refreshToken)).enqueue(new Callback<ApiResponse<String>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                }
+            });
+        }
         tokenManager.clear();
     }
 }
