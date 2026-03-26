@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 
 public class SettingsViewModelFactory implements ViewModelProvider.Factory {

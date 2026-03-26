@@ -3,11 +3,14 @@ package com.hubble.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Getter
@@ -32,4 +35,12 @@ public class UserSettings {
     private Boolean notificationSound;
 
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    void normalizeTheme() {
+        if (theme != null) {
+            theme = theme.trim().toUpperCase(Locale.ROOT);
+        }
+    }
 }

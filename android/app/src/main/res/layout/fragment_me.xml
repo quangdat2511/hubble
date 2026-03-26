@@ -129,6 +129,18 @@
                 app:icon="@drawable/ic_edit"
                 app:iconTint="@color/white" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="48dp"
+                android:layout_marginBottom="@dimen/spacing_md"
+                android:backgroundTint="?attr/colorError"
+                android:text="@string/settings_logout"
+                android:textColor="?attr/colorOnError"
+                app:cornerRadius="28dp" />
+
             <!-- Info card: Joined since -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"

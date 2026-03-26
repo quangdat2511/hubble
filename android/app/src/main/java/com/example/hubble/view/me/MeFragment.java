@@ -17,6 +17,7 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
@@ -45,7 +46,7 @@ public class MeFragment extends Fragment {
                 .get(AuthViewModel.class);
 
         populateUserInfo(authViewModel.getCurrentUser());
-        setupActions(view);
+        setupActions(view, authViewModel);
     }
 
     private void populateUserInfo(@Nullable UserResponse user) {
@@ -77,7 +78,7 @@ public class MeFragment extends Fragment {
         binding.tvJoinedDate.setText(getString(R.string.app_name));
     }
 
-    private void setupActions(View view) {
+    private void setupActions(View view, AuthViewModel authViewModel) {
         // Settings gear → SettingsActivity
         binding.btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), SettingsActivity.class)));
@@ -91,6 +92,15 @@ public class MeFragment extends Fragment {
                 Snackbar.make(view,
                         getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
+        binding.btnLogout.setOnClickListener(v -> {
+            authViewModel.logout();
+
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            requireActivity().overridePendingTransition(0, 0);
+            requireActivity().finish();
+        });
         binding.cardFriends.setOnClickListener(v ->
                 Snackbar.make(view,
                         getString(R.string.main_coming_soon),

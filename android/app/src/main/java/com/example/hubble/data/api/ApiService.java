@@ -100,13 +100,13 @@ public interface ApiService {
         );
 
         @PUT("api/settings/theme")
-        Call<ApiResponse<MessageDto>> updateTheme(
+        Call<ApiResponse<String>> updateTheme(
                 @Header("Authorization") String token,
                 @Query("theme") String theme
         );
 
         @GET("api/settings/theme")
-        Call<ApiResponse<MessageDto>> getTheme(
+        Call<ApiResponse<String>> getTheme(
                 @Header("Authorization") String token
         );
 }
