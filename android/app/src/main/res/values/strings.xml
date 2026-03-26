@@ -132,6 +132,9 @@
     <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
     <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
     <string name="settings_appearance">Giao diện</string>
+    <string name="theme_settings_title">Giao diện</string>
+    <string name="theme_mode_label">Chế độ giao diện</string>
+    <string name="theme_dark_mode_label">Chế độ tối</string>
     <string name="settings_advanced">Nâng cao</string>
     <string name="settings_sessions">Quản lý thiết bị và Phiên</string>
     <string name="settings_support">Hỗ trợ</string>

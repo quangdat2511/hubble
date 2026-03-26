@@ -6,10 +6,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Getter
@@ -24,28 +30,43 @@ public class UserSettings {
 
     @Id
     @Column(name = "user_id")
-    private UUID userId;
+    UUID userId;
 
     @Column(name = "theme")
-    private String theme;
+    String theme;
 
     @Column(name = "locale")
-    private String locale;
+    String locale;
 
     @Column(name = "app_lock_pin")
-    private String appLockPin;
+    String appLockPin;
 
     @Column(name = "notification_enabled")
-    private Boolean notificationEnabled;
+    Boolean notificationEnabled;
 
     @Column(name = "notification_sound")
-    private Boolean notificationSound;
+    Boolean notificationSound;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
+        applyDefaults();
+        normalizeFields();
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        applyDefaults();
+        normalizeFields();
+        updatedAt = LocalDateTime.now();
+    }
+
+    private void applyDefaults() {
         if (theme == null) {
             theme = "DARK";
         }
@@ -58,13 +79,18 @@ public class UserSettings {
         if (notificationSound == null) {
             notificationSound = true;
         }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
+    }
+
+    private void normalizeFields() {
+        normalizeTheme();
+        if (theme != null) {
+            locale = locale.trim().toLowerCase(Locale.ROOT);
         }
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    public void normalizeTheme() {
+        if (theme != null) {
+            theme = theme.trim().toUpperCase(Locale.ROOT);
+        }
     }
 }

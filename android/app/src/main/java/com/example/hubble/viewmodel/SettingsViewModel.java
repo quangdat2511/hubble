@@ -2,6 +2,7 @@ package com.example.hubble.viewmodel;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.AuthResult;
@@ -9,6 +10,7 @@ import com.example.hubble.data.model.settings.PushConfigResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
+import com.example.hubble.utils.ThemeManager;
 
 public class SettingsViewModel extends ViewModel {
 
@@ -26,6 +28,19 @@ public class SettingsViewModel extends ViewModel {
 
     private final MutableLiveData<AuthResult<PushConfigResponse>> pushConfigSaveStateInternal = new MutableLiveData<>();
     public final LiveData<AuthResult<PushConfigResponse>> pushConfigSaveState = pushConfigSaveStateInternal;
+
+    private final MutableLiveData<AuthResult<String>> themeState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<String>> themeUpdateState = new MutableLiveData<>();
+
+    private Observer<AuthResult<String>> themeObserver;
+    private LiveData<AuthResult<String>> themeSource;
+    private Observer<AuthResult<String>> themeUpdateObserver;
+    private LiveData<AuthResult<String>> themeUpdateSource;
+
+    private String cachedTheme = ThemeManager.THEME_DARK;
+    private String pendingPreviousTheme;
+    private String pendingThemeErrorMessage;
+    private boolean localOverrideSinceFetch;
 
     public SettingsViewModel(AuthRepository authRepository) {
         this(authRepository, null, null);
@@ -99,5 +114,122 @@ public class SettingsViewModel extends ViewModel {
 
     public void resetPushConfigSaveState() {
         pushConfigSaveStateInternal.setValue(null);
+    }
+
+    public LiveData<AuthResult<String>> getTheme(String authHeader) {
+        if (settingsRepository == null) {
+            throw new IllegalStateException("SettingsRepository is required for theme operations");
+        }
+
+        detachThemeSource();
+        localOverrideSinceFetch = false;
+        themeSource = settingsRepository.getTheme(authHeader);
+        themeObserver = result -> {
+            themeState.postValue(result);
+            if (result != null && !result.isLoading()) {
+                detachThemeSource();
+            }
+        };
+        themeSource.observeForever(themeObserver);
+        return themeState;
+    }
+
+    public LiveData<AuthResult<String>> updateTheme(String authHeader, String theme, String previousTheme) {
+        if (settingsRepository == null) {
+            throw new IllegalStateException("SettingsRepository is required for theme operations");
+        }
+
+        detachThemeUpdateSource();
+        pendingPreviousTheme = ThemeManager.normalizeTheme(previousTheme);
+        cachedTheme = ThemeManager.normalizeTheme(theme);
+        localOverrideSinceFetch = true;
+
+        themeUpdateSource = settingsRepository.updateTheme(authHeader, theme);
+        themeUpdateObserver = result -> {
+            themeUpdateState.postValue(result);
+            if (result != null && !result.isLoading()) {
+                detachThemeUpdateSource();
+            }
+        };
+        themeUpdateSource.observeForever(themeUpdateObserver);
+        return themeUpdateState;
+    }
+
+    public LiveData<AuthResult<String>> getThemeState() {
+        return themeState;
+    }
+
+    public LiveData<AuthResult<String>> getThemeUpdateState() {
+        return themeUpdateState;
+    }
+
+    public void setCachedTheme(String theme) {
+        cachedTheme = ThemeManager.normalizeTheme(theme);
+    }
+
+    public String getCachedTheme() {
+        return cachedTheme;
+    }
+
+    public void markLocalOverride() {
+        localOverrideSinceFetch = true;
+    }
+
+    public boolean hasLocalOverrideSinceFetch() {
+        return localOverrideSinceFetch;
+    }
+
+    public String getPendingPreviousTheme() {
+        return pendingPreviousTheme;
+    }
+
+    public void clearPendingPreviousTheme() {
+        pendingPreviousTheme = null;
+    }
+
+    public void setPendingThemeErrorMessage(String pendingThemeErrorMessage) {
+        this.pendingThemeErrorMessage = pendingThemeErrorMessage;
+    }
+
+    public String consumePendingThemeErrorMessage() {
+        String errorMessage = pendingThemeErrorMessage;
+        pendingThemeErrorMessage = null;
+        return errorMessage;
+    }
+
+    public boolean isThemeUpdateInProgress() {
+        AuthResult<String> result = themeUpdateState.getValue();
+        return result != null && result.isLoading();
+    }
+
+    public void clearThemeState() {
+        themeState.setValue(null);
+    }
+
+    public void clearThemeUpdateState() {
+        themeUpdateState.setValue(null);
+    }
+
+    @Override
+    protected void onCleared() {
+        detachThemeSource();
+        detachThemeUpdateSource();
+        super.onCleared();
+    }
+
+    private void detachThemeSource() {
+        if (themeSource != null && themeObserver != null) {
+            themeSource.removeObserver(themeObserver);
+        }
+        themeSource = null;
+        themeObserver = null;
+    }
+
+    private void detachThemeUpdateSource() {
+        if (themeUpdateSource != null && themeUpdateObserver != null) {
+            themeUpdateSource.removeObserver(themeUpdateObserver);
+        }
+        themeUpdateSource = null;
+        themeUpdateObserver = null;
     }
 }

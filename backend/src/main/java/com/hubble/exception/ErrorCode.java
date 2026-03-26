@@ -39,6 +39,7 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server khong ton tai", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kenh khong ton tai", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link moi khong hop le hoac da het han", HttpStatus.BAD_REQUEST),
+    INVALID_THEME(3004, "Theme khong hop le", HttpStatus.BAD_REQUEST),
 
     NOT_FOUND(4001, "Tai nguyen khong ton tai", HttpStatus.NOT_FOUND),
     INVALID_FILE(4002, "File khong hop le", HttpStatus.BAD_REQUEST),

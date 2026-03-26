@@ -155,6 +155,17 @@ public interface ApiService {
             @Body PushConfigRequest request
     );
 
+    @PUT("api/settings/theme")
+    Call<ApiResponse<String>> updateTheme(
+            @Header("Authorization") String token,
+            @Query("theme") String theme
+    );
+
+    @GET("api/settings/theme")
+    Call<ApiResponse<String>> getTheme(
+            @Header("Authorization") String token
+    );
+
     @PUT("api/users/me")
     Call<ApiResponse<UserResponse>> updateProfile(
             @Header("Authorization") String token,

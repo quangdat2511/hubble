@@ -40,9 +40,10 @@ nb-configuration.xml
 # ==================== MAVEN ====================
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
+/.m2/
+backend/.m2/
 
 # ==================== SECRETS & CONFIG ====================
-# Không commit file chứa thông tin nhạy cảm
 application-local.yml
 application-local.properties
 application-prod.yml
@@ -51,6 +52,7 @@ application-prod.properties
 .env
 .env.*
 !.env.example
+
 # macOS
 .DS_Store
 .AppleDouble
@@ -74,4 +76,12 @@ $RECYCLE.BIN/
 *.orig
 
 # ==================== LOCAL BUILD CACHE ====================
-backend/.m2/
+/.gradle-user/
+/.android-user/
+android/.android-home/
+android/.gradle/
+android/.gradle-dist/
+android/.gradle-home/
+android/.gradle-wrapper-extract/
+android/build/
+android/gradle-*.zip

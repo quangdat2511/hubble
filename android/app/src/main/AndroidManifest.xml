@@ -22,7 +22,6 @@
             android:theme="@style/Theme.Hubble.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -62,10 +61,8 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data
                     android:host="friend-qr"
                     android:scheme="hubble" />
@@ -94,6 +91,11 @@
 
         <activity
             android:name=".view.settings.PushConfigSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.settings.ThemeSettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

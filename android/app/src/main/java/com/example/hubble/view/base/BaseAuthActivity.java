@@ -1,6 +1,7 @@
 package com.example.hubble.view.base;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,6 +9,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.hubble.R;
 import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.view.MainActivity;
 import com.example.hubble.view.auth.LoginActivity;
 import com.google.android.material.snackbar.Snackbar;
@@ -20,6 +22,12 @@ public abstract class BaseAuthActivity extends AppCompatActivity {
 
     protected abstract View getRootView();
     protected abstract View getProgressBar();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyStoredTheme(this);
+        super.onCreate(savedInstanceState);
+    }
 
     // ─── Navigation ──────────────────────────────────────────────
 
