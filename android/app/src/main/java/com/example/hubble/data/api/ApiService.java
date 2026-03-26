@@ -19,6 +19,7 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
 
 import okhttp3.MultipartBody;
@@ -82,37 +83,37 @@ public interface ApiService {
 
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
-        @Header("Authorization") String token
+            @Header("Authorization") String token
     );
 
     @GET("api/contacts/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
-        @Header("Authorization") String token
+            @Header("Authorization") String token
     );
 
     @GET("api/channels/dm")
     Call<java.util.List<ChannelDto>> getDirectChannels(
-        @Header("Authorization") String token
+            @Header("Authorization") String token
     );
 
     @POST("api/channels/dm/{otherUserId}")
     Call<ChannelDto> getOrCreateDirectChannel(
-        @Header("Authorization") String token,
-        @Path("otherUserId") String otherUserId
+            @Header("Authorization") String token,
+            @Path("otherUserId") String otherUserId
     );
 
     @GET("api/messages/{channelId}")
     Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
-        @Header("Authorization") String token,
-        @Path("channelId") String channelId,
-        @Query("page") int page,
-        @Query("size") int size
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("page") int page,
+            @Query("size") int size
     );
 
     @POST("api/messages")
     Call<ApiResponse<MessageDto>> sendMessage(
-        @Header("Authorization") String token,
-        @Body CreateMessageRequest request
+            @Header("Authorization") String token,
+            @Body CreateMessageRequest request
     );
 
     @PUT("api/users/me")
@@ -124,5 +125,23 @@ public interface ApiService {
     @GET("api/users/me")
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
+    );
+
+    @Multipart
+    @POST("api/users/me/avatar")
+    Call<ApiResponse<UserResponse>> uploadMyAvatar(
+            @Header("Authorization") String token,
+            @Part MultipartBody.Part file
+    );
+
+    @GET("api/users/me/avatar")
+    Call<ApiResponse<AvatarResponse>> getMyAvatar(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/{userId}/avatar")
+    Call<ApiResponse<AvatarResponse>> getUserAvatar(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
     );
 }

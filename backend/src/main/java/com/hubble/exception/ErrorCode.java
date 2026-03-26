@@ -18,6 +18,7 @@ public enum ErrorCode {
     PASSWORD_INVALID(1005, "Mật khẩu phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1006, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
     CANNOT_DM_SELF(1007, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
+
     // Xác thực
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
@@ -41,6 +42,12 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+
+    // File / Avatar
+    INVALID_FILE(4002, "File không hợp lệ", HttpStatus.BAD_REQUEST),
+    UNSUPPORTED_FILE_TYPE(4003, "File không được hỗ trợ", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(4004, "File quá lớn", HttpStatus.BAD_REQUEST),
+    AVATAR_NOT_FOUND(4005, "Avatar không tồn tại", HttpStatus.NOT_FOUND),
 
     // Tin nhắn
     MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),

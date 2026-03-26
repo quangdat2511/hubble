@@ -53,6 +53,7 @@ android {
 
 dependencies {
     val lifecycle_version = "2.8.7"
+    implementation("com.github.yalantis:ucrop:2.2.11")
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-runtime:${lifecycle_version}")

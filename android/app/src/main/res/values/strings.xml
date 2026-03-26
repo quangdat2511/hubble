@@ -106,8 +106,15 @@
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="me_avatar_hint">Chọn ảnh, cắt vuông và cập nhật ảnh đại diện</string>
+    <string name="me_avatar_uploading">Đang tải ảnh đại diện...</string>
+    <string name="me_avatar_error_read">Không thể đọc ảnh được chọn</string>
+    <string name="me_avatar_error_upload">Tải ảnh đại diện thất bại</string>
+    <string name="me_avatar_updated">Đã cập nhật ảnh đại diện</string>
+    <string name="me_avatar_picker_title">Chọn ảnh đại diện</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
+    <string name="cd_edit_avatar">Chỉnh ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>
 
     <!-- Settings screen -->
@@ -198,4 +205,12 @@
     <string name="cd_close">Close</string>
     <string name="cd_emoji_picker">Emoji picker</string>
     <string name="emoji_search_hint">Find the perfect emoji</string>
+    <string name="me_avatar_hint">Chọn ảnh, cắt vuông và cập nhật ảnh đại diện</string>
+    <string name="me_avatar_uploading">Đang tải ảnh đại diện...</string>
+    <string name="me_avatar_error_read">Không thể đọc ảnh được chọn</string>
+    <string name="me_avatar_error_upload">Tải ảnh đại diện thất bại</string>
+    <string name="me_avatar_updated">Đã cập nhật ảnh đại diện</string>
+    <string name="me_avatar_picker_title">Chọn ảnh đại diện</string>
+    <string name="cd_user_avatar">Ảnh đại diện</string>
+    <string name="cd_edit_avatar">Chỉnh ảnh đại diện</string>
 </resources>

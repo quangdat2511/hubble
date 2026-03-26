@@ -5,7 +5,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.api.ApiService;
-import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
@@ -35,9 +34,7 @@ public class AuthViewModel extends ViewModel {
 
     public AuthViewModel(AuthRepository repository) {
         this.repository = repository;
-        // In a more robust architecture, repository should provide the apiService or handle profile updates.
-        // For simplicity based on your current setup:
-        this.apiService = RetrofitClient.getApiService(null); 
+        this.apiService = repository.getApiService();
     }
 
     public UserResponse getCurrentUser() {
@@ -45,7 +42,6 @@ public class AuthViewModel extends ViewModel {
     }
     
     public String getToken() {
-        // You'll need to add a method to AuthRepository to expose the token from TokenManager
         return repository.getAccessToken();
     }
 
