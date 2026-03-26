@@ -162,8 +162,8 @@ public class PushConfigFragment extends Fragment {
         updatePushSoundAvailability(binding.switchPushEnabled.isChecked());
     }
 
-    private SettingsActivity requireSettingsActivity() {
-        return (SettingsActivity) requireActivity();
+    private PushConfigSettingsActivity requireSettingsActivity() {
+        return (PushConfigSettingsActivity) requireActivity();
     }
 
     @Override

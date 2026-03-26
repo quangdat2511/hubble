@@ -2,6 +2,7 @@ package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateServerRequest;
+import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.service.ServerService;
 import lombok.AccessLevel;
@@ -42,14 +43,13 @@ public class ServerController {
                 .build());
     }
 
-    @GetMapping("/{serverId}")
-    public ResponseEntity<ApiResponse<ServerResponse>> getServer(
+    @GetMapping("/{serverId}/channels")
+    public ResponseEntity<ApiResponse<List<ChannelResponse>>> getServerChannels(
             @PathVariable UUID serverId,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
-        ServerResponse serverResponse = serverService.getServer(serverId);
-        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
-                .result(serverResponse)
+        List<ChannelResponse> channels = serverService.getServerChannels(serverId);
+        return ResponseEntity.ok(ApiResponse.<List<ChannelResponse>>builder()
+                .result(channels)
                 .build());
     }
 }

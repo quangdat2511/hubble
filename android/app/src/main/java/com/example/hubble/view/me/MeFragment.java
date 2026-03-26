@@ -1,7 +1,8 @@
 package com.example.hubble.view.me;
 
 import android.content.Intent;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,7 +10,6 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -17,18 +17,22 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.utils.ImageSaveHelper;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MeFragment extends Fragment {
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+public class MeFragment extends Fragment implements AvatarFragment.AvatarListener {
 
     private FragmentMeBinding binding;
-    private AuthViewModel authViewModel;
+    private AuthViewModel vm;
 
     @Nullable
     @Override
@@ -43,89 +47,100 @@ public class MeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        authViewModel = new ViewModelProvider(requireActivity(),
-                new AuthViewModelFactory(new AuthRepository(requireContext())))
-                .get(AuthViewModel.class);
+        vm = new ViewModelProvider(
+                requireActivity(),
+                new AuthViewModelFactory(new AuthRepository(requireContext()))
+        ).get(AuthViewModel.class);
 
-        populateUserInfo(authViewModel.getCurrentUser());
-        setupActions(view);
+        populateUserInfo(vm.getCurrentUser());
+
+        binding.btnSettings.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), SettingsActivity.class)));
+        binding.btnLogout.setOnClickListener(v -> logout());
+        binding.btnScanQr.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), ScanQrActivity.class)));
+        binding.btnSaveQr.setOnClickListener(v -> saveQrAsPng());
+
+        if (savedInstanceState == null) {
+            getChildFragmentManager()
+                    .beginTransaction()
+                    .setReorderingAllowed(true)
+                    .replace(binding.avatarFragmentContainer.getId(), new AvatarFragment())
+                    .replace(binding.profileFragmentContainer.getId(), new UserProfileFragment())
+                    .replace(binding.qrFragmentContainer.getId(), ProfileQrFragment.newEmbeddedInstance())
+                    .commit();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        populateUserInfo(new TokenManager(requireContext()).getUser());
     }
 
     private void populateUserInfo(@Nullable UserResponse user) {
-        String displayName = user != null && user.getDisplayName() != null
-                ? user.getDisplayName() : "User";
-        String email = user != null && user.getEmail() != null
-                ? user.getEmail() : "";
+        if (binding == null || user == null) {
+            return;
+        }
 
-        binding.tvDisplayName.setText(displayName);
-        binding.tvUsername.setText(email);
-
-        String initials = displayName.isEmpty() ? "U"
-                : String.valueOf(displayName.charAt(0)).toUpperCase();
-
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
-        binding.ivAvatar.setImageDrawable(null);
-        binding.ivAvatar.setBackground(bg);
-        binding.ivAvatar.setShapeAppearanceModel(
-                ShapeAppearanceModel.builder().setAllCornerSizes(999f).build());
-
-        binding.tvAvatarInitials.setText(initials);
-        binding.tvJoinedDate.setText(getString(R.string.app_name));
+        String title = user.getDisplayName();
+        if (title == null || title.trim().isEmpty()) {
+            title = user.getUsername();
+        }
+        binding.tvUsername.setText(title == null ? "" : title);
     }
 
-    private void setupActions(View view) {
-        binding.btnSettings.setOnClickListener(v -> openSettings());
-        binding.btnOpenSettings.setOnClickListener(v -> openSettings());
-        binding.btnLogout.setOnClickListener(v -> confirmLogout());
-
-        binding.btnAddStatus.setOnClickListener(v ->
-                Snackbar.make(view,
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
-        binding.btnEditProfile.setOnClickListener(v ->
-                Snackbar.make(view,
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
-        binding.cardFriends.setOnClickListener(v ->
-                Snackbar.make(view,
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
-        binding.cardNotes.setOnClickListener(v ->
-                Snackbar.make(view,
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
+    @Override
+    public void onAvatarUpdated(@NonNull UserResponse updatedUser) {
+        populateUserInfo(updatedUser);
     }
 
-    private void openSettings() {
-        startActivity(new Intent(requireContext(), SettingsActivity.class));
+    private void saveQrAsPng() {
+        ProfileQrFragment qrFragment = getQrFragment();
+        Bitmap bitmap = qrFragment != null ? qrFragment.getCurrentQrBitmap() : null;
+        if (bitmap == null) {
+            Snackbar.make(binding.getRoot(), R.string.me_qr_save_unavailable, Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String fileName = "hubble_qr_" + timestamp + ".png";
+
+        try {
+            Uri savedUri = ImageSaveHelper.saveBitmapAsPng(requireContext(), bitmap, fileName);
+            Snackbar.make(
+                    binding.getRoot(),
+                    getString(R.string.me_qr_saved, savedUri.toString()),
+                    Snackbar.LENGTH_LONG
+            ).show();
+        } catch (Exception e) {
+            Snackbar.make(binding.getRoot(), R.string.me_qr_save_failed, Snackbar.LENGTH_LONG).show();
+        }
     }
 
-    private void confirmLogout() {
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(getString(R.string.settings_logout_confirm_title))
-                .setMessage(getString(R.string.settings_logout_confirm_message))
-                .setNegativeButton(getString(R.string.settings_logout_confirm_no),
-                        (dialog, which) -> dialog.dismiss())
-                .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
-                        (dialog, which) -> {
-                            authViewModel.logout();
-                            navigateToLogin();
-                        })
-                .show();
-    }
-
-    private void navigateToLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        requireActivity().finish();
+    @Nullable
+    private ProfileQrFragment getQrFragment() {
+        Fragment fragment = getChildFragmentManager().findFragmentById(binding.qrFragmentContainer.getId());
+        if (fragment instanceof ProfileQrFragment) {
+            return (ProfileQrFragment) fragment;
+        }
+        return null;
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    private void logout() {
+        TokenManager tokenManager = new TokenManager(requireContext());
+        tokenManager.clear();
+
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+
+        requireActivity().finish();
     }
 }

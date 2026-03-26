@@ -1,30 +1,26 @@
 package com.example.hubble.view.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
-import androidx.annotation.StringRes;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
-import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
-import com.example.hubble.viewmodel.SettingsViewModel;
-import com.example.hubble.viewmodel.SettingsViewModelFactory;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 
 public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
-    private SettingsViewModel viewModel;
+    private AuthRepository authRepository;
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
 
     @Override
-    protected View getProgressBar() { return binding.settingsLoadingIndicator; }
+    protected View getProgressBar() { return binding.getRoot(); }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,49 +28,48 @@ public class SettingsActivity extends BaseAuthActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this,
-                new SettingsViewModelFactory(
-                        new AuthRepository(this),
-                        new PushConfigRepository(this)))
-                .get(SettingsViewModel.class);
+        authRepository = new AuthRepository(this);
 
         setupToolbar();
-
-        if (savedInstanceState == null) {
-            navigateTo(new PushConfigFragment(), false);
-        }
+        setupRows();
+        setupLogout();
     }
 
     private void setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener(v -> {
-            if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                getSupportFragmentManager().popBackStack();
-            } else {
-                finish();
-            }
-        });
+        binding.toolbar.setNavigationOnClickListener(v -> finish());
     }
 
-    public void navigateTo(Fragment fragment, boolean addToBackStack) {
-        var transaction = getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragmentContainer, fragment);
-        if (addToBackStack) {
-            transaction.addToBackStack(null);
-        }
-        transaction.commit();
+    private void setupRows() {
+        View.OnClickListener comingSoon = v ->
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.main_coming_soon),
+                        Snackbar.LENGTH_SHORT).show();
+
+        binding.rowLanguage.setOnClickListener(comingSoon);
+        binding.rowNotifications.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, PushConfigSettingsActivity.class)));
+        binding.rowAppearance.setOnClickListener(comingSoon);
+
+        // Mở màn hình quản lý thiết bị/phiên đăng nhập
+        binding.rowAdvanced.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
+
+        binding.rowSupport.setOnClickListener(comingSoon);
+        binding.rowChangelog.setOnClickListener(comingSoon);
     }
 
-    public void updateTitle(@StringRes int titleRes) {
-        binding.toolbar.setTitle(titleRes);
-    }
-
-    public void setScreenLoading(boolean isLoading) {
-        setLoadingState(isLoading);
-    }
-
-    public void logoutAndNavigateToLogin() {
-        viewModel.logout();
-        navigateToLogin();
+    private void setupLogout() {
+        binding.cardLogout.setOnClickListener(v ->
+                new MaterialAlertDialogBuilder(this)
+                        .setTitle(getString(R.string.settings_logout_confirm_title))
+                        .setMessage(getString(R.string.settings_logout_confirm_message))
+                        .setNegativeButton(getString(R.string.settings_logout_confirm_no),
+                                (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
+                                (dialog, which) -> {
+                                    authRepository.logout();
+                                    navigateToLogin();
+                                })
+                        .show());
     }
 }
