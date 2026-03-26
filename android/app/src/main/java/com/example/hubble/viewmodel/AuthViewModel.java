@@ -40,7 +40,7 @@ public class AuthViewModel extends ViewModel {
     public UserResponse getCurrentUser() {
         return repository.getCurrentUser();
     }
-    
+
     public String getToken() {
         return repository.getAccessToken();
     }

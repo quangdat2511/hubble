@@ -21,6 +21,8 @@ import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.PushConfigRequest;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 
 import okhttp3.MultipartBody;
 import retrofit2.Call;
@@ -140,6 +142,17 @@ public interface ApiService {
     @GET("api/settings/language")
     Call<ApiResponse<String>> getLanguage(
             @Header("Authorization") String token
+    );
+
+    @GET("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> getPushConfig(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> updatePushConfig(
+            @Header("Authorization") String token,
+            @Body PushConfigRequest request
     );
 
     @PUT("api/users/me")

@@ -47,10 +47,10 @@ public class SettingsActivity extends BaseAuthActivity {
 
         binding.rowLanguage.setOnClickListener(v ->
                 startActivity(new Intent(SettingsActivity.this, LanguageSettingsActivity.class)));
-        binding.rowNotifications.setOnClickListener(comingSoon);
+        binding.rowNotifications.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, PushConfigSettingsActivity.class)));
         binding.rowAppearance.setOnClickListener(comingSoon);
 
-        // Mở màn hình quản lý thiết bị/phiên đăng nhập
         binding.rowAdvanced.setOnClickListener(v ->
                 startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
 

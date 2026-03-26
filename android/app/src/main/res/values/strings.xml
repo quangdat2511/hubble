@@ -124,6 +124,13 @@
     <string name="settings_section_info">Có Gì Mới</string>
     <string name="settings_language">Ngôn ngữ</string>
     <string name="settings_notifications">Các Thông Báo</string>
+    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
+    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
+    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
+    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
+    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
+    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
+    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
     <string name="settings_appearance">Giao diện</string>
     <string name="settings_advanced">Nâng cao</string>
     <string name="settings_sessions">Quản lý thiết bị và Phiên</string>

@@ -1,5 +1,6 @@
 package com.example.hubble.view;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,9 +10,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.example.hubble.R;
 import com.example.hubble.databinding.FragmentNotificationsBinding;
-import com.google.android.material.snackbar.Snackbar;
+import com.example.hubble.view.settings.SettingsActivity;
 
 public class NotificationsFragment extends Fragment {
 
@@ -30,8 +30,7 @@ public class NotificationsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         binding.btnNotificationsMore.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
+                startActivity(new Intent(requireContext(), SettingsActivity.class)));
     }
 
     @Override
