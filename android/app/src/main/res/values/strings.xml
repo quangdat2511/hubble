@@ -91,6 +91,18 @@
     <string name="me_title">Bạn</string>
     <string name="me_add_status">Thêm trạng thái</string>
     <string name="me_edit_profile">Sửa Hồ Sơ</string>
+    <string name="me_save_profile">Lưu hồ sơ</string>
+    <string name="me_display_name">Tên hiển thị</string>
+    <string name="me_phone">Số điện thoại</string>
+    <string name="me_bio">Tiểu sử</string>
+    <string name="me_status">Trạng thái</string>
+    <string-array name="status_options">
+        <item>ONLINE</item>
+        <item>IDLE</item>
+        <item>OFFLINE</item>
+        <item>DND</item>
+    </string-array>
+
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>

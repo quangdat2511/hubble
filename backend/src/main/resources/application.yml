@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}
+  port: 8080
 
 spring:
   datasource:
@@ -16,7 +16,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
 
   servlet:
     multipart:

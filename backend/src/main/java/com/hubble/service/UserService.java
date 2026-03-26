@@ -1,5 +1,7 @@
 package com.hubble.service;
 
+import com.hubble.dto.request.UpdateCustomStatusRequest;
+import com.hubble.dto.request.UpdateProfileRequest;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
 import com.hubble.exception.AppException;
@@ -10,7 +12,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -36,5 +41,31 @@ public class UserService {
     public User findById(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    }
+
+
+    public UserResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setDisplayName(request.getDisplayName());
+        user.setPhone(request.getPhone());
+        user.setBio(request.getBio());
+        user.setStatus(request.getStatus());
+
+        userRepository.save(user);
+
+        return userMapper.toUserResponse(user);
+    }
+
+    public UserResponse updateCustomStatus(UUID userId, UpdateCustomStatusRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setCustomStatus(request.getCustomStatus());
+
+        userRepository.save(user);
+
+        return userMapper.toUserResponse(user);
     }
 }
