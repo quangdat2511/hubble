@@ -72,3 +72,6 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.orig
+
+# ==================== LOCAL BUILD CACHE ====================
+backend/.m2/

@@ -4,21 +4,17 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
-import com.example.hubble.viewmodel.SettingsViewModel;
-import com.example.hubble.viewmodel.SettingsViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
-    private SettingsViewModel viewModel;
+    private AuthRepository authRepository;
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -32,9 +28,7 @@ public class SettingsActivity extends BaseAuthActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this,
-                new SettingsViewModelFactory(new AuthRepository(this)))
-                .get(SettingsViewModel.class);
+        authRepository = new AuthRepository(this);
 
         setupToolbar();
         setupRows();
@@ -51,7 +45,8 @@ public class SettingsActivity extends BaseAuthActivity {
                         getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show();
 
-        binding.rowLanguage.setOnClickListener(comingSoon);
+        binding.rowLanguage.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, LanguageSettingsActivity.class)));
         binding.rowNotifications.setOnClickListener(comingSoon);
         binding.rowAppearance.setOnClickListener(comingSoon);
 
@@ -72,7 +67,7 @@ public class SettingsActivity extends BaseAuthActivity {
                                 (dialog, which) -> dialog.dismiss())
                         .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
                                 (dialog, which) -> {
-                                    viewModel.logout();
+                                    authRepository.logout();
                                     navigateToLogin();
                                 })
                         .show());

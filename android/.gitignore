@@ -1,5 +1,10 @@
 *.iml
 .gradle
+/.gradle-home/
+/.gradle-user/
+/.gradle-wrapper-extract/
+/.home/
+/gradle-9.2.1-bin.zip
 /local.properties
 /.idea/caches
 /.idea/libraries

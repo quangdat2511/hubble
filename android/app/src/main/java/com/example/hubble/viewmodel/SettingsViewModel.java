@@ -1,18 +1,32 @@
 package com.example.hubble.viewmodel;
 
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.SettingsRepository;
 
 public class SettingsViewModel extends ViewModel {
 
-    private final AuthRepository repository;
+    public interface SettingsUpdateCallback {
+        void onSuccess();
+        void onError(String message);
+    }
 
-    public SettingsViewModel(AuthRepository repository) {
+    private final SettingsRepository repository;
+
+    public SettingsViewModel(SettingsRepository repository) {
         this.repository = repository;
     }
 
-    public void logout() {
-        repository.logout();
+    public LiveData<String> getLanguage(String authHeader) {
+        return repository.getLanguage(authHeader);
+    }
+
+    public void updateLanguage(String authHeader, String locale) {
+        repository.updateLanguage(authHeader, locale, null);
+    }
+
+    public void updateLanguage(String authHeader, String locale, SettingsUpdateCallback callback) {
+        repository.updateLanguage(authHeader, locale, callback);
     }
 }

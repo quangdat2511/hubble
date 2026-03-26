@@ -87,6 +87,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.settings.LanguageSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
         android:name=".view.settings.SessionManagementActivity"
         android:exported="false" />
 

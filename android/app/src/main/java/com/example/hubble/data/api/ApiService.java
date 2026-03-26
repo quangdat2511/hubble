@@ -131,6 +131,17 @@ public interface ApiService {
             @Body CreateMessageRequest request
     );
 
+    @PUT("api/settings/language")
+    Call<ApiResponse<String>> updateLanguage(
+            @Header("Authorization") String token,
+            @Query("locale") String language
+    );
+
+    @GET("api/settings/language")
+    Call<ApiResponse<String>> getLanguage(
+            @Header("Authorization") String token
+    );
+
     @PUT("api/users/me")
     Call<ApiResponse<UserResponse>> updateProfile(
             @Header("Authorization") String token,

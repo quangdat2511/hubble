@@ -27,6 +27,7 @@ public enum ErrorCode {
     GOOGLE_AUTH_FAILED(1014, "Xac thuc Google that bai", HttpStatus.UNAUTHORIZED),
     REFRESH_TOKEN_INVALID(1015, "Refresh token khong hop le hoac da het han", HttpStatus.UNAUTHORIZED),
     PASSWORDS_NOT_MATCH(1016, "Mat khau xac nhan khong khop", HttpStatus.BAD_REQUEST),
+    LOCALE_INVALID(1017, "Ngon ngu khong hop le", HttpStatus.BAD_REQUEST),
 
     FRIEND_REQUEST_EXISTED(2001, "Loi moi ket ban da ton tai", HttpStatus.BAD_REQUEST),
     FRIEND_REQUEST_NOT_FOUND(2002, "Loi moi ket ban khong ton tai", HttpStatus.NOT_FOUND),
