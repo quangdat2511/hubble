@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -50,6 +51,27 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.me.ScanQrActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".view.me.QrScanResultActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="friend-qr"
+                    android:scheme="hubble" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".view.dm.DmChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
@@ -65,9 +87,24 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.settings.LanguageSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+        android:name=".view.settings.SessionManagementActivity"
+        android:exported="false" />
+
+        <activity
             android:name=".view.server.CreateServerActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Hubble" />
 
     </application>
 

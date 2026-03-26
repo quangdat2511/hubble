@@ -4,9 +4,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="?android:attr/colorBackground"
+    android:fitsSystemWindows="true">
 
-    <!-- Top bar with settings gear -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
@@ -16,13 +16,23 @@
         app:elevation="0dp">
 
         <LinearLayout
-            android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/toolbar_height"
             android:gravity="end|center_vertical"
             android:orientation="horizontal"
-            android:paddingTop="12dp"
+            android:paddingStart="@dimen/spacing_sm"
             android:paddingEnd="@dimen/spacing_sm">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/settings_logout"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_logout"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSettings"
@@ -30,19 +40,16 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:contentDescription="@string/cd_settings"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
                 app:icon="@drawable/ic_settings"
                 app:iconTint="?attr/colorOnSurfaceVariant" />
-
         </LinearLayout>
-
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Scrollable content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="@dimen/spacing_md"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -51,189 +58,62 @@
             android:orientation="vertical"
             android:padding="@dimen/spacing_md">
 
-            <!-- Avatar + online dot -->
             <FrameLayout
+                android:id="@+id/avatarFragmentContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_md">
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/spacing_md" />
 
-                <com.google.android.material.imageview.ShapeableImageView
-                    android:id="@+id/ivAvatar"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:contentDescription="@string/cd_user_avatar"
-                    android:scaleType="centerCrop"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
-
-                <!-- Initials overlay -->
-                <TextView
-                    android:id="@+id/tvAvatarInitials"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:gravity="center"
-                    android:importantForAccessibility="no"
-                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-
-                <!-- Online status dot -->
-                <View
-                    android:id="@+id/viewOnlineStatus"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_gravity="bottom|end"
-                    android:layout_margin="@dimen/spacing_xs"
-                    android:background="@drawable/bg_online_status_dot"
-                    android:contentDescription="@string/cd_online_status" />
-
-            </FrameLayout>
-
-            <!-- "Add status" chip -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAddStatus"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_md"
-                android:text="@string/me_add_status"
-                app:icon="@drawable/ic_add"
-                app:iconTint="?attr/colorOnSurface" />
-
-            <!-- Display name -->
-            <TextView
-                android:id="@+id/tvDisplayName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                android:textColor="?attr/colorOnSurface"
-                android:textStyle="bold" />
-
-            <!-- Email / username -->
             <TextView
                 android:id="@+id/tvUsername"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="@dimen/spacing_md"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
 
-            <!-- Edit profile button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEditProfile"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="@dimen/spacing_md"
-                android:text="@string/me_edit_profile"
-                app:cornerRadius="26dp"
-                app:icon="@drawable/ic_edit"
-                app:iconTint="@color/white" />
-
-            <!-- Info card: Joined since -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_sm"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/spacing_md">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/me_joined_since"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <TextView
-                        android:id="@+id/tvJoinedDate"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurface" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Friends row -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardFriends"
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_sm"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="56dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_friends"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_expand_more"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Notes row -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardNotes"
-                style="@style/Widget.Material3.CardView.Filled"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_md"
-                app:cardCornerRadius="12dp">
+                android:orientation="horizontal">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="56dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScanQr"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_marginEnd="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:text="@string/me_qr_scan_button"
+                    app:cornerRadius="26dp"
+                    app:icon="@drawable/ic_camera"
+                    app:iconTint="@color/white" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_notes"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveQr"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="@string/me_qr_save_png"
+                    app:cornerRadius="26dp"
+                    app:icon="@drawable/ic_done" />
+            </LinearLayout>
 
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_edit"
-                        app:tint="?attr/colorOnSurfaceVariant" />
+            <FrameLayout
+                android:id="@+id/profileFragmentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
+            <FrameLayout
+                android:id="@+id/qrFragmentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md" />
 
         </LinearLayout>
 
