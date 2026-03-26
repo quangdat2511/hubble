@@ -9,16 +9,22 @@ import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.UserMapper;
 import com.hubble.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,6 +42,7 @@ public class UserService {
 
     static final String AVATAR_URL_PREFIX = "/uploads/avatars/";
     static final long MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    static final String QR_SECRET = "zrsOcuJF0vzlwiCePOFSzQ3yijl2tbQIabcefdfsPHe6wZA9dfVZvxZA6UruGfMKYLr3RM9q";
 
     static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg",
@@ -142,6 +149,38 @@ public class UserService {
                 .fileName(fileName)
                 .contentType(contentType)
                 .build();
+    }
+
+    public String generateQrToken(UUID userId) {
+        SecretKey key = Keys.hmacShaKeyFor(QR_SECRET.getBytes(StandardCharsets.UTF_8));
+
+        return Jwts.builder()
+                .subject(userId.toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .signWith(key)
+                .compact();
+    }
+
+    public UUID parseQrToken(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(QR_SECRET.getBytes(StandardCharsets.UTF_8));
+
+            String userId = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException | JwtException e) {
+            throw new AppException(ErrorCode.QR_TOKEN_INVALID);
+        }
+    }
+
+    public UserResponse getUserFromQr(String token) {
+        return userMapper.toUserResponse(findById(parseQrToken(token)));
     }
 
     private void validateAvatarFile(MultipartFile file) {

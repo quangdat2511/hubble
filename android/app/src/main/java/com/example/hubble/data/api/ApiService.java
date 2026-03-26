@@ -81,6 +81,21 @@ public interface ApiService {
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
 
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
+
+    @POST("api/friends/requests/{userId}")
+    Call<ApiResponse<Object>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token

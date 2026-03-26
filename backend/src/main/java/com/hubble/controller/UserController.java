@@ -106,4 +106,25 @@ public class UserController {
                         .build()
         );
     }
+
+    @GetMapping("/me/qr")
+    public ResponseEntity<ApiResponse<String>> getMyQr(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        String token = userService.generateQrToken(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .result(token)
+                        .build()
+        );
+    }
+
+    @GetMapping("/scan/qr")
+    public ResponseEntity<ApiResponse<UserResponse>> scan(@RequestParam String token) {
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .result(userService.getUserFromQr(token))
+                        .build()
+        );
+    }
 }
