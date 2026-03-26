@@ -182,4 +182,8 @@
     <string name="language_switch_label">Vietnamese</string>
     <string name="language_current_en">Current: English</string>
     <string name="language_current_vi">Current: Vietnamese</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="language_status_label">Choose the display language for the app.</string>
+    <string name="language_option_en">English</string>
+    <string name="language_option_vi">Tiếng Việt</string>
 </resources>

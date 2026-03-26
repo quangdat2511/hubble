@@ -190,4 +190,7 @@
     <string name="language_current_en">Hiện tại: Tiếng Anh</string>
     <string name="language_current_vi">Hiện tại: Tiếng Việt</string>
     <string name="settings_saved">Đã lưu cài đặt</string>
+    <string name="language_status_label">Chọn ngôn ngữ hiển thị cho ứng dụng.</string>
+    <string name="language_option_en">English</string>
+    <string name="language_option_vi">Tiếng Việt</string>
 </resources>
