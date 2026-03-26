@@ -196,7 +196,7 @@
 
     <!-- Direct message MVP -->
     <string name="dm_title">Messages</string>
-    <string name="dm_add_friend">Add Friends</string>
+    <string name="dm_add_friend">Thêm bạn bè</string>
     <string name="dm_new_message">Tin nhắn mới</string>
     <string name="dm_default_user">Danzg</string>
     <string name="dm_me">Bạn</string>

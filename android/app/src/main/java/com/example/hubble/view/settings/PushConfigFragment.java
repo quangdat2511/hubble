@@ -41,12 +41,6 @@ public class PushConfigFragment extends Fragment {
         setupPushConfig();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        requireSettingsActivity().updateTitle(R.string.settings_notifications);
-    }
-
     private void setupPushConfig() {
         binding.rowPushEnabled.setOnClickListener(v -> {
             if (!isPushConfigBusy) {
@@ -162,8 +156,8 @@ public class PushConfigFragment extends Fragment {
         updatePushSoundAvailability(binding.switchPushEnabled.isChecked());
     }
 
-    private PushConfigSettingsActivity requireSettingsActivity() {
-        return (PushConfigSettingsActivity) requireActivity();
+    private SettingsActivity requireSettingsActivity() {
+        return (SettingsActivity) requireActivity();
     }
 
     @Override

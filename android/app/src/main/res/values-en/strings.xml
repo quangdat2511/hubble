@@ -88,11 +88,29 @@
     <string name="me_title">You</string>
     <string name="me_add_status">Add status</string>
     <string name="me_edit_profile">Edit Profile</string>
+    <string name="me_save_profile">Save Profile</string>
+    <string name="me_display_name">Display name</string>
+    <string name="me_phone">Phone number</string>
+    <string name="me_bio">Bio</string>
+    <string name="me_status">Status</string>
+    <string-array name="status_options">
+        <item>ONLINE</item>
+        <item>IDLE</item>
+        <item>OFFLINE</item>
+        <item>DND</item>
+    </string-array>
     <string name="me_joined_since">Joined Since</string>
     <string name="me_friends">Friends</string>
     <string name="me_notes">Notes (only visible to you)</string>
+    <string name="me_avatar_hint">Choose an image, crop it to a square, and update your avatar</string>
+    <string name="me_avatar_uploading">Uploading avatar...</string>
+    <string name="me_avatar_error_read">Could not read the selected image</string>
+    <string name="me_avatar_error_upload">Failed to upload avatar</string>
+    <string name="me_avatar_updated">Avatar updated</string>
+    <string name="me_avatar_picker_title">Choose avatar</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_user_avatar">User avatar</string>
+    <string name="cd_edit_avatar">Edit avatar</string>
     <string name="cd_online_status">Online</string>
 
     <string name="settings_title">Settings</string>
@@ -101,8 +119,19 @@
     <string name="settings_section_info">What’s New</string>
     <string name="settings_language">Language</string>
     <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_summary">Manage push notifications on this device</string>
+    <string name="settings_notifications_enable_title">Enable push notifications</string>
+    <string name="settings_notifications_enable_summary">Get alerts for new messages and activity</string>
+    <string name="settings_notifications_sound_title">Notification sound</string>
+    <string name="settings_notifications_sound_summary">Play a sound when a new notification arrives</string>
+    <string name="settings_notifications_sound_disabled_summary">Enable push notifications to use this option</string>
+    <string name="settings_notifications_saved">Notification settings updated</string>
     <string name="settings_appearance">Appearance</string>
+    <string name="theme_settings_title">Appearance</string>
+    <string name="theme_mode_label">Choose how the app looks.</string>
+    <string name="theme_dark_mode_label">Dark mode</string>
     <string name="settings_advanced">Advanced</string>
+    <string name="settings_sessions">Device and session management</string>
     <string name="settings_support">Support</string>
     <string name="settings_changelog">What’s New</string>
     <string name="settings_logout">Log Out</string>
@@ -177,6 +206,29 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">You don’t have any friends to message yet.</string>
     <string name="cd_close">Close</string>
+    <string name="cd_emoji_picker">Emoji picker</string>
+    <string name="emoji_search_hint">Find the perfect emoji</string>
+
+    <string name="me_qr_title">Profile QR</string>
+    <string name="me_qr_hint">Others can scan this code to open your profile and send a friend request.</string>
+    <string name="me_qr_view_full">Open full-screen QR</string>
+    <string name="me_qr_unavailable">Unable to generate a QR code right now.</string>
+    <string name="me_qr_toolbar_title">Your QR</string>
+    <string name="me_qr_opening_hint">Share this QR so others can scan it and add you faster.</string>
+    <string name="me_qr_scan_title">Scanned profile</string>
+    <string name="me_qr_add_friend">Send friend request</string>
+    <string name="me_qr_request_sent">Friend request sent.</string>
+    <string name="me_qr_loading">Loading profile from QR...</string>
+    <string name="me_qr_invalid">QR code is invalid or has expired.</string>
+    <string name="me_qr_empty">No QR data was received.</string>
+    <string name="me_qr_you">This is you</string>
+    <string name="me_qr_save_png">Save QR as PNG</string>
+    <string name="me_qr_saved">QR code saved: %1$s</string>
+    <string name="me_qr_save_failed">Could not save the QR code.</string>
+    <string name="me_qr_save_unavailable">QR code is not ready to save yet.</string>
+    <string name="me_qr_scan_button">Scan QR</string>
+    <string name="me_qr_scan_hint">Place a QR code inside the frame to open a profile and send a friend request.</string>
+    <string name="me_qr_camera_denied">Camera permission is required to scan QR codes.</string>
 
     <string name="language_title">Language</string>
     <string name="language_switch_label">Vietnamese</string>

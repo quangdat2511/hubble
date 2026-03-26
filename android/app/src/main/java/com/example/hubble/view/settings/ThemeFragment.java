@@ -6,26 +6,25 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
-import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
-import com.example.hubble.viewmodel.SettingsViewModelFactory;
 import com.google.android.material.snackbar.Snackbar;
 
 public class ThemeFragment extends Fragment {
 
     private static final String TAG = "ThemeFragment";
 
-    private Switch switchTheme;
+    private View rowTheme;
+    private SwitchCompat switchTheme;
     private SettingsViewModel settingsViewModel;
     private String authHeader;
     private boolean isProgrammaticSwitchChange;
@@ -41,10 +40,10 @@ public class ThemeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        rowTheme = view.findViewById(R.id.rowTheme);
         switchTheme = view.findViewById(R.id.switchTheme);
         settingsViewModel = new ViewModelProvider(
-                requireActivity(),
-                new SettingsViewModelFactory(new SettingsRepository(requireContext()))
+                requireActivity()
         ).get(SettingsViewModel.class);
 
         TokenManager tokenManager = new TokenManager(requireContext().getApplicationContext());
@@ -128,6 +127,12 @@ public class ThemeFragment extends Fragment {
     }
 
     private void setupSwitchListener() {
+        rowTheme.setOnClickListener(v -> {
+            if (switchTheme.isEnabled()) {
+                switchTheme.toggle();
+            }
+        });
+
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isProgrammaticSwitchChange) {
                 return;
@@ -168,8 +173,9 @@ public class ThemeFragment extends Fragment {
     }
 
     private void setSwitchEnabled(boolean isEnabled) {
+        rowTheme.setEnabled(isEnabled);
+        rowTheme.setAlpha(isEnabled ? 1f : 0.6f);
         switchTheme.setEnabled(isEnabled);
-        switchTheme.setAlpha(isEnabled ? 1f : 0.6f);
     }
 
     private void showPendingThemeErrorIfNeeded(View view) {

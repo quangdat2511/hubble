@@ -19,10 +19,8 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
-import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
-import com.example.hubble.viewmodel.SettingsViewModelFactory;
 
 import java.util.Locale;
 
@@ -53,8 +51,7 @@ public class LanguageFragment extends Fragment {
         tvLanguageStatus = view.findViewById(R.id.tvLanguageStatus);
 
         settingsViewModel = new ViewModelProvider(
-                this,
-                new SettingsViewModelFactory(new SettingsRepository(requireContext()))
+                requireActivity()
         ).get(SettingsViewModel.class);
 
         TokenManager tokenManager = new TokenManager(requireContext().getApplicationContext());

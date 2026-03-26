@@ -1,5 +1,10 @@
 import java.util.Properties
 
+fun normalizeBaseUrl(url: String): String {
+    val trimmed = url.trim()
+    return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+}
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -19,9 +24,13 @@ android {
 
     // Đọc local.properties (BASE_URL, GIPHY_API_KEY, …)
     val localProps = Properties()
-    val localPropsFile = rootProject.file("local.properties")
-    if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
-    val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+    val androidLocalPropsFile = rootProject.file("local.properties")
+    if (androidLocalPropsFile.exists()) androidLocalPropsFile.inputStream().use(localProps::load)
+    val repoLocalPropsFile = rootProject.projectDir.parentFile.resolve("local.properties")
+    if (repoLocalPropsFile.exists()) repoLocalPropsFile.inputStream().use(localProps::load)
+    val localBaseUrl = normalizeBaseUrl(
+        localProps.getProperty("BASE_URL_DEBUG", "http://10.0.2.2:8080/")
+    )
     val giphyApiKey  = localProps.getProperty("GIPHY_API_KEY", "")
 
     buildTypes {
