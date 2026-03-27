@@ -17,6 +17,7 @@ import com.example.hubble.data.model.auth.UserCreationRequest;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
+import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
 import retrofit2.Call;
@@ -70,6 +71,57 @@ public interface ApiService {
 
     @POST("api/auth/phone/verify")
     Call<ApiResponse<TokenResponse>> verifyPhoneOtp(@Body PhoneVerifyOtpRequest request);
+
+    @GET("api/friends/search")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> searchUsers(
+            @Header("Authorization") String token,
+            @Query("q") String query
+    );
+
+    @POST("api/friends/requests/username/{username}")
+    Call<ApiResponse<FriendRequestResponse>> sendFriendRequestByUsername(
+            @Header("Authorization") String token,
+            @Path("username") String username
+    );
+
+    @GET("api/friends/requests/received")
+    Call<ApiResponse<java.util.List<FriendRequestResponse>>> getIncomingRequests(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/friends/requests/sent")
+    Call<ApiResponse<java.util.List<FriendRequestResponse>>> getOutgoingRequests(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/friends/requests/{requestId}/accept")
+    Call<ApiResponse<String>> acceptRequest(
+            @Header("Authorization") String token,
+            @Path("requestId") String requestId
+    );
+
+    @DELETE("api/friends/requests/{requestId}")
+    Call<ApiResponse<String>> declineRequest(
+            @Header("Authorization") String token,
+            @Path("requestId") String requestId
+    );
+
+    @GET("api/friends/blocks")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getBlockedUsers(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/friends/blocks/{userId}")
+    Call<ApiResponse<String>> blockUser(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
+    @DELETE("api/friends/blocks/{userId}")
+    Call<ApiResponse<String>> unblockUser(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
