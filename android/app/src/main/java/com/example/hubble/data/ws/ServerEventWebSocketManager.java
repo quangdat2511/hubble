@@ -18,14 +18,6 @@ import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 import ua.naiksoftware.stomp.dto.StompHeader;
 
-/**
- * Singleton that manages a single STOMP WebSocket connection for app-wide server events.
- *
- * Usage:
- *   connect(baseUrl, userId, token)  — call once after login
- *   disconnect()                     — call on logout / app destroy
- *   getEvents()                      — subscribe to ServerEventNotification stream
- */
 public class ServerEventWebSocketManager {
 
     private static final String TAG = "ServerEventWS";
@@ -37,7 +29,6 @@ public class ServerEventWebSocketManager {
 
     private final PublishSubject<ServerEventNotification> eventSubject = PublishSubject.create();
 
-    // Saved connection params for reconnect
     private String savedBaseUrl;
     private String savedUserId;
     private String savedToken;
@@ -56,15 +47,10 @@ public class ServerEventWebSocketManager {
         return instance;
     }
 
-    /** Exposes the event stream. Subscribe on the ViewModel side. */
     public Observable<ServerEventNotification> getEvents() {
         return eventSubject.hide();
     }
 
-    /**
-     * Connect (or reconnect) to the WebSocket.
-     * Safe to call multiple times — disconnects the previous session first.
-     */
     public void connect(String baseUrl, String userId, String token) {
         savedBaseUrl = baseUrl;
         savedUserId  = userId;
@@ -73,21 +59,18 @@ public class ServerEventWebSocketManager {
     }
 
     private void doConnect() {
-        // Save params before disconnect() nulls them out
         String baseUrl = savedBaseUrl;
         String userId  = savedUserId;
         String token   = savedToken;
 
         disconnect();
 
-        // Restore params that were cleared by disconnect()
         savedBaseUrl = baseUrl;
         savedUserId  = userId;
         savedToken   = token;
 
         disposables = new CompositeDisposable();
 
-        // Convert http(s) base URL → ws(s) WebSocket URL
         String wsUrl = savedBaseUrl
                 .replace("https://", "wss://")
                 .replace("http://",  "ws://");
@@ -163,7 +146,6 @@ public class ServerEventWebSocketManager {
         });
     }
 
-    /** Disconnect and release all resources. Call on logout or app destroy. */
     public void disconnect() {
         reconnecting = false;
         savedBaseUrl = null; // prevent auto-reconnect after explicit disconnect
@@ -174,10 +156,6 @@ public class ServerEventWebSocketManager {
         }
     }
 
-    /**
-     * Update the token (e.g. after a silent token refresh) without full reconnect.
-     * Simply reconnects with the new token using saved params.
-     */
     public void updateToken(String newToken) {
         if (savedBaseUrl != null && savedUserId != null) {
             connect(savedBaseUrl, savedUserId, newToken);

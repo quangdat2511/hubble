@@ -13,16 +13,31 @@
         android:background="?attr/colorSurface"
         android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDmView"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_margin="@dimen/spacing_sm"
-            android:contentDescription="@string/dm_title"
-            app:icon="@drawable/ic_message"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+        <!-- DM button with active-indicator pill -->
+        <FrameLayout
+            android:layout_width="@dimen/sidebar_width"
+            android:layout_height="wrap_content">
+
+            <View
+                android:id="@+id/viewDmActiveIndicator"
+                android:layout_width="@dimen/server_active_indicator_width"
+                android:layout_height="@dimen/server_active_indicator_height"
+                android:layout_gravity="start|center_vertical"
+                android:background="@drawable/bg_server_active_indicator"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDmView"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:layout_margin="@dimen/spacing_sm"
+                android:contentDescription="@string/dm_title"
+                app:icon="@drawable/ic_message"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        </FrameLayout>
 
         <View
             android:layout_width="match_parent"
@@ -189,6 +204,7 @@
                     android:src="@drawable/ic_expand_more"
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
+
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvServerChannels"

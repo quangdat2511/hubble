@@ -24,12 +24,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,7 +56,6 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     public final LiveData<String> errorMessage = _errorMessage;
 
-    /** Emits the server name once when the current user is kicked from a server. */
     private final MutableLiveData<String> _kickedFromServer = new MutableLiveData<>();
     public final LiveData<String> kickedFromServer = _kickedFromServer;
 
@@ -64,7 +63,9 @@ public class MainViewModel extends ViewModel {
     public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
 
     private final Set<String> collapsedCategories = new HashSet<>();
+    private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
+    private volatile String activeServerId;
 
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
@@ -76,8 +77,6 @@ public class MainViewModel extends ViewModel {
         refreshDirectMessages();
     }
 
-    // ── WebSocket server events ───────────────────────────────────────────
-
     private void observeServerEvents() {
         wsDisposables.add(
             ServerEventWebSocketManager.getInstance().getEvents()
@@ -86,31 +85,24 @@ public class MainViewModel extends ViewModel {
                 .subscribe(event -> {
                     switch (event.getType() != null ? event.getType() : "") {
                         case "KICKED":
-                            // Removed from a server by an admin
                             removeServerById(event.getServerId());
                             _kickedFromServer.setValue(event.getServerName());
                             break;
                         case "SERVER_ADDED":
                         case "SERVER_JOINED":
-                            // Added to a new server (e.g. accepted invite on another device)
+                        case "SERVER_UPDATED":
                             refreshServers();
                             break;
                         case "SERVER_DELETED":
-                            // Server was deleted by its owner
                             removeServerById(event.getServerId());
-                            break;
-                        case "SERVER_UPDATED":
-                            // Server name / icon changed — re-fetch to get latest data
-                            refreshServers();
                             break;
                         default:
                             break;
                     }
-                }, throwable -> {/* connection errors handled in manager */})
+                }, throwable -> {})
         );
     }
 
-    /** Remove a server from the live list without a network round-trip. */
     public void removeServerById(String serverId) {
         List<ServerItem> current = _servers.getValue();
         if (current == null || serverId == null) return;
@@ -121,7 +113,6 @@ public class MainViewModel extends ViewModel {
         setServers(updated);
     }
 
-    /** Call after showing the snackbar so it won't fire again on rotation. */
     public void consumeKickedFromServer() {
         _kickedFromServer.setValue(null);
     }
@@ -132,19 +123,33 @@ public class MainViewModel extends ViewModel {
         wsDisposables.clear();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
 
     public void refreshServers() {
         serverRepository.getMyServers(result -> {
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 setServers(result.getData());
+                prefetchAllServerChannels(result.getData());
                 return;
             }
-
             if (result.getStatus() == AuthResult.Status.ERROR) {
                 _errorMessage.postValue(result.getMessage());
             }
         });
+    }
+
+    private void prefetchAllServerChannels(List<ServerItem> servers) {
+        for (ServerItem server : servers) {
+            String serverId = server.getId();
+            if (serverId == null) continue;
+            serverRepository.getServerChannels(serverId, result -> {
+                if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                    channelCache.put(serverId, result.getData());
+                    if (serverId.equals(activeServerId)) {
+                        _serverChannels.postValue(AuthResult.success(result.getData()));
+                    }
+                }
+            });
+        }
     }
 
     public void openOrCreateDirectChannel(String friendId) {
@@ -335,12 +340,6 @@ public class MainViewModel extends ViewModel {
         _dmStories.postValue(conversations.subList(0, Math.min(3, conversations.size())));
     }
 
-    /**
-     * Returns a Discord-style relative time label from an ISO timestamp.
-     * e.g. "now", "5m", "2h", "3d", "1mo", "2y"
-     * Handles both OffsetDateTime ("2024-01-01T10:00:00Z") and
-     * LocalDateTime ("2024-01-01T10:00:00") server formats.
-     */
     private String toShortTime(String createdAt) {
         if (createdAt == null || createdAt.trim().isEmpty()) return "";
         try {
@@ -406,36 +405,37 @@ public class MainViewModel extends ViewModel {
     }
 
     public void loadServerChannels(String serverId) {
-        if (serverId == null || serverId.trim().isEmpty()) {
-            _serverChannels.postValue(AuthResult.error("Máy chủ không hợp lệ"));
-            return;
+        if (serverId == null || serverId.trim().isEmpty()) return;
+
+        activeServerId = serverId;
+
+        List<ChannelDto> cached = channelCache.get(serverId);
+        if (cached != null) {
+            _serverChannels.postValue(AuthResult.success(cached));
         }
 
-        _serverChannels.postValue(AuthResult.loading());
         serverRepository.getServerChannels(serverId, result -> {
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                _serverChannels.postValue(AuthResult.success(result.getData()));
+                channelCache.put(serverId, result.getData());
+                if (serverId.equals(activeServerId)) {
+                    _serverChannels.postValue(AuthResult.success(result.getData()));
+                }
                 return;
             }
-
-            if (result.getStatus() == AuthResult.Status.ERROR) {
+            if (result.getStatus() == AuthResult.Status.ERROR && cached == null
+                    && serverId.equals(activeServerId)) {
                 _serverChannels.postValue(AuthResult.error(result.getMessage()));
             }
         });
     }
 
     public void toggleCategoryCollapse(String categoryId) {
-        if (categoryId == null) {
-            return;
-        }
-
+        if (categoryId == null) return;
         if (collapsedCategories.contains(categoryId)) {
             collapsedCategories.remove(categoryId);
         } else {
             collapsedCategories.add(categoryId);
         }
-
-        // Re-post current success data to trigger adapter rebuild
         AuthResult<List<ChannelDto>> current = _serverChannels.getValue();
         if (current != null && current.getStatus() == AuthResult.Status.SUCCESS && current.getData() != null) {
             _serverChannels.postValue(AuthResult.success(current.getData()));

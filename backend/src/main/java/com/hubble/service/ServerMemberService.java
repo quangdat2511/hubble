@@ -7,6 +7,7 @@ import com.hubble.entity.ServerMember;
 import com.hubble.entity.User;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
+import com.hubble.mapper.ServerMemberMapper;
 import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
 import com.hubble.repository.UserRepository;
@@ -17,7 +18,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,6 +31,7 @@ public class ServerMemberService {
     ServerRepository serverRepository;
     ServerMemberRepository serverMemberRepository;
     UserRepository userRepository;
+    ServerMemberMapper serverMemberMapper;
     SimpMessagingTemplate messagingTemplate;
 
     public List<ServerMemberResponse> getServerMembers(UUID requestorId, UUID serverId) {
@@ -43,23 +44,11 @@ public class ServerMemberService {
 
         List<ServerMember> members = serverMemberRepository.findAllByServerId(serverId);
         List<UUID> userIds = members.stream().map(ServerMember::getUserId).toList();
-        
         Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, user -> user));
 
         return members.stream()
-                .map(member -> {
-                    User user = userMap.get(member.getUserId());
-                    return ServerMemberResponse.builder()
-                            .userId(member.getUserId().toString())
-                            .username(user != null ? user.getUsername() : "Unknown")
-                            .displayName(user != null ? user.getDisplayName() : null)
-                            .avatarUrl(user != null ? user.getAvatarUrl() : null)
-                            .status(user != null && user.getStatus() != null ? user.getStatus().name() : "OFFLINE")
-                            .isOwner(server.getOwnerId().equals(member.getUserId()))
-                            .roles(new ArrayList<>())
-                            .build();
-                })
+                .map(member -> serverMemberMapper.toResponse(member, userMap.get(member.getUserId()), server))
                 .toList();
     }
 

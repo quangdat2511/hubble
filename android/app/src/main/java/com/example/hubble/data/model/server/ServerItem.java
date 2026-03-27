@@ -2,18 +2,21 @@ package com.example.hubble.data.model.server;
 
 public class ServerItem {
     private final String id;
+    private final String ownerId;
     private final String name;
     private final String iconUrl; // null means use initials
     private final int backgroundColor;
 
-    public ServerItem(String id, String name, String iconUrl, int backgroundColor) {
+    public ServerItem(String id, String ownerId, String name, String iconUrl, int backgroundColor) {
         this.id = id;
+        this.ownerId = ownerId;
         this.name = name;
         this.iconUrl = iconUrl;
         this.backgroundColor = backgroundColor;
     }
 
     public String getId() { return id; }
+    public String getOwnerId() { return ownerId; }
     public String getName() { return name; }
     public String getIconUrl() { return iconUrl; }
     public int getBackgroundColor() { return backgroundColor; }
@@ -29,4 +32,3 @@ public class ServerItem {
         return String.valueOf(name.charAt(0)).toUpperCase();
     }
 }
-

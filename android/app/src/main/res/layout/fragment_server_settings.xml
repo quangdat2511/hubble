@@ -15,6 +15,15 @@
         app:title="@string/server_settings_title"
         app:titleCentered="true" />
 
+    <!-- Loading indicator for icon upload/delete operations -->
+    <ProgressBar
+        android:id="@+id/progressBarIcon"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -127,6 +136,45 @@
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
+                    <!-- rowServerIcon divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="56dp"
+                        android:background="?attr/colorOutline" />
+
+                    <!-- Remove icon (owner-only, hidden when iconUrl is null) -->
+                    <LinearLayout
+                        android:id="@+id/rowRemoveIcon"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="@dimen/spacing_md"
+                        android:paddingEnd="@dimen/spacing_md"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="@dimen/spacing_md"
+                            android:contentDescription="@string/server_settings_remove_icon"
+                            android:src="@drawable/ic_delete"
+                            app:tint="?attr/colorError" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/server_settings_remove_icon"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="?attr/colorError" />
+                    </LinearLayout>
+
+                    <!-- rowServerDescription divider -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

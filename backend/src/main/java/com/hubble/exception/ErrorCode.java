@@ -54,7 +54,12 @@ public enum ErrorCode {
     MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
     MESSAGE_NOT_OWNER(5002, "Bạn không có quyền thực hiện thao tác này với tin nhắn", HttpStatus.FORBIDDEN),
 
-    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
+    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND),
+
+    // Server icon
+    NOT_SERVER_OWNER(3012, "Bạn không phải chủ sở hữu server", HttpStatus.FORBIDDEN),
+    FILE_UPLOAD_FAILED(6001, "Không thể tải file lên", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_FILE_TYPE(6002, "Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (jpeg, png, gif, webp, svg)", HttpStatus.BAD_REQUEST);
 
     final int code;
     final String message;

@@ -204,6 +204,18 @@
     <string name="server_settings_delete">Xóa máy chủ</string>
     <string name="server_settings_delete_confirm_title">Xóa máy chủ</string>
     <string name="server_settings_delete_confirm_message">Thao tác này không thể hoàn tác. Bạn có chắc chắn?</string>
+    <string name="server_settings_remove_icon">Xóa ảnh đại diện máy chủ</string>
+    <string name="server_settings_remove_icon_confirm_title">Xóa ảnh đại diện</string>
+    <string name="server_settings_remove_icon_confirm_message">Ảnh đại diện máy chủ sẽ bị xóa. Bạn có chắc chắn?</string>
+
+    <!-- Server icon feedback -->
+    <string name="server_icon_update_success">Ảnh đại diện đã được cập nhật</string>
+    <string name="server_icon_delete_success">Ảnh đại diện đã được xóa</string>
+
+    <!-- File validation errors -->
+    <string name="error_invalid_file_type">Chỉ chấp nhận ảnh (jpg, png, gif, webp, svg)</string>
+    <string name="error_file_too_large">Ảnh phải nhỏ hơn 5 MB</string>
+    <string name="error_server_name_too_long">Tên máy chủ không được vượt quá 100 ký tự</string>
 
     <!-- Server Profile Bottom Sheet -->
     <string name="server_profile_member_count">%1$d Thành viên  •  %2$d Trực tuyến</string>
