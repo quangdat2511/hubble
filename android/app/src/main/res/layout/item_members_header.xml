@@ -4,16 +4,18 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/spacing_md"
+    android:paddingStart="@dimen/spacing_sm"
     android:paddingEnd="@dimen/spacing_md"
     android:paddingTop="@dimen/spacing_md"
-    android:paddingBottom="@dimen/spacing_sm">
+    android:paddingBottom="@dimen/spacing_xs">
 
     <TextView
         android:id="@+id/tvSectionLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:textAllCaps="false"
         android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:letterSpacing="0.06" />
 </LinearLayout>

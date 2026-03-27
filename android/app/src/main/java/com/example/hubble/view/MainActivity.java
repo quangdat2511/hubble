@@ -11,11 +11,14 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.databinding.ActivityMainBinding;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.view.home.HomeFragment;
 import com.example.hubble.view.me.MeFragment;
@@ -61,6 +64,16 @@ public class MainActivity extends BaseAuthActivity {
         if (authViewModel.getCurrentUser() == null) {
             navigateToLogin();
             return;
+        }
+
+        // Connect server-event WebSocket for real-time updates (kick, etc.)
+        TokenManager tokenManager = new TokenManager(this);
+        if (tokenManager.getUser() != null) {
+            ServerEventWebSocketManager.getInstance().connect(
+                    BuildConfig.BASE_URL,
+                    tokenManager.getUser().getId(),
+                    tokenManager.getAccessToken()
+            );
         }
 
         // Pre-create MainViewModel so HomeFragment can share it
@@ -109,5 +122,14 @@ public class MainActivity extends BaseAuthActivity {
                 .setReorderingAllowed(true)
                 .replace(R.id.fragmentContainer, fragment);
         tx.commit();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Disconnect WebSocket when the app is fully closed
+        if (isFinishing()) {
+            ServerEventWebSocketManager.getInstance().disconnect();
+        }
     }
 }

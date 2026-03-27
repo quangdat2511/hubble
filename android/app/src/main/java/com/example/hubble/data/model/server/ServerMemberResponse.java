@@ -1,5 +1,6 @@
 package com.example.hubble.data.model.server;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class ServerMemberResponse {
@@ -8,7 +9,10 @@ public class ServerMemberResponse {
     private String displayName;
     private String avatarUrl;
     private String status;
+
+    @SerializedName("owner")
     private boolean isOwner;
+
     private List<RoleDto> roles;
 
     public ServerMemberResponse() {}

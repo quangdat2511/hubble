@@ -17,13 +17,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(
-        name = "server_invites",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_server_invites_pending",
-                columnNames = {"server_id", "invitee_id", "status"}
-        )
-)
+@Table(name = "server_invites")
+// Partial unique index enforced at DB level:
+// CREATE UNIQUE INDEX uq_server_invites_pending ON server_invites (server_id, invitee_id) WHERE status = 'PENDING';
 public class ServerInvite {
 
     @Id

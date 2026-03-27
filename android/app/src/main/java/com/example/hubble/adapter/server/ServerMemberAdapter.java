@@ -134,7 +134,15 @@ public class ServerMemberAdapter extends ListAdapter<ServerMemberAdapter.Adapter
                     member.getDisplayName() : member.getUsername();
             binding.tvUsername.setText(displayName);
 
-            // Avatar
+            // Username handle — show only if different from display name (like Discord)
+            if (!displayName.equals(member.getUsername())) {
+                binding.tvUsernameHandle.setText(member.getUsername());
+                binding.tvUsernameHandle.setVisibility(android.view.View.VISIBLE);
+            } else {
+                binding.tvUsernameHandle.setVisibility(android.view.View.GONE);
+            }
+
+            // ...existing code...
             if (member.getAvatarUrl() != null && !member.getAvatarUrl().isEmpty()) {
                 binding.ivAvatar.setVisibility(android.view.View.VISIBLE);
                 binding.tvAvatarInitials.setVisibility(android.view.View.GONE);

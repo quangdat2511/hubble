@@ -1,5 +1,6 @@
 package com.hubble.service;
 
+import com.hubble.dto.response.ServerEventNotification;
 import com.hubble.dto.response.ServerMemberResponse;
 import com.hubble.entity.Server;
 import com.hubble.entity.ServerMember;
@@ -12,6 +13,7 @@ import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class ServerMemberService {
     ServerRepository serverRepository;
     ServerMemberRepository serverMemberRepository;
     UserRepository userRepository;
+    SimpMessagingTemplate messagingTemplate;
 
     public List<ServerMemberResponse> getServerMembers(UUID requestorId, UUID serverId) {
         Server server = serverRepository.findById(serverId)
@@ -77,6 +80,16 @@ public class ServerMemberService {
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_MEMBER_NOT_FOUND));
 
         serverMemberRepository.delete(member);
+
+        // Notify the kicked user in real-time so their app reloads the server list
+        messagingTemplate.convertAndSend(
+                "/topic/users/" + targetUserId + "/server-events",
+                ServerEventNotification.builder()
+                        .type("KICKED")
+                        .serverId(serverId)
+                        .serverName(server.getName())
+                        .build()
+        );
     }
 
     @Transactional

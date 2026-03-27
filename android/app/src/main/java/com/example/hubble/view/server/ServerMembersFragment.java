@@ -1,5 +1,7 @@
 package com.example.hubble.view.server;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -7,6 +9,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -18,6 +22,7 @@ import com.example.hubble.adapter.server.ServerMemberAdapter;
 import com.example.hubble.data.model.AuthResult;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.databinding.FragmentServerMembersBinding;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.server.ServerSettingsViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -31,6 +36,17 @@ public class ServerMembersFragment extends Fragment {
     private String serverId;
     private String serverName;
     private List<ServerMemberItem> allMembers = new ArrayList<>();
+    private boolean isCurrentUserOwner = false;
+
+    // Launcher: reload member list when MemberEditActivity returns RESULT_OK
+    private final ActivityResultLauncher<Intent> memberEditLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && serverId != null) {
+                    viewModel.loadMembers(serverId);
+                }
+            }
+    );
 
     public static ServerMembersFragment newInstance(String serverId, String serverName) {
         ServerMembersFragment fragment = new ServerMembersFragment();
@@ -61,7 +77,7 @@ public class ServerMembersFragment extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(ServerSettingsViewModel.class);
 
         // Setup adapter
-        adapter = new ServerMemberAdapter(member -> showMemberDetail(member));
+        adapter = new ServerMemberAdapter(member -> openMemberEdit(member));
         binding.rvMembers.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvMembers.setAdapter(adapter);
 
@@ -73,12 +89,23 @@ public class ServerMembersFragment extends Fragment {
             if (result == null) return;
 
             if (result.getStatus() == AuthResult.Status.LOADING) {
-                // Show loading state if needed
                 return;
             }
 
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 allMembers = new ArrayList<>(result.getData());
+
+                // Determine if current user is owner
+                TokenManager tokenManager = new TokenManager(requireContext());
+                String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : "";
+                isCurrentUserOwner = false;
+                for (ServerMemberItem m : allMembers) {
+                    if (m.getUserId().equals(currentUserId) && m.isOwner()) {
+                        isCurrentUserOwner = true;
+                        break;
+                    }
+                }
+
                 submitToAdapter(allMembers);
                 return;
             }
@@ -102,11 +129,6 @@ public class ServerMembersFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {}
-        });
-
-        // Add member button
-        binding.btnAddMember.setOnClickListener(v -> {
-            Snackbar.make(binding.getRoot(), R.string.main_coming_soon, Snackbar.LENGTH_SHORT).show();
         });
     }
 
@@ -132,16 +154,33 @@ public class ServerMembersFragment extends Fragment {
         items.add(new ServerMemberAdapter.AdapterItem(
                 getString(R.string.members_section_label, members.size())
         ));
-        // Add all members
+        // Owner first, then others
         for (ServerMemberItem member : members) {
-            items.add(new ServerMemberAdapter.AdapterItem(member));
+            if (member.isOwner()) {
+                items.add(1, new ServerMemberAdapter.AdapterItem(member));
+            } else {
+                items.add(new ServerMemberAdapter.AdapterItem(member));
+            }
         }
         adapter.submitList(items);
     }
 
-    private void showMemberDetail(ServerMemberItem member) {
-        MemberDetailBottomSheet sheet = MemberDetailBottomSheet.newInstance(member, serverId);
-        sheet.show(getParentFragmentManager(), "MemberDetail");
+    private void openMemberEdit(ServerMemberItem member) {
+        TokenManager tokenManager = new TokenManager(requireContext());
+        String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : "";
+        boolean isSelf = member.getUserId().equals(currentUserId);
+
+        // Owner can manage any member except themselves
+        boolean showOwnerActions = isCurrentUserOwner && !isSelf;
+
+        Intent intent = new Intent(requireContext(), MemberEditActivity.class);
+        intent.putExtra(MemberEditActivity.EXTRA_USER_ID, member.getUserId());
+        intent.putExtra(MemberEditActivity.EXTRA_USERNAME, member.getUsername());
+        intent.putExtra(MemberEditActivity.EXTRA_DISPLAY_NAME, member.getDisplayName());
+        intent.putExtra(MemberEditActivity.EXTRA_AVATAR_BG_COLOR, member.getAvatarBackgroundColor());
+        intent.putExtra(MemberEditActivity.EXTRA_IS_CURRENT_USER_OWNER, showOwnerActions);
+        intent.putExtra(MemberEditActivity.EXTRA_SERVER_ID, serverId);
+        memberEditLauncher.launch(intent);
     }
 
     @Override

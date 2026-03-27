@@ -81,6 +81,16 @@ public class HomeFragment extends Fragment {
         setupConversations(viewModel);
         setupActions(view);
         viewModel.refreshDirectMessages();
+
+        // Real-time: show snackbar when the current user is kicked from a server
+        viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
+            if (serverName != null) {
+                Snackbar.make(requireView(),
+                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
+                        Snackbar.LENGTH_LONG).show();
+                viewModel.consumeKickedFromServer();
+            }
+        });
     }
 
     private void setupServerSidebar(MainViewModel viewModel) {

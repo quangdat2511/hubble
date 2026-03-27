@@ -173,6 +173,11 @@ public class ServerMemberRepository {
     }
 
     private List<ServerMemberItem> buildMockMembers() {
+        // Use the actual logged-in user as the owner so isCurrentUserOwner resolves correctly
+        String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : "u1";
+        String currentUsername = tokenManager.getUser() != null ? tokenManager.getUser().getUsername() : "owner_user";
+        String currentDisplayName = tokenManager.getUser() != null ? tokenManager.getUser().getDisplayName() : "Server Owner";
+
         List<ServerRoleItem> adminRoles = new ArrayList<>();
         adminRoles.add(new ServerRoleItem("r1", "Admin", Color.parseColor("#ED4245")));
 
@@ -183,7 +188,7 @@ public class ServerMemberRepository {
         memberRoles.add(new ServerRoleItem("r3", "Member", Color.parseColor("#5865F2")));
 
         List<ServerMemberItem> members = new ArrayList<>();
-        members.add(new ServerMemberItem("u1", "owner_user", "Server Owner",
+        members.add(new ServerMemberItem(currentUserId, currentUsername, currentDisplayName,
                 null, Color.parseColor("#ED4245"), adminRoles, "ONLINE", true));
         members.add(new ServerMemberItem("u2", "moderator1", "Cool Mod",
                 null, Color.parseColor("#5865F2"), modRoles, "IDLE", false));

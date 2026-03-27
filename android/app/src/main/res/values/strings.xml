@@ -242,6 +242,19 @@
     <string name="member_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Không thể hoàn tác.</string>
     <string name="member_kicked_success">Đã kick %1$s</string>
     <string name="member_banned_success">Đã ban %1$s</string>
+    <!-- Member Edit Activity -->
+    <string name="member_edit_title">Sửa đổi %1$s</string>
+    <string name="member_edit_nickname_label">Biệt danh</string>
+    <string name="member_edit_nickname_hint">Nhấn vào để thêm biệt danh</string>
+    <string name="member_edit_roles_label">Vai trò</string>
+    <string name="member_edit_roles_edit">Sửa Vai trò</string>
+    <string name="member_edit_kick">Loại \'%1$s\'</string>
+    <string name="member_edit_kick_confirm_title">Loại thành viên</string>
+    <string name="member_edit_kick_confirm_message">Bạn có muốn loại %1$s khỏi máy chủ không?</string>
+    <string name="member_edit_kick_success">Đã loại %1$s khỏi máy chủ</string>
+    <string name="member_edit_transfer_confirm_title">Chuyển quyền sở hữu</string>
+    <string name="member_edit_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Thao tác này không thể hoàn tác.</string>
+    <string name="member_edit_transfer_success">Đã chuyển quyền sở hữu cho %1$s</string>
 
     <!-- Server Invites -->
     <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>

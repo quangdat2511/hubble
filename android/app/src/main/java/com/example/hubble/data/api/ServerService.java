@@ -6,12 +6,13 @@ import com.example.hubble.data.model.server.CreateServerRequest;
 import com.example.hubble.data.model.server.ServerResponse;
 
 import java.util.List;
-
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
 public interface ServerService {
@@ -32,4 +33,20 @@ public interface ServerService {
             @Header("Authorization") String token,
             @Path("serverId") String serverId
     );
+
+    // Member management endpoints
+    @DELETE("api/servers/{serverId}/members/{memberId}")
+    Call<ApiResponse<Void>> kickMember(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("memberId") String memberId
+    );
+
+    @PUT("api/servers/{serverId}/owner/{memberId}")
+    Call<ApiResponse<Void>> transferOwnership(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("memberId") String memberId
+    );
+
 }
