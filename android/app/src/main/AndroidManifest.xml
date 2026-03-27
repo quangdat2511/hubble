@@ -80,6 +80,16 @@
         <activity
             android:name=".view.friend.PendingRequestsActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".view.friend.OutgoingRequestsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.friend.BlockedUsersActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

@@ -20,6 +20,9 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -122,6 +125,9 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Path("userId") String userId
     );
+
+    @POST("/api/friends/requests/{userId}")
+    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(@Header("Authorization") String token, @Path("userId") String userId);
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);

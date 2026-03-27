@@ -128,4 +128,100 @@ public class FriendRepository {
             }
         });
     }
+
+    public void getOutgoingRequests(RepositoryCallback<List<FriendRequestResponse>> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.getOutgoingRequests(token).enqueue(new Callback<ApiResponse<List<FriendRequestResponse>>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<List<FriendRequestResponse>>> call, @NonNull Response<ApiResponse<List<FriendRequestResponse>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error("Lỗi tải danh sách"));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<List<FriendRequestResponse>>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
+    public void sendRequestById(String userId, RepositoryCallback<FriendRequestResponse> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.sendFriendRequest(token, userId).enqueue(new Callback<ApiResponse<FriendRequestResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<FriendRequestResponse>> call, @NonNull Response<ApiResponse<FriendRequestResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error("Không thể gửi lời mời"));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<FriendRequestResponse>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
+    public void getBlockedUsers(RepositoryCallback<List<FriendUserDto>> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.getBlockedUsers(token).enqueue(new Callback<ApiResponse<List<FriendUserDto>>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<List<FriendUserDto>>> call, @NonNull Response<ApiResponse<List<FriendUserDto>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error("Lỗi tải danh sách"));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<List<FriendUserDto>>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
+    public void blockUser(String userId, RepositoryCallback<String> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.blockUser(token, userId).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<String>> call, @NonNull Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error("Lỗi chặn người dùng"));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<String>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
+    public void unblockUser(String userId, RepositoryCallback<String> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.unblockUser(token, userId).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<String>> call, @NonNull Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error("Lỗi bỏ chặn"));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<String>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
 }
