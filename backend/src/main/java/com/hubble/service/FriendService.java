@@ -141,8 +141,10 @@ public class FriendService {
         Friendship friendship = friendshipRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
-        if (!friendship.getAddresseeId().equals(currentUserId)
-                || friendship.getStatus() != FriendshipStatus.PENDING) {
+        boolean isAddressee = friendship.getAddresseeId().equals(currentUserId);
+        boolean isRequester = friendship.getRequesterId().equals(currentUserId);
+
+        if ((!isAddressee && !isRequester) || friendship.getStatus() != FriendshipStatus.PENDING) {
             throw new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND);
         }
 

@@ -5,19 +5,18 @@ import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import com.example.hubble.adapter.friend.FriendRequestAdapter;
-import com.example.hubble.data.model.dm.FriendRequestResponse;
+import com.example.hubble.adapter.friend.OutgoingRequestAdapter;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityOutgoingRequestsBinding;
-import com.example.hubble.databinding.ActivityPendingRequestsBinding;
 import com.example.hubble.viewmodel.FriendViewModel;
 import com.example.hubble.viewmodel.FriendViewModelFactory;
 import com.google.android.material.snackbar.Snackbar;
 
-public class OutgoingRequestsActivity extends AppCompatActivity implements FriendRequestAdapter.OnRequestListener {
+public class OutgoingRequestsActivity extends AppCompatActivity {
     private ActivityOutgoingRequestsBinding binding;
     private FriendViewModel viewModel;
-    private FriendRequestAdapter adapter;
+
+    private OutgoingRequestAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,10 +27,12 @@ public class OutgoingRequestsActivity extends AppCompatActivity implements Frien
         viewModel = new ViewModelProvider(this,
                 new FriendViewModelFactory(new FriendRepository(this))).get(FriendViewModel.class);
 
-        binding.toolbar.setTitle("Lời mời đã gửi");
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        adapter = new FriendRequestAdapter(this);
+        adapter = new OutgoingRequestAdapter(request -> {
+            viewModel.cancelOutgoingRequest(request.getId());
+        });
+
         binding.rvRequests.setLayoutManager(new LinearLayoutManager(this));
         binding.rvRequests.setAdapter(adapter);
 
@@ -43,6 +44,7 @@ public class OutgoingRequestsActivity extends AppCompatActivity implements Frien
         viewModel.outgoingRequests.observe(this, result -> {
             if (result == null) return;
             binding.progressBar.setVisibility(result.isLoading() ? View.VISIBLE : View.GONE);
+
             if (result.isSuccess() && result.getData() != null) {
                 adapter.setRequests(result.getData());
             } else if (result.isError()) {
@@ -65,14 +67,5 @@ public class OutgoingRequestsActivity extends AppCompatActivity implements Frien
                 viewModel.resetActionState();
             }
         });
-    }
-
-    @Override
-    public void onAccept(FriendRequestResponse request) {
-    }
-
-    @Override
-    public void onDecline(FriendRequestResponse request) {
-        viewModel.cancelOutgoingRequest(request.getId());
     }
 }

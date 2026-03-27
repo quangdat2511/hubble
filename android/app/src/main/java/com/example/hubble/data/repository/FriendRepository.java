@@ -119,7 +119,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi từ chối"));
+                    callback.onResult(AuthResult.error("Không thể thực hiện thao tác này"));
                 }
             }
             @Override
