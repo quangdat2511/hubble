@@ -64,7 +64,7 @@ public class MessageService {
                 "/topic/channels/" + request.getChannelId(),
                 response
         );
-
+    
         return response;
     }
 

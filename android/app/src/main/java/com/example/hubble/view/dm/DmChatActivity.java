@@ -11,13 +11,13 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.widget.EditText;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
+import android.graphics.drawable.ColorDrawable;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
@@ -37,6 +37,7 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
+import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.TokenManager;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -87,6 +88,7 @@ public class DmChatActivity extends AppCompatActivity {
     private int keyboardHeight = 0;
     private boolean pendingShowKeyboard = false;
     private DmMessageItem replyingToItem;
+    private DmMessageItem editingItem;
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private final Runnable hideCopyBannerRunnable = this::hideCopyBanner;
@@ -193,6 +195,7 @@ public class DmChatActivity extends AppCompatActivity {
     private void setupComposer() {
         binding.btnSend.setOnClickListener(v -> attemptSendMessage());
         binding.btnCancelReply.setOnClickListener(v -> clearReply());
+        binding.btnCancelEdit.setOnClickListener(v -> clearEditMode(true));
 
         binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -252,6 +255,7 @@ public class DmChatActivity extends AppCompatActivity {
     private void sendMediaMessage(String content) {
         if (TextUtils.isEmpty(channelId)) return;
         hideEmojiPanel(false);
+        clearEditMode(false);
         String replyId = replyingToItem != null ? replyingToItem.getId() : null;
         sendMessage(content, replyId);
         clearReply();
@@ -420,9 +424,16 @@ public class DmChatActivity extends AppCompatActivity {
     private void attemptSendMessage() {
         String content = binding.etComposer.getText() == null
                 ? "" : binding.etComposer.getText().toString();
-        if (content.trim().isEmpty() || TextUtils.isEmpty(channelId)) {
+        String trimmed = content.trim();
+        if (trimmed.isEmpty() || TextUtils.isEmpty(channelId)) {
             return;
         }
+
+        if (editingItem != null) {
+            commitEdit(trimmed);
+            return;
+        }
+
         binding.etComposer.setText("");
         String replyId = replyingToItem != null ? replyingToItem.getId() : null;
         sendMessage(content, replyId);
@@ -490,7 +501,7 @@ public class DmChatActivity extends AppCompatActivity {
 
         sheet.actionEdit.setOnClickListener(v -> {
             dialog.dismiss();
-            showEditMessageDialog(item);
+            startEditMessage(item);
         });
 
         sheet.actionUnsend.setOnClickListener(v -> {
@@ -700,12 +711,14 @@ public class DmChatActivity extends AppCompatActivity {
         if (dto == null) return;
         DmMessageItem item = mapMessage(dto);
         adapter.upsertItem(item);
-        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        if (adapter.getItemCount() > 0) {
+            binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        }
     }
 
     private DmMessageItem mapMessage(MessageDto dto) {
         boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-        String sender = mine ? getString(R.string.dm_me) : peerName;
+        String sender = mine ? currentUserName : peerName;
         DmMessageItem item = new DmMessageItem(
                 dto.getId(), sender,
                 dto.getContent() == null ? "" : dto.getContent(),
@@ -733,8 +746,11 @@ public class DmChatActivity extends AppCompatActivity {
 
         List<DmMessageItem> mapped = new ArrayList<>();
         for (MessageDto dto : rawMessages) {
+            if (Boolean.TRUE.equals(dto.getIsDeleted())) {
+                continue;
+            }
             boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-            String sender = mine ? getString(R.string.dm_me) : peerName;
+            String sender = mine ? currentUserName : peerName;
             DmMessageItem item = new DmMessageItem(
                     dto.getId(), sender,
                     dto.getContent() == null ? "" : dto.getContent(),
@@ -747,7 +763,7 @@ public class DmChatActivity extends AppCompatActivity {
                 MessageDto replyDto = byId.get(dto.getReplyToId());
                 if (replyDto != null) {
                     boolean replyMine = currentUserId != null && currentUserId.equals(replyDto.getAuthorId());
-                    item.setReplyToSenderName(replyMine ? getString(R.string.dm_me) : peerName);
+                    item.setReplyToSenderName(replyMine ? currentUserName : peerName);
                     item.setReplyToContent(replyDto.getContent() == null ? "" : replyDto.getContent());
                 }
             }
@@ -758,6 +774,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void startReply(DmMessageItem item) {
+        clearEditMode(false);
         replyingToItem = item;
         binding.tvReplySender.setText(getString(R.string.reply_to, item.getSenderName()));
         String preview = item.getContent();
@@ -776,52 +793,86 @@ public class DmChatActivity extends AppCompatActivity {
         binding.replyBar.setVisibility(View.GONE);
     }
 
-    private void showEditMessageDialog(DmMessageItem item) {
-        if (item == null || TextUtils.isEmpty(item.getId())) return;
+    private void startEditMessage(DmMessageItem item) {
+        if (item == null || TextUtils.isEmpty(item.getId()) || item.isDeleted()) return;
+        if (DmMessageAdapter.isMedia(item.getContent())) {
+            Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show();
+            return;
+        }
 
-        EditText input = new EditText(this);
-        input.setText(item.getContent() == null ? "" : item.getContent());
-        input.setSelection(input.getText().length());
-        int padding = (int) (16 * getResources().getDisplayMetrics().density);
-        input.setPadding(padding, padding, padding, padding);
+        clearReply();
+        editingItem = item;
+        binding.editBar.setVisibility(View.VISIBLE);
+        binding.tilComposer.setHintEnabled(false);
+        String content = item.getContent() == null ? "" : item.getContent();
+        binding.etComposer.setText(content);
+        binding.etComposer.setSelection(content.length());
+        binding.etComposer.requestFocus();
+        showKeyboard();
+    }
 
-        new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.edit_message))
-                .setView(input)
-                .setPositiveButton(getString(R.string.save), (dialog, which) -> {
-                    String newContent = input.getText() == null ? "" : input.getText().toString().trim();
-                    if (newContent.isEmpty()) {
-                        Snackbar.make(binding.getRoot(), getString(R.string.empty_message_error), Snackbar.LENGTH_SHORT).show();
-                        return;
-                    }
-                    dmRepository.editMessage(item.getId(), newContent, result -> runOnUiThread(() -> {
-                        if (result.getData() != null) {
-                            appendOrUpdateMessage(result.getData());
-                        } else if (result.getMessage() != null) {
-                            Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
-                        }
-                    }));
-                })
-                .setNegativeButton(getString(R.string.cancel), null)
-                .show();
+    private void clearEditMode(boolean clearComposerText) {
+        if (editingItem == null) return;
+        editingItem = null;
+        binding.editBar.setVisibility(View.GONE);
+        binding.tilComposer.setHintEnabled(true);
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+        if (clearComposerText) {
+            binding.etComposer.setText("");
+        }
+    }
+
+    private void commitEdit(String newContent) {
+        if (editingItem == null || TextUtils.isEmpty(editingItem.getId())) return;
+        String editingId = editingItem.getId();
+        clearEditMode(false);
+        binding.etComposer.setText("");
+
+        dmRepository.editMessage(editingId, newContent, result -> runOnUiThread(() -> {
+            if (result.getData() != null) {
+                appendOrUpdateMessage(result.getData());
+            } else if (result.getMessage() != null) {
+                Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+            }
+        }));
     }
 
     private void confirmUnsendMessage(DmMessageItem item) {
         if (item == null || TextUtils.isEmpty(item.getId())) return;
 
-        new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.unsend_message))
-                .setMessage(getString(R.string.unsend_message))
-                .setPositiveButton(getString(R.string.unsend_message), (dialog, which) ->
-                        dmRepository.unsendMessage(item.getId(), result -> runOnUiThread(() -> {
-                            if (result.getData() != null) {
-                                appendOrUpdateMessage(result.getData());
-                            } else if (result.getMessage() != null) {
-                                Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
-                            }
-                        })))
-                .setNegativeButton(getString(R.string.cancel), null)
-                .show();
+        AlertDialog dialog = new AlertDialog.Builder(this).create();
+        DialogDeleteMessageBinding deleteBinding = DialogDeleteMessageBinding.inflate(getLayoutInflater());
+        dialog.setView(deleteBinding.getRoot());
+
+        deleteBinding.tvDeleteSender.setText(item.getSenderName());
+        deleteBinding.tvDeleteTime.setText(item.getTimestamp());
+        String content = item.getContent() == null ? "" : item.getContent();
+        if (DmMessageAdapter.isMedia(content)) {
+            String title = DmMessageAdapter.extractMediaTitle(content);
+            deleteBinding.tvDeleteContent.setText(title != null ? title : "Media");
+        } else {
+            deleteBinding.tvDeleteContent.setText(content + (item.isEdited() ? " (edited)" : ""));
+        }
+
+        deleteBinding.btnDeleteNo.setOnClickListener(v -> dialog.dismiss());
+        deleteBinding.btnDeleteYes.setOnClickListener(v -> {
+            dialog.dismiss();
+            dmRepository.unsendMessage(item.getId(), result -> runOnUiThread(() -> {
+                if (result.isSuccess()) {
+                    adapter.removeItemById(item.getId());
+                    if (result.getData() != null) {
+                        appendOrUpdateMessage(result.getData());
+                    }
+                } else if (result.getMessage() != null) {
+                    Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+                }
+            }));
+        });
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+        dialog.show();
     }
 
     private String formatTime(String rawTime) {

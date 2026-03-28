@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -83,12 +84,18 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     public void setItems(List<DmMessageItem> newItems) {
         items.clear();
-        if (newItems != null) items.addAll(newItems);
+        if (newItems != null) {
+            for (DmMessageItem item : newItems) {
+                if (item != null && !item.isDeleted()) {
+                    items.add(item);
+                }
+            }
+        }
         notifyDataSetChanged();
     }
 
     public void appendItem(DmMessageItem item) {
-        if (item == null) return;
+        if (item == null || item.isDeleted()) return;
         items.add(item);
         notifyItemInserted(items.size() - 1);
     }
@@ -98,12 +105,19 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         for (int i = 0; i < items.size(); i++) {
             DmMessageItem old = items.get(i);
             if (item.getId().equals(old.getId())) {
-                items.set(i, item);
-                notifyItemChanged(i);
+                if (item.isDeleted()) {
+                    items.remove(i);
+                    notifyItemRemoved(i);
+                } else {
+                    items.set(i, item);
+                    notifyItemChanged(i);
+                }
                 return;
             }
         }
-        appendItem(item);
+        if (!item.isDeleted()) {
+            appendItem(item);
+        }
     }
 
     public void setOnMessageLongClickListener(@Nullable OnMessageLongClickListener listener) {
@@ -125,9 +139,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return null;
     }
 
+    public void removeItemById(@Nullable String id) {
+        if (id == null) return;
+        for (int i = 0; i < items.size(); i++) {
+            if (id.equals(items.get(i).getId())) {
+                items.remove(i);
+                notifyItemRemoved(i);
+                return;
+            }
+        }
+    }
+
     @Override
     public int getItemViewType(int position) {
-        return items.get(position).isMine() ? TYPE_ME : TYPE_OTHER;
+        // Discord-like mobile DM layout keeps all messages on the left side.
+        return TYPE_OTHER;
     }
 
     @NonNull
@@ -143,11 +169,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         DmMessageItem item = items.get(position);
+        DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
+        boolean sameSenderAsPrevious = previous != null
+                && previous.isMine() == item.isMine()
+                && safeEquals(previous.getSenderName(), item.getSenderName());
+
         if (holder instanceof MeHolder) {
             ((MeHolder) holder).bind(item);
         } else {
-            ((OtherHolder) holder).bind(item);
+            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious);
         }
+    }
+
+    private static boolean safeEquals(@Nullable String a, @Nullable String b) {
+        if (a == null) return b == null;
+        return a.equals(b);
     }
 
     @Override
@@ -199,13 +235,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 b.cardMine.setVisibility(View.VISIBLE);
                 b.ivMedia.setVisibility(View.GONE);
                 Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-                String display = content;
                 if (item.isDeleted()) {
-                    display = "Tin nhắn đã được thu hồi";
-                } else if (item.isEdited()) {
-                    display = content + " (đã chỉnh sửa)";
+                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvEdited.setVisibility(View.GONE);
+                } else {
+                    b.tvMessage.setText(content);
+                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
                 }
-                b.tvMessage.setText(display);
             }
 
             b.getRoot().setOnLongClickListener(v -> {
@@ -229,9 +265,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             this.onMessageLongClickListener = onMessageLongClickListener;
         }
 
-        void bind(DmMessageItem item) {
+        void bind(DmMessageItem item, boolean showHeader) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
+            b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
+            b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+            b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+
+            ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
+            textParams.topMargin = showHeader ? dp(2) : dp(0);
+            b.cardOther.setLayoutParams(textParams);
+
+            ConstraintLayout.LayoutParams mediaParams = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
+            mediaParams.topMargin = showHeader ? dp(2) : dp(0);
+            b.ivMedia.setLayoutParams(mediaParams);
+
             String content = item.getContent();
 
             if (item.hasReply()) {
@@ -261,13 +309,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 b.cardOther.setVisibility(View.VISIBLE);
                 b.ivMedia.setVisibility(View.GONE);
                 Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-                String display = content;
                 if (item.isDeleted()) {
-                    display = "Tin nhắn đã được thu hồi";
-                } else if (item.isEdited()) {
-                    display = content + " (đã chỉnh sửa)";
+                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvEdited.setVisibility(View.GONE);
+                } else {
+                    b.tvMessage.setText(content);
+                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
                 }
-                b.tvMessage.setText(display);
             }
 
             b.getRoot().setOnLongClickListener(v -> {
@@ -277,6 +325,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 }
                 return false;
             });
+        }
+
+        private int dp(int value) {
+            return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
         }
     }
 }

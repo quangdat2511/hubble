@@ -79,6 +79,18 @@
         android:paddingBottom="4dp">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/actionEdit"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="@string/edit_message"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_edit"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/actionReply"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="match_parent"
@@ -87,18 +99,6 @@
             android:text="@string/reply"
             android:textAllCaps="false"
             app:icon="@drawable/ic_reply"
-            app:iconGravity="textStart"
-            app:iconPadding="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/actionForward"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start|center_vertical"
-            android:text="@string/forward"
-            android:textAllCaps="false"
-            app:icon="@drawable/ic_forward"
             app:iconGravity="textStart"
             app:iconPadding="12dp" />
 
@@ -115,26 +115,14 @@
             app:iconPadding="12dp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/actionEdit"
+            android:id="@+id/actionForward"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="start|center_vertical"
-            android:text="@string/edit_message"
+            android:text="@string/forward"
             android:textAllCaps="false"
-            app:icon="@drawable/ic_edit"
-            app:iconGravity="textStart"
-            app:iconPadding="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/actionUnsend"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start|center_vertical"
-            android:text="@string/unsend_message"
-            android:textAllCaps="false"
-            app:icon="@drawable/ic_close"
+            app:icon="@drawable/ic_forward"
             app:iconGravity="textStart"
             app:iconPadding="12dp" />
 
@@ -151,5 +139,29 @@
             app:iconPadding="12dp" />
 
     </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/actionUnsend"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="@string/delete_message"
+            android:textAllCaps="false"
+            android:textColor="?attr/colorError"
+            app:icon="@drawable/ic_delete"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
+            app:iconTint="?attr/colorError" />
+
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
