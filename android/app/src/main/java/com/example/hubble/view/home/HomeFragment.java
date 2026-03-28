@@ -250,11 +250,18 @@ public class HomeFragment extends Fragment {
         binding.btnSearch.setOnClickListener(v ->
                 Snackbar.make(view, getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-        binding.btnAddFriend.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+        binding.btnAddFriend.setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.AddFriendActivity.class);
+            startActivity(intent);
+        });
+
+        binding.btnPendingRequests.setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.PendingRequestsActivity.class);
+            startActivity(intent);
+        });
 
         binding.fabNewDm.setOnClickListener(v ->
-            startActivity(NewMessageActivity.createIntent(requireContext())));
+                startActivity(NewMessageActivity.createIntent(requireContext())));
     }
 
     private void showMessage(String message) {
