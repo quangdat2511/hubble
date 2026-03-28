@@ -157,14 +157,28 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             } else {
                 View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
                 TextView tvFileName = fileView.findViewById(R.id.tvFileName);
+                ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
 
                 String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
                 tvFileName.setText(fileName);
 
-                if (mimeType.contains("pdf")) tvFileType.setText("Tài liệu PDF");
-                else if (mimeType.contains("zip") || mimeType.contains("rar")) tvFileType.setText("Tệp nén");
-                else tvFileType.setText("Tệp đính kèm");
+                if (mimeType.contains("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
+                    tvFileType.setText("Tài liệu PDF");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+                }
+                else if (mimeType.contains("zip") || mimeType.contains("rar") || fileName.toLowerCase().endsWith(".zip")) {
+                    tvFileType.setText("Tệp nén");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+                }
+                else if (mimeType.contains("msword") || mimeType.contains("document") || fileName.toLowerCase().endsWith(".docx")) {
+                    tvFileType.setText("Tài liệu Word");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_generic); // Hoặc bạn tạo thêm ic_file_word nếu thích
+                }
+                else {
+                    tvFileType.setText("Tệp đính kèm");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_generic);
+                }
 
                 fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
                 container.addView(fileView);
