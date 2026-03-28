@@ -40,6 +40,8 @@ public enum ErrorCode {
     FRIEND_REQUEST_EXISTED(2001, "Lời mời kết bạn đã tồn tại", HttpStatus.BAD_REQUEST),
     FRIEND_REQUEST_NOT_FOUND(2002, "Lời mời kết bạn không tồn tại", HttpStatus.NOT_FOUND),
     ALREADY_FRIENDS(2003, "Hai người đã là bạn bè", HttpStatus.BAD_REQUEST),
+    CANNOT_FRIEND_SELF(2004, "Bạn không thể kết bạn với chính mình", HttpStatus.BAD_REQUEST),
+    FRIEND_REQUEST_FORBIDDEN(2005, "Không thể gửi lời mời do quan hệ chặn", HttpStatus.BAD_REQUEST),
 
     // Server / Kênh
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
