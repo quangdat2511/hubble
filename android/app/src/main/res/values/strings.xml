@@ -323,6 +323,8 @@
     <string name="role_perm_manage_expressions_desc">Cho phép thành viên chỉnh sửa hoặc xóa emoji, sticker và âm thanh tùy chỉnh trong máy chủ này.</string>
     <string name="role_perm_view_audit_log">Xem Nhật Ký Chỉnh Sửa</string>
     <string name="role_perm_view_audit_log_desc">Cho phép thành viên xem lịch sử thay đổi trong máy chủ này.</string>
+    <string name="role_perm_manage_server">Quản Lý Máy Chủ</string>
+    <string name="role_perm_manage_server_desc">Cho phép thành viên thay đổi tên, hình ảnh và cài đặt máy chủ.</string>
     <string name="role_perm_manage_webhooks">Quản lý Webhook</string>
     <string name="role_perm_manage_webhooks_desc">Cho phép thành viên tạo, chỉnh sửa, hoặc xóa webhook, bao gồm cả việc có thể đăng tin nhắn.</string>
 
@@ -355,6 +357,8 @@
     <string name="role_perm_attach_files_desc">Cho phép thành viên tải lên tệp hoặc tệp media trong kênh chat.</string>
     <string name="role_perm_add_reactions">Thêm Biểu Cảm</string>
     <string name="role_perm_add_reactions_desc">Cho phép thành viên thêm hiệu ứng tương tác emoji mới vào tin nhắn. Nếu không cấp quyền này, thành viên vẫn có thể sử dụng các tương tác đã được thêm.</string>
+    <string name="role_perm_use_external_emojis">Sử dụng Emoji Ngoài</string>
+    <string name="role_perm_use_external_emojis_desc">Cho phép thành viên sử dụng emoji từ các máy chủ khác trong máy chủ này.</string>
 
     <!-- Create Role Wizard -->
     <string name="create_role_title">Tạo một vai trò mới</string>
@@ -370,6 +374,7 @@
     <string name="color_picker_save">Lưu</string>
     <string name="color_picker_reset">Đặt lại</string>
     <string name="create_role_step">Bước %1$d/3</string>
+    <string name="role_members_empty">Vai trò này chưa có thành viên nào.</string>
 
     <!-- Create Role Step 2 - Permissions -->
     <string name="create_role_perm_title">Thiết lập quyền hạn</string>

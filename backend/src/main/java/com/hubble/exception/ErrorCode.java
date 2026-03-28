@@ -58,6 +58,14 @@ public enum ErrorCode {
 
     // Server icon
     NOT_SERVER_OWNER(3012, "Bạn không phải chủ sở hữu server", HttpStatus.FORBIDDEN),
+
+    // Roles
+    ROLE_NOT_FOUND(3020, "Vai trò không tồn tại", HttpStatus.NOT_FOUND),
+    ROLE_NAME_DUPLICATED(3021, "Tên vai trò đã tồn tại trong server", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_DEFAULT_ROLE(3022, "Không thể xoá vai trò mặc định", HttpStatus.BAD_REQUEST),
+    CANNOT_MODIFY_DEFAULT_ROLE_NAME(3023, "Không thể đổi tên vai trò mặc định", HttpStatus.BAD_REQUEST),
+    CANNOT_MANAGE_HIGHER_ROLE(3024, "Không thể quản lý vai trò có vị trí cao hơn", HttpStatus.FORBIDDEN),
+
     FILE_UPLOAD_FAILED(6001, "Không thể tải file lên", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_FILE_TYPE(6002, "Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (jpeg, png, gif, webp, svg)", HttpStatus.BAD_REQUEST);
 

@@ -67,4 +67,8 @@ public class RetrofitClient {
     public static ServerInviteService getServerInviteService(Context context) {
         return getRetrofit(context).create(ServerInviteService.class);
     }
+
+    public static RoleApiService getRoleApiService(Context context) {
+        return getRetrofit(context).create(RoleApiService.class);
+    }
 }

@@ -146,10 +146,15 @@ public class CreateRoleStep2Fragment extends Fragment {
         binding.sliderPreset.setTrackActiveTintList(ColorStateList.valueOf(color));
     }
 
+    private static final String[] PRESET_NAMES = {"DECORATIVE", "MEMBER", "MODERATOR", "ADMIN"};
+
     private void setupButtons() {
-        View.OnClickListener goToStep3 = v ->
-                ((ServerSettingsActivity) requireActivity()).navigateTo(
-                        CreateRoleStep3Fragment.newInstance(serverId, roleName, roleColor), true);
+        View.OnClickListener goToStep3 = v -> {
+            int position = (int) binding.sliderPreset.getValue();
+            String preset = PRESET_NAMES[position];
+            ((ServerSettingsActivity) requireActivity()).navigateTo(
+                    CreateRoleStep3Fragment.newInstance(serverId, roleName, roleColor, preset), true);
+        };
 
         binding.btnChoose.setOnClickListener(goToStep3);
         binding.btnSkip.setOnClickListener(goToStep3);

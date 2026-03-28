@@ -8,13 +8,17 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.server.RoleAdapter;
-import com.example.hubble.data.model.server.RoleMockData;
+import com.example.hubble.data.model.server.RoleResponse;
 import com.example.hubble.data.model.server.ServerRoleItem;
+import com.example.hubble.data.repository.RoleRepository;
 import com.example.hubble.databinding.FragmentRolesListBinding;
+import com.example.hubble.viewmodel.RolesViewModel;
+import com.example.hubble.viewmodel.RolesViewModelFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +31,7 @@ public class RolesListFragment extends Fragment {
 
     private FragmentRolesListBinding binding;
     private final List<ServerRoleItem> customRoles = new ArrayList<>();
-
+    private RolesViewModel viewModel;
     private String serverId;
 
     public static RolesListFragment newInstance(String serverId) {
@@ -54,21 +58,48 @@ public class RolesListFragment extends Fragment {
             serverId = getArguments().getString("server_id");
         }
 
+        viewModel = new ViewModelProvider(requireActivity(),
+                new RolesViewModelFactory(new RoleRepository(requireContext())))
+                .get(RolesViewModel.class);
+
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
-        // Load mock data
-        customRoles.clear();
-        customRoles.addAll(RoleMockData.getMockRoles());
-
-        // If no custom roles, redirect to empty state
-        if (customRoles.isEmpty()) {
-            ((ServerSettingsActivity) requireActivity()).navigateTo(
-                    RolesEmptyFragment.newInstance(serverId), false);
-            return;
-        }
-
-        setupRolesList();
         setupClickListeners();
+        observeRoles();
+
+        viewModel.loadRoles(serverId);
+    }
+
+    private void observeRoles() {
+        viewModel.roles.observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+            if (result.isSuccess() && result.getData() != null) {
+                customRoles.clear();
+                String everyoneRoleId = null;
+                for (RoleResponse r : result.getData()) {
+                    if (Boolean.TRUE.equals(r.getIsDefault())) {
+                        everyoneRoleId = r.getId();
+                        continue;
+                    }
+                    customRoles.add(new ServerRoleItem(
+                            r.getId(), r.getName(),
+                            r.getColor() != null ? r.getColor() : 0));
+                }
+                if (customRoles.isEmpty()) {
+                    ((ServerSettingsActivity) requireActivity()).navigateTo(
+                            RolesEmptyFragment.newInstance(serverId), false);
+                    return;
+                }
+                setupRolesList();
+                // Store everyone role id for navigation
+                final String eid = everyoneRoleId;
+                binding.rowEveryone.setOnClickListener(v ->
+                        ((ServerSettingsActivity) requireActivity()).navigateTo(
+                                RolePermissionsFragment.newInstance(
+                                        eid != null ? eid : "everyone", "@everyone", serverId),
+                                true));
+            }
+        });
     }
 
     private void setupRolesList() {
@@ -76,7 +107,7 @@ public class RolesListFragment extends Fragment {
 
         RoleAdapter adapter = new RoleAdapter(customRoles, role ->
                 ((ServerSettingsActivity) requireActivity()).navigateTo(
-                        RoleDetailFragment.newInstance(role.getId(), role.getName(), role.getColor()),
+                        RoleDetailFragment.newInstance(role.getId(), role.getName(), role.getColor(), serverId),
                         true));
 
         binding.rvRoles.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -84,19 +115,14 @@ public class RolesListFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        // @everyone → permissions
-        binding.rowEveryone.setOnClickListener(v ->
-                ((ServerSettingsActivity) requireActivity()).navigateTo(
-                        RolePermissionsFragment.newInstance("everyone", "@everyone"), true));
-
         // Add role
         binding.btnAddRole.setOnClickListener(v ->
                 ((ServerSettingsActivity) requireActivity()).navigateTo(
                         CreateRoleStep1Fragment.newInstance(serverId), true));
 
-        // Reorder (coming soon)
+        // Reorder
         binding.btnReorder.setOnClickListener(v -> {
-            // TODO: implement when backend is ready
+            // TODO: implement reorder UI
         });
     }
 

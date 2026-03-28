@@ -4,14 +4,17 @@ import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.entity.Channel;
+import com.hubble.entity.Role;
 import com.hubble.entity.Server;
 import com.hubble.entity.ServerMember;
 import com.hubble.enums.ChannelType;
+import com.hubble.enums.Permission;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ChannelMapper;
 import com.hubble.mapper.ServerMapper;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.RoleRepository;
 import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +48,7 @@ public class ServerService {
     private final ServerRepository serverRepository;
     private final ServerMemberRepository serverMemberRepository;
     private final ChannelRepository channelRepository;
+    private final RoleRepository roleRepository;
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
     private final String supabaseUrl;
@@ -55,6 +59,7 @@ public class ServerService {
             ServerRepository serverRepository,
             ServerMemberRepository serverMemberRepository,
             ChannelRepository channelRepository,
+            RoleRepository roleRepository,
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
             @Value("${supabase.url}") String supabaseUrl,
@@ -63,6 +68,7 @@ public class ServerService {
         this.serverRepository = serverRepository;
         this.serverMemberRepository = serverMemberRepository;
         this.channelRepository = channelRepository;
+        this.roleRepository = roleRepository;
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
         this.supabaseUrl = supabaseUrl;
@@ -114,6 +120,24 @@ public class ServerService {
         serverMemberRepository.save(ServerMember.builder()
                 .serverId(server.getId())
                 .userId(userId)
+                .build());
+
+        // Create default @everyone role
+        roleRepository.save(Role.builder()
+                .serverId(server.getId())
+                .name("@everyone")
+                .color(0)
+                .permissions(Permission.buildBitmask(List.of(
+                        Permission.VIEW_CHANNELS,
+                        Permission.SEND_MESSAGES,
+                        Permission.EMBED_LINKS,
+                        Permission.ATTACH_FILES,
+                        Permission.ADD_REACTIONS,
+                        Permission.USE_EXTERNAL_EMOJIS,
+                        Permission.CHANGE_NICKNAME,
+                        Permission.CREATE_INVITE)))
+                .position((short) 0)
+                .isDefault(true)
                 .build());
 
         createDefaultChannels(server.getId());
