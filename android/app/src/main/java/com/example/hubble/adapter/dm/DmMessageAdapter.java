@@ -1,10 +1,12 @@
 package com.example.hubble.adapter.dm;
 
+import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
@@ -159,7 +161,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 TextView tvFileName = fileView.findViewById(R.id.tvFileName);
                 ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
-
+                ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
                 String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
                 tvFileName.setText(fileName);
 
@@ -194,6 +196,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     tvFileType.setText("Tệp đính kèm");
                     ivFileIcon.setImageResource(R.drawable.ic_file_generic);
                 }
+
+                ivSaveIcon.setOnClickListener(v -> {
+                    downloadFile(container.getContext(), url, fileName);
+                });
 
                 fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
                 container.addView(fileView);
@@ -363,6 +369,34 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             } catch (Exception ex) {
                 Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
+
+    private static void downloadFile(Context context, String url, String fileName) {
+        if (url == null || url.isEmpty()) return;
+
+        String safeFileName = fileName;
+        if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+        if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+        safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        try {
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            request.setTitle(safeFileName);
+            request.setDescription("Đang tải tệp đính kèm...");
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+
+            // Đã dùng tên file SẠCH để lưu
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
+
+            DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            if (downloadManager != null) {
+                downloadManager.enqueue(request);
+                Toast.makeText(context, "Bắt đầu tải " + safeFileName + "...", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 }
