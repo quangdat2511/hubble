@@ -1,6 +1,7 @@
 package com.hubble.security;
 
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final UserSessionRepository userSessionRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -34,8 +36,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 if (jwtService.validateToken(token)) {
                     UUID userId = jwtService.getUserIdFromToken(token);
+                    UUID sessionId = jwtService.getSessionIdFromToken(token);
 
-                    // Verify user exists in database
+                    if (sessionId != null) {
+                        boolean isActive = userSessionRepository.findById(sessionId)
+                                .map(session -> session.getIsActive())
+                                .orElse(false);
+                        if (!isActive) {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"code\": 401, \"message\": \"Phiên đăng nhập đã hết hạn hoặc bị thu hồi\"}");
+                            return;
+                        }
+                    }
+
                     userRepository.findById(userId).ifPresent(user -> {
                         UserPrincipal principal = new UserPrincipal(userId);
                         UsernamePasswordAuthenticationToken authentication =

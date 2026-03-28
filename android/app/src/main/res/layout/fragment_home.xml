@@ -118,6 +118,13 @@
                     app:icon="@drawable/ic_person"
                     app:iconTint="?attr/colorOnSurfaceVariant" />
 
+                <ImageButton
+                    android:id="@+id/btnPendingRequests"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_notifications"
+                    app:tint="?attr/colorOnSurface" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

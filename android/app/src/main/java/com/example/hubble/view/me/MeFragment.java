@@ -17,6 +17,8 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
+import com.example.hubble.view.friend.BlockedUsersActivity;
+import com.example.hubble.view.friend.OutgoingRequestsActivity;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
@@ -82,7 +84,19 @@ public class MeFragment extends Fragment {
         binding.btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), SettingsActivity.class)));
 
-        // Stub actions
+        // Mở màn hình Lời mời đã gửi
+        binding.btnOutgoingRequests.setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), OutgoingRequestsActivity.class);
+            startActivity(intent);
+        });
+
+        // Mở màn hình Người dùng đã chặn
+        binding.btnBlockedUsers.setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), BlockedUsersActivity.class);
+            startActivity(intent);
+        });
+
+        // Stub actions (Các nút cũ)
         binding.btnAddStatus.setOnClickListener(v ->
                 Snackbar.make(view,
                         getString(R.string.main_coming_soon),
