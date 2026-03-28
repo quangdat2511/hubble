@@ -163,17 +163,32 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
                 tvFileName.setText(fileName);
 
-                if (mimeType.contains("pdf") || fileName.toLowerCase().endsWith(".pdf")) {
+                String lowerMime = mimeType.toLowerCase();
+                String lowerName = fileName.toLowerCase();
+
+                if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
                     tvFileType.setText("Tài liệu PDF");
                     ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
                 }
-                else if (mimeType.contains("zip") || mimeType.contains("rar") || fileName.toLowerCase().endsWith(".zip")) {
+                else if (lowerMime.contains("word") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+                    tvFileType.setText("Tài liệu Word");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+                }
+                else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+                    tvFileType.setText("Bảng tính Excel");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+                }
+                else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
+                    tvFileType.setText("Bài thuyết trình");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+                }
+                else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
                     tvFileType.setText("Tệp nén");
                     ivFileIcon.setImageResource(R.drawable.ic_file_zip);
                 }
-                else if (mimeType.contains("msword") || mimeType.contains("document") || fileName.toLowerCase().endsWith(".docx")) {
-                    tvFileType.setText("Tài liệu Word");
-                    ivFileIcon.setImageResource(R.drawable.ic_file_generic); // Hoặc bạn tạo thêm ic_file_word nếu thích
+                else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
+                    tvFileType.setText("Tệp văn bản");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_text);
                 }
                 else {
                     tvFileType.setText("Tệp đính kèm");

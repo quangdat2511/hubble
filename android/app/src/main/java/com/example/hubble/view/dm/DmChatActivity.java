@@ -291,10 +291,35 @@ public class DmChatActivity extends AppCompatActivity {
         } else {
             ivPreview.setVisibility(View.GONE);
             ivFileIcon.setVisibility(View.VISIBLE);
+
+            String lowerMime = contentType != null ? contentType.toLowerCase() : "";
+            String lowerName = filename != null ? filename.toLowerCase() : "";
+
+            if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+            }
+            else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+            }
+            else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+            }
+            else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+            }
+            else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+            }
+            else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
+                ivFileIcon.setImageResource(R.drawable.ic_file_text);
+            }
+            else {
+                ivFileIcon.setImageResource(R.drawable.ic_file_generic);
+            }
         }
 
         btnRemove.setOnClickListener(v -> {
-            binding.llAttachmentPreviews.removeView(previewView); // Chỉ xóa đúng cái ảnh này
+            binding.llAttachmentPreviews.removeView(previewView); // Chỉ xóa đúng cái ảnh/file này
 
             int index = pendingAttachmentIds.indexOf(attachmentId);
             if (index != -1) {
@@ -302,7 +327,7 @@ public class DmChatActivity extends AppCompatActivity {
                 pendingAttachmentTypes.remove(index);
             }
 
-            // Nếu đã bấm X xóa hết sạch ảnh rồi thì ẩn luôn thanh cuộn đi
+            // Nếu đã bấm X xóa hết sạch ảnh/file rồi thì ẩn luôn thanh cuộn đi
             if (pendingAttachmentIds.isEmpty()) {
                 clearAttachmentPreview();
             }
