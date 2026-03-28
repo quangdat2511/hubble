@@ -186,4 +186,25 @@
     <string name="cd_close">Close</string>
     <string name="cd_emoji_picker">Emoji picker</string>
     <string name="emoji_search_hint">Find the perfect emoji</string>
+
+    <!-- Message actions / forward -->
+    <string name="reply">Reply</string>
+    <string name="forward">Forward</string>
+    <string name="copy_text">Copy Text</string>
+    <string name="edit_message">Edit Message</string>
+    <string name="unsend_message">Unsend Message</string>
+    <string name="empty_message_error">Vui lòng nhập nội dung tin nhắn</string>
+    <string name="pin_message">Pin Message</string>
+    <string name="reply_to">Trả lời %1$s</string>
+    <string name="reply_cancel">Hủy trả lời</string>
+    <string name="cd_reply_cancel">Hủy trả lời tin nhắn</string>
+    <string name="forward_to">Forward To</string>
+    <string name="search">Search</string>
+    <string name="send">Send</string>
+    <string name="add_optional_message">Add an optional message...</string>
+    <string name="copied_message_text">Copied Message Text</string>
+    <string name="forward_sent_count">Đã chuyển tiếp %1$d cuộc trò chuyện</string>
+    <string name="forward_no_target">Hãy chọn ít nhất một nơi nhận</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 </resources>

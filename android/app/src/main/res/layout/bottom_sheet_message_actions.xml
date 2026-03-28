@@ -115,6 +115,30 @@
             app:iconPadding="12dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/actionEdit"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="@string/edit_message"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_edit"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/actionUnsend"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="@string/unsend_message"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_close"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/actionPin"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="match_parent"

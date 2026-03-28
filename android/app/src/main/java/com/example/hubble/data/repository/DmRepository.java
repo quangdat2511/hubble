@@ -9,6 +9,7 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -153,12 +154,16 @@ public class DmRepository {
     }
 
     public void sendMessage(String channelId, String content, RepositoryCallback<MessageDto> callback) {
+        sendMessage(channelId, null, content, callback);
+    }
+
+    public void sendMessage(String channelId, String replyToId, String content, RepositoryCallback<MessageDto> callback) {
         String token = requireAuthToken(callback);
         if (token == null) {
             return;
         }
 
-        CreateMessageRequest request = new CreateMessageRequest(channelId, null, content);
+        CreateMessageRequest request = new CreateMessageRequest(channelId, replyToId, content);
         apiService.sendMessage(token, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
             @Override
             public void onResponse(Call<ApiResponse<MessageDto>> call, Response<ApiResponse<MessageDto>> response) {
@@ -167,6 +172,53 @@ public class DmRepository {
                     return;
                 }
                 callback.onResult(com.example.hubble.data.model.AuthResult.error("Không gửi được tin nhắn"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(com.example.hubble.data.model.AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void editMessage(String messageId, String content, RepositoryCallback<MessageDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        UpdateMessageRequest request = new UpdateMessageRequest(content);
+        apiService.editMessage(token, messageId, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MessageDto>> call, Response<ApiResponse<MessageDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(com.example.hubble.data.model.AuthResult.error("Không chỉnh sửa được tin nhắn"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(com.example.hubble.data.model.AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void unsendMessage(String messageId, RepositoryCallback<MessageDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.unsendMessage(token, messageId).enqueue(new Callback<ApiResponse<MessageDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MessageDto>> call, Response<ApiResponse<MessageDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(com.example.hubble.data.model.AuthResult.error("Không thu hồi được tin nhắn"));
             }
 
             @Override
