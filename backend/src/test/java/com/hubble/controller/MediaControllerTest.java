@@ -4,6 +4,7 @@ import com.hubble.dto.response.UploadResponse;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.service.MediaService;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,9 @@ class MediaControllerTest {
 
     @MockBean
     UserRepository userRepository;
+
+    @MockBean
+    UserSessionRepository userSessionRepository;
 
     private MockMultipartFile validFile() {
         return new MockMultipartFile(
