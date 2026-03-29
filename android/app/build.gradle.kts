@@ -57,8 +57,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-runtime:${lifecycle_version}")
-    implementation("com.github.bumptech.glide:glide:5.0.5")
-    implementation("com.github.yalantis:ucrop:2.2.11")
+
     implementation("com.hbb20:ccp:2.5.0")
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

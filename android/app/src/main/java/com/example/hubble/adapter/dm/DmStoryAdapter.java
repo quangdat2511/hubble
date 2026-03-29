@@ -15,12 +15,7 @@ import java.util.List;
 
 public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHolder> {
 
-    public interface OnStoryClickListener {
-        void onStoryClick(DmConversationItem item);
-    }
-
     private final List<DmConversationItem> items = new ArrayList<>();
-    private OnStoryClickListener listener;
 
     public void setItems(List<DmConversationItem> newItems) {
         items.clear();
@@ -28,10 +23,6 @@ public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHold
             items.addAll(newItems);
         }
         notifyDataSetChanged();
-    }
-
-    public void setOnStoryClickListener(OnStoryClickListener listener) {
-        this.listener = listener;
     }
 
     @NonNull
@@ -52,7 +43,7 @@ public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHold
         return items.size();
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    static class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemDmStoryBinding binding;
 
         ViewHolder(ItemDmStoryBinding binding) {
@@ -63,11 +54,6 @@ public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHold
         void bind(DmConversationItem item) {
             binding.tvInitial.setText(item.getDisplayName().substring(0, 1).toUpperCase());
             binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
-            binding.getRoot().setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onStoryClick(item);
-                }
-            });
         }
     }
 }

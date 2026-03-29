@@ -106,8 +106,8 @@
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
-    <string name="me_outgoing_requests">Outgoing requests</string>
-    <string name="me_blocked_users">Blocked users</string>
+    <string name="me_outgoing_requests">Lời mời đã gửi</string>
+    <string name="me_blocked_users">Người dùng đã chặn</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>

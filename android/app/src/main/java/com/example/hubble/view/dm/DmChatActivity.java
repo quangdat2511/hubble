@@ -160,7 +160,6 @@ public class DmChatActivity extends AppCompatActivity {
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        updateConversationUiState();
         loadPeerProfile();
         loadMessageHistory();
 
@@ -671,7 +670,6 @@ public class DmChatActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     List<DmMessageItem> items = mapMessages(ordered);
                     adapter.setItems(items);
-                    updateConversationUiState();
                     if (!items.isEmpty()) binding.rvMessages.scrollToPosition(items.size() - 1);
                 });
             }
@@ -864,17 +862,7 @@ public class DmChatActivity extends AppCompatActivity {
         if (dto == null) return;
         DmMessageItem item = mapMessage(dto);
         adapter.upsertItem(item);
-        updateConversationUiState();
         if (adapter.getItemCount() > 0) binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
-    }
-
-    private void updateConversationUiState() {
-        if (binding == null || adapter == null) {
-            return;
-        }
-
-        boolean hasMessages = adapter.getItemCount() > 0;
-        binding.layoutDmProfileIntro.setVisibility(hasMessages ? View.GONE : View.VISIBLE);
     }
 
     private DmMessageItem mapMessage(MessageDto dto) {
@@ -1018,7 +1006,6 @@ public class DmChatActivity extends AppCompatActivity {
             dmRepository.unsendMessage(item.getId(), result -> runOnUiThread(() -> {
                 if (result.isSuccess()) {
                     adapter.removeItemById(item.getId());
-                    updateConversationUiState();
                     if (result.getData() != null) appendOrUpdateMessage(result.getData());
                 } else if (result.getMessage() != null) {
                     Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();

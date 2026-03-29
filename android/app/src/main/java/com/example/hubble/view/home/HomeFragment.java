@@ -197,8 +197,6 @@ public class HomeFragment extends Fragment {
                 storyAdapter.setItems(stories);
             }
         });
-
-        storyAdapter.setOnStoryClickListener(this::openConversation);
     }
 
     private void setupConversations(MainViewModel viewModel) {
@@ -212,7 +210,20 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        conversationAdapter.setOnConversationClickListener(this::openConversation);
+        conversationAdapter.setOnConversationClickListener(item -> {
+            if (item.hasChannelId()) {
+                startActivity(DmChatActivity.createIntent(requireContext(), item.getChannelId(), item.getDisplayName()));
+                return;
+            }
+
+            String friendId = item.getFriendId();
+            if (friendId == null || friendId.trim().isEmpty()) {
+                showMessage(getString(R.string.error_generic));
+                return;
+            }
+            pendingDmDisplayName = item.getDisplayName();
+            viewModel.openOrCreateDirectChannel(friendId);
+        });
 
         viewModel.openDmState.observe(getViewLifecycleOwner(), result -> {
             if (result == null || result.getStatus() == AuthResult.Status.LOADING) {
@@ -241,26 +252,6 @@ public class HomeFragment extends Fragment {
                 showMessage(message);
             }
         });
-    }
-
-    private void openConversation(@NonNull com.example.hubble.data.model.dm.DmConversationItem item) {
-        if (item.hasChannelId()) {
-            startActivity(DmChatActivity.createIntent(
-                    requireContext(),
-                    item.getChannelId(),
-                    item.getDisplayName()
-            ));
-            return;
-        }
-
-        String friendId = item.getFriendId();
-        if (friendId == null || friendId.trim().isEmpty()) {
-            showMessage(getString(R.string.error_generic));
-            return;
-        }
-
-        pendingDmDisplayName = item.getDisplayName();
-        viewModel.openOrCreateDirectChannel(friendId);
     }
 
     private void setupActions(View view) {

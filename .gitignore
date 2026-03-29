@@ -40,15 +40,6 @@ nb-configuration.xml
 # ==================== MAVEN ====================
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
-.m2repo/
-
-# ==================== GRADLE / ANDROID ====================
-.gradle/
-android/.gradle/
-android/.gradle-home/
-android/build/
-android/app/build/
-android/local.properties
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm
