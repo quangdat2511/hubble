@@ -1,10 +1,13 @@
 package com.example.hubble.view.dm;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,43 +15,47 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.activity.OnBackPressedCallback;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
+import com.example.hubble.adapter.dm.ForwardTargetAdapter;
+import com.example.hubble.adapter.dm.ReplySwipeCallback;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
-import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
+import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
+import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
+import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.MediaViewModel;
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
-
-import ua.naiksoftware.stomp.Stomp;
-import ua.naiksoftware.stomp.StompClient;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.schedulers.Schedulers;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,17 +63,26 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
+import ua.naiksoftware.stomp.Stomp;
+import ua.naiksoftware.stomp.StompClient;
 
 public class DmChatActivity extends AppCompatActivity {
 
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
 
-    // Constants cho bàn phím
     private static final float KEYBOARD_HEIGHT_RATIO = 0.15f;
     private static final int DEFAULT_PANEL_DP = 300;
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
     private ActivityDmChatBinding binding;
     private DmMessageAdapter adapter;
@@ -74,36 +90,37 @@ public class DmChatActivity extends AppCompatActivity {
     private TokenManager tokenManager;
     private MediaViewModel mediaViewModel;
 
-    // STOMP (Từ nhánh main)
     private StompClient stompClient;
     private CompositeDisposable disposables = new CompositeDisposable();
     private final Gson gson = new Gson();
 
-    // Dữ liệu người dùng & UI
     private String channelId;
     private String currentUserId;
     private String currentUserName;
-    private String peerName;
-    private String lastMessageSnapshot = "";
-    private final List<MessageDto> cachedMessagesDesc = new ArrayList<>();
+    private String currentUserAvatarUrl;
+    private String peerDisplayName;
+    private String peerUsername;
+    private String peerAvatarUrl;
 
-    // File / Media (Từ nhánh media)
+    // Emoji/keyboard state (Main)
+    private boolean isEmojiPanelVisible = false;
+    private int keyboardHeight = 0;
+    private boolean pendingShowKeyboard = false;
+    private DmMessageItem replyingToItem;
+    private DmMessageItem editingItem;
+
+    // File / Media state (Của bạn)
     private final List<String> pendingAttachmentIds = new ArrayList<>();
     private final List<String> pendingAttachmentTypes = new ArrayList<>();
     private MediaRecorder mediaRecorder;
     private File audioFile;
     private boolean isRecording = false;
-    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
-
-    // Đếm thời gian ghi âm
     private int recordSeconds = 0;
     private Handler recordHandler = new Handler(Looper.getMainLooper());
     private Runnable recordRunnable;
 
-    // Bàn phím / Emoji (Từ nhánh main)
-    private boolean isEmojiPanelVisible = false;
-    private int keyboardHeight = 0;
-    private boolean pendingShowKeyboard = false;
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable hideCopyBannerRunnable = this::hideCopyBanner;
 
     public static Intent createIntent(Context context, String channelId, String username) {
         Intent intent = new Intent(context, DmChatActivity.class);
@@ -125,28 +142,35 @@ public class DmChatActivity extends AppCompatActivity {
 
         UserResponse user = tokenManager.getUser();
         if (user != null) {
-            currentUserName = user.getDisplayName() != null ? user.getDisplayName() : user.getUsername();
+            currentUserName = firstNonBlank(user.getDisplayName(), user.getUsername());
+            currentUserAvatarUrl = user.getAvatarUrl();
         }
         if (currentUserName == null) currentUserName = getString(R.string.dm_me);
 
         channelId = getIntent().getStringExtra(EXTRA_CHANNEL_ID);
-        peerName = getIntent().getStringExtra(EXTRA_USERNAME);
-        if (TextUtils.isEmpty(peerName)) peerName = getString(R.string.dm_default_user);
+        peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
+        if (TextUtils.isEmpty(peerDisplayName)) {
+            peerDisplayName = getString(R.string.dm_default_user);
+        }
+        peerUsername = peerDisplayName;
 
-        setupToolbar(peerName);
+        setupToolbar();
+        setupProfileIntro();
         setupMessageList();
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        loadMessages(false);
+        loadPeerProfile();
+        loadMessageHistory();
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 if (isEmojiPanelVisible) {
-                    hideEmojiPanel(false); // Nếu đang mở bảng Emoji thì đóng lại
+                    hideEmojiPanel(false);
                 } else {
-                    setEnabled(false); // Tắt cờ bắt sự kiện này
-                    getOnBackPressedDispatcher().onBackPressed(); // Gọi lệnh Back mặc định (thoát ra)
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
                 }
             }
         });
@@ -167,26 +191,91 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        uiHandler.removeCallbacksAndMessages(null);
         disposables.clear();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Setup UI cơ bản
+    // Setup UI & Peer info (Main)
     // ─────────────────────────────────────────────────────────────────────────
 
-    private void setupToolbar(String username) {
+    private void setupToolbar() {
         setSupportActionBar(binding.toolbar);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.tvHeaderName.setText(username);
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, username));
+        refreshPeerUi();
     }
+
+    private void setupProfileIntro() {
+        binding.tvProfileIntroDisplayName.setText(peerDisplayName);
+        binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
+        binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
+
+        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivProfileIntroAvatar);
+    }
+
+    private void loadPeerProfile() {
+        if (TextUtils.isEmpty(channelId)) return;
+        dmRepository.getDirectChannels(result -> {
+            if (result.getStatus() != AuthResult.Status.SUCCESS || result.getData() == null) return;
+            for (ChannelDto channel : result.getData()) {
+                if (channel != null && channelId.equals(channel.getId())) {
+                    runOnUiThread(() -> applyPeerProfile(channel));
+                    return;
+                }
+            }
+        });
+    }
+
+    private void applyPeerProfile(ChannelDto channel) {
+        peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
+        peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
+        peerAvatarUrl = firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl);
+        refreshPeerUi();
+    }
+
+    private void refreshPeerUi() {
+        if (TextUtils.isEmpty(peerDisplayName)) peerDisplayName = getString(R.string.dm_default_user);
+        binding.tvHeaderName.setText(peerDisplayName);
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.tvProfileIntroDisplayName.setText(peerDisplayName);
+        binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
+        binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
+        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivHeaderAvatar);
+        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivProfileIntroAvatar);
+        if (adapter != null) adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+    }
+
+    private String formatUsername(String username) {
+        String safeUsername = firstNonBlank(username, peerDisplayName, getString(R.string.dm_default_user));
+        return getString(R.string.dm_username_format, safeUsername);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) return value;
+        }
+        return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Danh sách tin nhắn (Merge: Swipe to Reply, List, Touch)
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void setupMessageList() {
         adapter = new DmMessageAdapter();
+        adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+        adapter.setOnMessageLongClickListener((item, anchorView) -> showMessageActionsSheet(item));
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         binding.rvMessages.setLayoutManager(layoutManager);
         binding.rvMessages.setAdapter(adapter);
+
+        ReplySwipeCallback swipeCallback = new ReplySwipeCallback(this, position -> {
+            DmMessageItem item = adapter.getItem(position);
+            if (item != null) startReply(item);
+        });
+        new ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.rvMessages);
 
         binding.rvMessages.setOnTouchListener((v, event) -> {
             if (isEmojiPanelVisible) hideEmojiPanel(false);
@@ -194,8 +283,14 @@ public class DmChatActivity extends AppCompatActivity {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Composer & Media (Merge)
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void setupComposer() {
         binding.btnSend.setOnClickListener(v -> attemptSendMessage());
+        binding.btnCancelReply.setOnClickListener(v -> clearReply());
+        binding.btnCancelEdit.setOnClickListener(v -> clearEditMode(true));
 
         binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -206,16 +301,10 @@ public class DmChatActivity extends AppCompatActivity {
             return false;
         });
 
-        // Click Emoji -> Mở Keyboard
-        binding.etComposer.setOnClickListener(v -> {
-            if (isEmojiPanelVisible) hideEmojiPanel(true);
-        });
+        binding.etComposer.setOnClickListener(v -> { if (isEmojiPanelVisible) hideEmojiPanel(true); });
+        binding.etComposer.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus && isEmojiPanelVisible) hideEmojiPanel(true); });
 
-        binding.etComposer.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus && isEmojiPanelVisible) hideEmojiPanel(true);
-        });
-
-        // Nút Media
+        // Nút Media (Của bạn)
         binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
         binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
@@ -236,13 +325,12 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // File Picker & Upload (Nhánh Media)
+    // File Picker & Upload (Của bạn)
     // ─────────────────────────────────────────────────────────────────────────
 
-    private final ActivityResultLauncher<String> filePickerLauncher =
-            registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), uris -> {
-                if (uris != null && !uris.isEmpty()) handleFilesSelected(uris);
-            });
+    private final ActivityResultLauncher<String> filePickerLauncher = registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), uris -> {
+        if (uris != null && !uris.isEmpty()) handleFilesSelected(uris);
+    });
 
     private void handleFilesSelected(List<Uri> uris) {
         binding.btnAttach.setEnabled(false);
@@ -260,7 +348,8 @@ public class DmChatActivity extends AppCompatActivity {
                     case SUCCESS:
                         pendingAttachmentIds.add(result.data.getAttachmentId());
                         pendingAttachmentTypes.add(result.data.getContentType());
-                        showAttachmentPreview(uri, result.data.getAttachmentId(), result.data.getContentType(), result.data.getFilename());                        completed[0]++;
+                        showAttachmentPreview(uri, result.data.getAttachmentId(), result.data.getContentType(), result.data.getFilename());
+                        completed[0]++;
                         if (completed[0] == total) {
                             binding.btnAttach.setEnabled(true);
                             Snackbar.make(binding.getRoot(), total + " file(s) ready", Snackbar.LENGTH_SHORT).show();
@@ -282,7 +371,7 @@ public class DmChatActivity extends AppCompatActivity {
         View previewView = getLayoutInflater().inflate(R.layout.item_attachment_preview, binding.llAttachmentPreviews, false);
         ImageView ivPreview = previewView.findViewById(R.id.ivPreview);
         ImageView ivFileIcon = previewView.findViewById(R.id.ivFileIcon);
-        View btnRemove = previewView.findViewById(R.id.btnRemove); // Đổi kiểu thành View chung
+        View btnRemove = previewView.findViewById(R.id.btnRemove);
 
         if (contentType != null && (contentType.startsWith("image/") || contentType.startsWith("video/"))) {
             ivPreview.setVisibility(View.VISIBLE);
@@ -295,42 +384,23 @@ public class DmChatActivity extends AppCompatActivity {
             String lowerMime = contentType != null ? contentType.toLowerCase() : "";
             String lowerName = filename != null ? filename.toLowerCase() : "";
 
-            if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
-            }
-            else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_docx);
-            }
-            else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_excel);
-            }
-            else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
-            }
-            else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_zip);
-            }
-            else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
-                ivFileIcon.setImageResource(R.drawable.ic_file_text);
-            }
-            else {
-                ivFileIcon.setImageResource(R.drawable.ic_file_generic);
-            }
+            if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+            else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+            else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+            else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+            else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+            else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) ivFileIcon.setImageResource(R.drawable.ic_file_text);
+            else ivFileIcon.setImageResource(R.drawable.ic_file_generic);
         }
 
         btnRemove.setOnClickListener(v -> {
-            binding.llAttachmentPreviews.removeView(previewView); // Chỉ xóa đúng cái ảnh/file này
-
+            binding.llAttachmentPreviews.removeView(previewView);
             int index = pendingAttachmentIds.indexOf(attachmentId);
             if (index != -1) {
                 pendingAttachmentIds.remove(index);
                 pendingAttachmentTypes.remove(index);
             }
-
-            // Nếu đã bấm X xóa hết sạch ảnh/file rồi thì ẩn luôn thanh cuộn đi
-            if (pendingAttachmentIds.isEmpty()) {
-                clearAttachmentPreview();
-            }
+            if (pendingAttachmentIds.isEmpty()) clearAttachmentPreview();
         });
 
         binding.llAttachmentPreviews.addView(previewView);
@@ -341,12 +411,12 @@ public class DmChatActivity extends AppCompatActivity {
         pendingAttachmentTypes.clear();
         binding.attachmentPreviewBar.setVisibility(View.GONE);
         binding.llAttachmentPreviews.removeAllViews();
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
         binding.btnAttach.setEnabled(true);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Ghi âm (Nhánh Media)
+    // Ghi âm (Của bạn)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void startRecording() {
@@ -394,7 +464,7 @@ public class DmChatActivity extends AppCompatActivity {
             }
 
             recordHandler.removeCallbacks(recordRunnable);
-            binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerName));
+            binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
 
             if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordSeconds >= 1) {
                 uploadVoiceAndSend(audioFile);
@@ -411,15 +481,17 @@ public class DmChatActivity extends AppCompatActivity {
             if (result.status == com.example.hubble.data.repository.MediaRepository.UploadResult.Status.SUCCESS) {
                 List<String> attachIds = new ArrayList<>();
                 attachIds.add(result.data.getAttachmentId());
-                dmRepository.sendMessage(channelId, "", attachIds, "VOICE", sendResult -> {
-                    if (sendResult.getStatus() == AuthResult.Status.SUCCESS) loadMessages(false);
+                dmRepository.sendMessage(channelId, null, "", attachIds, "VOICE", sendResult -> {
+                    if (sendResult.getStatus() == AuthResult.Status.SUCCESS) {
+                        runOnUiThread(() -> appendMessage(sendResult.getData()));
+                    }
                 });
             }
         });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Emoji & Bàn phím (Nhánh Main)
+    // Emoji & Keyboard (Main)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void setupEmojiPanel() {
@@ -440,10 +512,15 @@ public class DmChatActivity extends AppCompatActivity {
     private void sendMediaMessage(String content) {
         if (TextUtils.isEmpty(channelId)) return;
         hideEmojiPanel(false);
-        // Gửi Giphy/Sticker như một TEXT kèm danh sách đính kèm trống
-        dmRepository.sendMessage(channelId, content, new ArrayList<>(), "TEXT", result -> {
-            if (result.getStatus() == AuthResult.Status.SUCCESS) loadMessages(false);
+        clearEditMode(false);
+        String replyId = replyingToItem != null ? replyingToItem.getId() : null;
+
+        dmRepository.sendMessage(channelId, replyId, content, new ArrayList<>(), "TEXT", result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> appendMessage(result.getData()));
+            }
         });
+        clearReply();
     }
 
     private static String encodeMediaContent(String title, String url) {
@@ -542,12 +619,23 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Gửi và Tải Tin nhắn (Kết hợp Main + Media)
+    // Messaging (Merge Main logic with Media Payload)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void attemptSendMessage() {
-        String content = binding.etComposer.getText() == null ? "" : binding.etComposer.getText().toString().trim();
-        if (content.isEmpty() && pendingAttachmentIds.isEmpty()) return;
+        String content = binding.etComposer.getText() == null ? "" : binding.etComposer.getText().toString();
+        String trimmed = content.trim();
+
+        if (trimmed.isEmpty() && pendingAttachmentIds.isEmpty()) return;
+        if (TextUtils.isEmpty(channelId)) return;
+
+        if (editingItem != null) {
+            commitEdit(trimmed);
+            return;
+        }
+
+        binding.etComposer.setText("");
+        String replyId = replyingToItem != null ? replyingToItem.getId() : null;
 
         String messageType = "TEXT";
         if (!pendingAttachmentTypes.isEmpty()) {
@@ -560,51 +648,185 @@ public class DmChatActivity extends AppCompatActivity {
             messageType = hasFile ? "FILE" : "IMAGE";
         }
 
-        dmRepository.sendMessage(channelId, content, pendingAttachmentIds, messageType, result -> {
-            if (result.getStatus() == AuthResult.Status.SUCCESS) {
-                binding.etComposer.post(() -> {
-                    binding.etComposer.setText("");
+        dmRepository.sendMessage(channelId, replyId, trimmed, pendingAttachmentIds, messageType, result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> {
+                    appendMessage(result.getData());
                     clearAttachmentPreview();
                 });
-                loadMessages(false);
-            } else {
-                String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
-                Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_SHORT).show();
+            } else if (result.getMessage() != null) {
+                Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
             }
         });
+        clearReply();
     }
 
-    private void loadMessages(boolean silent) {
+    private void loadMessageHistory() {
         if (TextUtils.isEmpty(channelId)) return;
         dmRepository.getMessages(channelId, 0, 50, result -> {
-            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                String snapshot = buildMessageSnapshot(result.getData());
-                if (snapshot.equals(lastMessageSnapshot)) return;
-
-                List<DmMessageItem> mapped = mapMessages(result.getData());
-                synchronized (cachedMessagesDesc) {
-                    cachedMessagesDesc.clear();
-                    cachedMessagesDesc.addAll(result.getData());
-                }
-                adapter.setItems(mapped);
-                lastMessageSnapshot = snapshot;
-                if (!mapped.isEmpty()) binding.rvMessages.scrollToPosition(mapped.size() - 1);
-            } else if (!silent) {
-                String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
-                Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_SHORT).show();
+            if (result.getData() != null) {
+                List<MessageDto> ordered = new ArrayList<>(result.getData());
+                Collections.reverse(ordered);
+                runOnUiThread(() -> {
+                    List<DmMessageItem> items = mapMessages(ordered);
+                    adapter.setItems(items);
+                    if (!items.isEmpty()) binding.rvMessages.scrollToPosition(items.size() - 1);
+                });
             }
         });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // STOMP Connection (Từ nhánh Main) + Render list (Từ nhánh Media)
+    // Actions & Menus (Main)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void showMessageActionsSheet(DmMessageItem item) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        BottomSheetMessageActionsBinding sheet = BottomSheetMessageActionsBinding.inflate(getLayoutInflater());
+        dialog.setContentView(sheet.getRoot());
+        boolean canModify = item != null && item.isMine() && !item.isDeleted();
+        sheet.actionEdit.setVisibility(canModify ? View.VISIBLE : View.GONE);
+        sheet.actionUnsend.setVisibility(canModify ? View.VISIBLE : View.GONE);
+
+        View.OnClickListener reactionClick = v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show();
+        sheet.chipReactionOk.setOnClickListener(reactionClick);
+        sheet.chipReactionLike.setOnClickListener(reactionClick);
+        sheet.chipReactionTwo.setOnClickListener(reactionClick);
+        sheet.chipReactionHeart.setOnClickListener(reactionClick);
+        sheet.chipReactionThree.setOnClickListener(reactionClick);
+
+        sheet.actionReply.setOnClickListener(v -> { dialog.dismiss(); startReply(item); });
+        sheet.actionForward.setOnClickListener(v -> { dialog.dismiss(); showForwardSheet(item); });
+        sheet.actionCopyText.setOnClickListener(v -> { dialog.dismiss(); copyMessageText(item); });
+        sheet.actionEdit.setOnClickListener(v -> { dialog.dismiss(); startEditMessage(item); });
+        sheet.actionUnsend.setOnClickListener(v -> { dialog.dismiss(); confirmUnsendMessage(item); });
+        sheet.actionPin.setOnClickListener(v -> { dialog.dismiss(); Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show(); });
+
+        dialog.show();
+    }
+
+    private void showForwardSheet(DmMessageItem item) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        BottomSheetForwardMessageBinding sheet = BottomSheetForwardMessageBinding.inflate(getLayoutInflater());
+        dialog.setContentView(sheet.getRoot());
+
+        ForwardTargetAdapter forwardAdapter = new ForwardTargetAdapter(selectedIds -> sheet.btnSendForward.setEnabled(!selectedIds.isEmpty()));
+        sheet.rvForwardTargets.setLayoutManager(new LinearLayoutManager(this));
+        sheet.rvForwardTargets.setAdapter(forwardAdapter);
+        sheet.tvForwardOriginal.setText(extractForwardPreview(item));
+
+        sheet.btnCloseForward.setOnClickListener(v -> dialog.dismiss());
+        sheet.btnCopyLink.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+
+        sheet.etForwardSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { forwardAdapter.applyFilter(s == null ? "" : s.toString()); }
+        });
+
+        dmRepository.getDirectChannels(result -> runOnUiThread(() -> {
+            List<ForwardTargetAdapter.TargetItem> targets = new ArrayList<>();
+            List<ChannelDto> channels = result.getData();
+            if (channels != null) {
+                for (ChannelDto channel : channels) {
+                    if (channel.getId() == null) continue;
+                    targets.add(new ForwardTargetAdapter.TargetItem(channel.getId(), buildForwardTargetTitle(channel), buildForwardTargetSubtitle(channel)));
+                }
+            }
+            forwardAdapter.setItems(targets);
+        }));
+
+        sheet.btnSendForward.setOnClickListener(v -> {
+            Set<String> targetIds = forwardAdapter.getSelectedIds();
+            if (targetIds.isEmpty()) { Snackbar.make(binding.getRoot(), getString(R.string.forward_no_target), Snackbar.LENGTH_SHORT).show(); return; }
+            String optionalMessage = sheet.etForwardOptionalMessage.getText() == null ? "" : sheet.etForwardOptionalMessage.getText().toString().trim();
+            sendForwardMessageToChannels(targetIds, buildForwardPayload(item, optionalMessage), dialog);
+        });
+
+        dialog.show();
+    }
+
+    private String buildForwardTargetTitle(ChannelDto channel) {
+        if (!TextUtils.isEmpty(channel.getPeerDisplayName())) return channel.getPeerDisplayName();
+        if (!TextUtils.isEmpty(channel.getPeerUsername())) return channel.getPeerUsername();
+        if (!TextUtils.isEmpty(channel.getName())) return channel.getName();
+        return getString(R.string.dm_default_user);
+    }
+
+    private String buildForwardTargetSubtitle(ChannelDto channel) {
+        if (!TextUtils.isEmpty(channel.getPeerUsername())) return "@" + channel.getPeerUsername();
+        if (!TextUtils.isEmpty(channel.getType())) return channel.getType();
+        return null;
+    }
+
+    private String extractForwardPreview(DmMessageItem item) {
+        String raw = item.getContent() == null ? "" : item.getContent();
+        if (DmMessageAdapter.isMedia(raw)) {
+            String title = DmMessageAdapter.extractMediaTitle(raw);
+            return title != null ? title : DmMessageAdapter.extractMediaUrl(raw);
+        }
+        return raw;
+    }
+
+    private String buildForwardPayload(DmMessageItem item, String optionalMessage) {
+        String raw = item.getContent() == null ? "" : item.getContent();
+        if (optionalMessage == null || optionalMessage.isEmpty()) return raw;
+        return optionalMessage + "\n\n" + raw;
+    }
+
+    private void sendForwardMessageToChannels(Set<String> targetIds, String payload, BottomSheetDialog dialog) {
+        final int total = targetIds.size();
+        final int[] done = {0};
+        final int[] success = {0};
+
+        for (String targetChannelId : targetIds) {
+            dmRepository.sendMessage(targetChannelId, null, payload, new ArrayList<>(), "TEXT", result -> runOnUiThread(() -> {
+                done[0] += 1;
+                if (result.getData() != null) success[0] += 1;
+                if (done[0] == total) {
+                    dialog.dismiss();
+                    Snackbar.make(binding.getRoot(), getString(R.string.forward_sent_count, success[0]), Snackbar.LENGTH_SHORT).show();
+                }
+            }));
+        }
+    }
+
+    private void copyMessageText(DmMessageItem item) {
+        String raw = item.getContent() == null ? "" : item.getContent();
+        String textToCopy = DmMessageAdapter.isMedia(raw) ? DmMessageAdapter.extractMediaUrl(raw) : raw;
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard == null) return;
+        clipboard.setPrimaryClip(ClipData.newPlainText("message", textToCopy));
+        showCopyBanner();
+    }
+
+    private void showCopyBanner() {
+        uiHandler.removeCallbacks(hideCopyBannerRunnable);
+        binding.copyBanner.animate().cancel();
+        binding.copyBanner.setVisibility(View.VISIBLE);
+        binding.copyBanner.setAlpha(0f);
+        binding.copyBanner.setTranslationY(-12f);
+        binding.copyBanner.animate().alpha(1f).translationY(0f).setDuration(180).start();
+        uiHandler.postDelayed(hideCopyBannerRunnable, 1800);
+    }
+
+    private void hideCopyBanner() {
+        if (binding.copyBanner.getVisibility() != View.VISIBLE) return;
+        binding.copyBanner.animate().alpha(0f).translationY(-8f).setDuration(160).withEndAction(() -> {
+            binding.copyBanner.setVisibility(View.GONE);
+            binding.copyBanner.setAlpha(1f);
+            binding.copyBanner.setTranslationY(0f);
+        }).start();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STOMP Connection (Main)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
         String wsUrl = BuildConfig.BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "ws";
         stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
-
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -623,7 +845,7 @@ public class DmChatActivity extends AppCompatActivity {
                 .subscribe(stompMessage -> {
                     MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
                     if (dto == null) return;
-                    runOnUiThread(() -> applyIncomingMessage(dto));
+                    runOnUiThread(() -> appendOrUpdateMessage(dto));
                 }, throwable -> {}));
     }
 
@@ -632,61 +854,167 @@ public class DmChatActivity extends AppCompatActivity {
         if (stompClient != null) stompClient.disconnect();
     }
 
-    private void applyIncomingMessage(MessageDto incoming) {
-        String messageId = incoming.getId();
-        if (messageId == null || messageId.trim().isEmpty()) {
-            loadMessages(true);
-            return;
-        }
+    private void appendMessage(MessageDto dto) {
+        appendOrUpdateMessage(dto);
+    }
 
-        boolean changed = false;
-        synchronized (cachedMessagesDesc) {
-            int index = indexOfMessage(cachedMessagesDesc, messageId);
-            if (index >= 0) {
-                cachedMessagesDesc.set(index, incoming);
-                changed = true;
-            } else {
-                cachedMessagesDesc.add(0, incoming);
-                changed = true;
+    private void appendOrUpdateMessage(MessageDto dto) {
+        if (dto == null) return;
+        DmMessageItem item = mapMessage(dto);
+        adapter.upsertItem(item);
+        if (adapter.getItemCount() > 0) binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+    }
+
+    private DmMessageItem mapMessage(MessageDto dto) {
+        boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
+        String sender = mine ? currentUserName : peerDisplayName;
+
+        // Truyền thêm danh sách attachments vào Constructor
+        DmMessageItem item = new DmMessageItem(
+                dto.getId(), sender,
+                dto.getContent() == null ? "" : dto.getContent(),
+                formatTime(dto.getCreatedAt()), mine, dto.getAttachments()
+        );
+        item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
+        item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
+        if (!TextUtils.isEmpty(dto.getReplyToId())) {
+            DmMessageItem replyItem = adapter.getItemById(dto.getReplyToId());
+            if (replyItem != null) {
+                item.setReplyToSenderName(replyItem.getSenderName());
+                item.setReplyToContent(replyItem.getContent());
             }
         }
-
-        if (!changed) return;
-
-        List<MessageDto> rawCopy;
-        synchronized (cachedMessagesDesc) { rawCopy = new ArrayList<>(cachedMessagesDesc); }
-
-        lastMessageSnapshot = buildMessageSnapshot(rawCopy);
-        List<DmMessageItem> mapped = mapMessages(rawCopy);
-        adapter.setItems(mapped);
-        if (!mapped.isEmpty()) binding.rvMessages.scrollToPosition(mapped.size() - 1);
+        return item;
     }
-
-    private int indexOfMessage(List<MessageDto> messages, String messageId) {
-        for (int i = 0; i < messages.size(); i++) {
-            if (messages.get(i).getId() != null && messages.get(i).getId().equals(messageId)) return i;
-        }
-        return -1;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────────
 
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
-        List<MessageDto> ordered = new ArrayList<>(rawMessages);
-        Collections.reverse(ordered);
+        Map<String, MessageDto> byId = new HashMap<>();
+        for (MessageDto dto : rawMessages) {
+            if (!TextUtils.isEmpty(dto.getId())) byId.put(dto.getId(), dto);
+        }
+
         List<DmMessageItem> mapped = new ArrayList<>();
-        for (MessageDto dto : ordered) {
+        for (MessageDto dto : rawMessages) {
+            if (Boolean.TRUE.equals(dto.getIsDeleted())) continue;
             boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-            String sender = mine ? getString(R.string.dm_me) : peerName;
-            mapped.add(new DmMessageItem(
+            String sender = mine ? currentUserName : peerDisplayName;
+
+            DmMessageItem item = new DmMessageItem(
                     dto.getId(), sender,
                     dto.getContent() == null ? "" : dto.getContent(),
                     formatTime(dto.getCreatedAt()), mine, dto.getAttachments()
-            ));
+            );
+            item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
+            item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
+
+            if (!TextUtils.isEmpty(dto.getReplyToId())) {
+                MessageDto replyDto = byId.get(dto.getReplyToId());
+                if (replyDto != null) {
+                    boolean replyMine = currentUserId != null && currentUserId.equals(replyDto.getAuthorId());
+                    item.setReplyToSenderName(replyMine ? currentUserName : peerDisplayName);
+                    item.setReplyToContent(replyDto.getContent() == null ? "" : replyDto.getContent());
+                }
+            }
+            mapped.add(item);
         }
         return mapped;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Reply, Edit, Delete (Main)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void startReply(DmMessageItem item) {
+        clearEditMode(false);
+        replyingToItem = item;
+        binding.tvReplySender.setText(getString(R.string.reply_to, item.getSenderName()));
+        String preview = item.getContent();
+        if (DmMessageAdapter.isMedia(preview)) {
+            String title = DmMessageAdapter.extractMediaTitle(preview);
+            preview = title != null ? title : "Media";
+        }
+        binding.tvReplyContent.setText(preview);
+        binding.replyBar.setVisibility(View.VISIBLE);
+        binding.etComposer.requestFocus();
+        showKeyboard();
+    }
+
+    private void clearReply() {
+        replyingToItem = null;
+        binding.replyBar.setVisibility(View.GONE);
+    }
+
+    private void startEditMessage(DmMessageItem item) {
+        if (item == null || TextUtils.isEmpty(item.getId()) || item.isDeleted()) return;
+        if (DmMessageAdapter.isMedia(item.getContent())) {
+            Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        clearReply();
+        editingItem = item;
+        binding.editBar.setVisibility(View.VISIBLE);
+        binding.tilComposer.setHintEnabled(false);
+        String content = item.getContent() == null ? "" : item.getContent();
+        binding.etComposer.setText(content);
+        binding.etComposer.setSelection(content.length());
+        binding.etComposer.requestFocus();
+        showKeyboard();
+    }
+
+    private void clearEditMode(boolean clearComposerText) {
+        if (editingItem == null) return;
+        editingItem = null;
+        binding.editBar.setVisibility(View.GONE);
+        binding.tilComposer.setHintEnabled(true);
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        if (clearComposerText) binding.etComposer.setText("");
+    }
+
+    private void commitEdit(String newContent) {
+        if (editingItem == null || TextUtils.isEmpty(editingItem.getId())) return;
+        String editingId = editingItem.getId();
+        clearEditMode(false);
+        binding.etComposer.setText("");
+
+        dmRepository.editMessage(editingId, newContent, result -> runOnUiThread(() -> {
+            if (result.getData() != null) appendOrUpdateMessage(result.getData());
+            else if (result.getMessage() != null) Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+        }));
+    }
+
+    private void confirmUnsendMessage(DmMessageItem item) {
+        if (item == null || TextUtils.isEmpty(item.getId())) return;
+
+        AlertDialog dialog = new AlertDialog.Builder(this).create();
+        DialogDeleteMessageBinding deleteBinding = DialogDeleteMessageBinding.inflate(getLayoutInflater());
+        dialog.setView(deleteBinding.getRoot());
+
+        deleteBinding.tvDeleteSender.setText(item.getSenderName());
+        deleteBinding.tvDeleteTime.setText(item.getTimestamp());
+        String content = item.getContent() == null ? "" : item.getContent();
+        if (DmMessageAdapter.isMedia(content)) {
+            String title = DmMessageAdapter.extractMediaTitle(content);
+            deleteBinding.tvDeleteContent.setText(title != null ? title : "Media");
+        } else {
+            deleteBinding.tvDeleteContent.setText(content + (item.isEdited() ? " (edited)" : ""));
+        }
+
+        deleteBinding.btnDeleteNo.setOnClickListener(v -> dialog.dismiss());
+        deleteBinding.btnDeleteYes.setOnClickListener(v -> {
+            dialog.dismiss();
+            dmRepository.unsendMessage(item.getId(), result -> runOnUiThread(() -> {
+                if (result.isSuccess()) {
+                    adapter.removeItemById(item.getId());
+                    if (result.getData() != null) appendOrUpdateMessage(result.getData());
+                } else if (result.getMessage() != null) {
+                    Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+                }
+            }));
+        });
+
+        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        dialog.show();
     }
 
     private String formatTime(String rawTime) {
@@ -697,11 +1025,5 @@ public class DmChatActivity extends AppCompatActivity {
         } catch (Exception ignored) {
             return rawTime;
         }
-    }
-
-    private String buildMessageSnapshot(List<MessageDto> messages) {
-        if (messages == null || messages.isEmpty()) return "empty";
-        MessageDto latest = messages.get(0);
-        return messages.size() + "|" + (latest.getId() == null ? "" : latest.getId()) + "|" + (latest.getEditedAt() == null ? "" : latest.getEditedAt());
     }
 }

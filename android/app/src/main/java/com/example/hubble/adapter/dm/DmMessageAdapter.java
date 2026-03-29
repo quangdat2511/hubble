@@ -19,6 +19,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -34,7 +36,6 @@ import java.util.List;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    // Prefix từ nhánh main
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
@@ -43,13 +44,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     private final List<DmMessageItem> items = new ArrayList<>();
 
-    // Biến cho Voice Message từ nhánh media
+    @Nullable
+    private String currentUserAvatarUrl;
+    @Nullable
+    private String peerAvatarUrl;
+    @Nullable
+    private OnMessageLongClickListener onMessageLongClickListener;
+
     private static MediaPlayer currentMediaPlayer;
     private static ImageView currentPlayButton;
     private static Handler audioHandler = new Handler(Looper.getMainLooper());
     private static Runnable updateSeekBarRunnable;
 
-    // ── Helpers (Main) ──────────────────────────────────────────────────────
+    public interface OnMessageLongClickListener {
+        void onMessageLongClick(@NonNull DmMessageItem item, @NonNull View anchorView);
+    }
 
     public static boolean isGif(String content) {
         return content != null && content.startsWith(GIF_PREFIX);
@@ -73,23 +82,97 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return nl >= 0 ? body.substring(nl + 1) : body;
     }
 
-    // ── Adapter interface ──────────────────────────────────────────────────
+    public static String extractMediaTitle(String content) {
+        String body = null;
+        if (isGif(content)) body = content.substring(GIF_PREFIX.length());
+        else if (isSticker(content)) body = content.substring(STICKER_PREFIX.length());
+        else return null;
+
+        int nl = body.indexOf('\n');
+        if (nl > 0) {
+            String title = body.substring(0, nl).trim();
+            return title.isEmpty() ? null : title;
+        }
+        return null;
+    }
 
     public void setItems(List<DmMessageItem> newItems) {
         items.clear();
-        if (newItems != null) items.addAll(newItems);
+        if (newItems != null) {
+            for (DmMessageItem item : newItems) {
+                if (item != null && !item.isDeleted()) {
+                    items.add(item);
+                }
+            }
+        }
         notifyDataSetChanged();
     }
 
     public void appendItem(DmMessageItem item) {
-        if (item == null) return;
+        if (item == null || item.isDeleted()) return;
         items.add(item);
         notifyItemInserted(items.size() - 1);
     }
 
+    public void upsertItem(DmMessageItem item) {
+        if (item == null || item.getId() == null) return;
+        for (int i = 0; i < items.size(); i++) {
+            DmMessageItem old = items.get(i);
+            if (item.getId().equals(old.getId())) {
+                if (item.isDeleted()) {
+                    items.remove(i);
+                    notifyItemRemoved(i);
+                } else {
+                    items.set(i, item);
+                    notifyItemChanged(i);
+                }
+                return;
+            }
+        }
+        if (!item.isDeleted()) {
+            appendItem(item);
+        }
+    }
+
+    public void setOnMessageLongClickListener(@Nullable OnMessageLongClickListener listener) {
+        this.onMessageLongClickListener = listener;
+    }
+
+    public void setParticipantAvatarUrls(@Nullable String currentUserAvatarUrl, @Nullable String peerAvatarUrl) {
+        this.currentUserAvatarUrl = currentUserAvatarUrl;
+        this.peerAvatarUrl = peerAvatarUrl;
+        notifyDataSetChanged();
+    }
+
+    @Nullable
+    public DmMessageItem getItem(int position) {
+        if (position < 0 || position >= items.size()) return null;
+        return items.get(position);
+    }
+
+    @Nullable
+    public DmMessageItem getItemById(String id) {
+        if (id == null) return null;
+        for (DmMessageItem item : items) {
+            if (id.equals(item.getId())) return item;
+        }
+        return null;
+    }
+
+    public void removeItemById(@Nullable String id) {
+        if (id == null) return;
+        for (int i = 0; i < items.size(); i++) {
+            if (id.equals(items.get(i).getId())) {
+                items.remove(i);
+                notifyItemRemoved(i);
+                return;
+            }
+        }
+    }
+
     @Override
     public int getItemViewType(int position) {
-        return items.get(position).isMine() ? TYPE_ME : TYPE_OTHER;
+        return TYPE_OTHER;
     }
 
     @NonNull
@@ -97,24 +180,36 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         if (viewType == TYPE_ME) {
-            return new MeHolder(ItemDmMessageMeBinding.inflate(inflater, parent, false));
+            return new MeHolder(ItemDmMessageMeBinding.inflate(inflater, parent, false), onMessageLongClickListener);
         }
-        return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false));
+        return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false), onMessageLongClickListener);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         DmMessageItem item = items.get(position);
-        if (holder instanceof MeHolder) ((MeHolder) holder).bind(item);
-        else ((OtherHolder) holder).bind(item);
+        DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
+        boolean sameSenderAsPrevious = previous != null
+                && previous.isMine() == item.isMine()
+                && safeEquals(previous.getSenderName(), item.getSenderName());
+
+        if (holder instanceof MeHolder) {
+            ((MeHolder) holder).bind(item);
+        } else {
+            String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
+            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious, avatarUrl);
+        }
+    }
+
+    private static boolean safeEquals(@Nullable String a, @Nullable String b) {
+        if (a == null) return b == null;
+        return a.equals(b);
     }
 
     @Override
     public int getItemCount() {
         return items.size();
     }
-
-    // ── Attachments Utility (Media) ─────────────────────────────────────────
 
     private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
         container.removeAllViews();
@@ -163,7 +258,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
                 ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
                 String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
-                tvFileName.setText(fileName);
+
+                String safeFileName = fileName;
+                if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+                if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+                safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+                tvFileName.setText(safeFileName);
 
                 String lowerMime = mimeType.toLowerCase();
                 String lowerName = fileName.toLowerCase();
@@ -172,7 +273,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     tvFileType.setText("Tài liệu PDF");
                     ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
                 }
-                else if (lowerMime.contains("word") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+                else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
                     tvFileType.setText("Tài liệu Word");
                     ivFileIcon.setImageResource(R.drawable.ic_file_docx);
                 }
@@ -207,81 +308,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
         container.setVisibility(View.VISIBLE);
     }
-
-    // ── ViewHolders (Gộp Main + Media) ──────────────────────────────────────
-
-    static class MeHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageMeBinding b;
-
-        MeHolder(ItemDmMessageMeBinding binding) {
-            super(binding.getRoot());
-            this.b = binding;
-        }
-
-        void bind(DmMessageItem item) {
-            b.tvTime.setText(item.getTimestamp());
-            String content = item.getContent();
-
-            // Xử lý Text/GIF từ Main
-            if (isMedia(content)) {
-                b.cardMine.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext()).asGif().load(url).into(b.ivMedia);
-            } else {
-                b.cardMine.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-
-                if (content != null && !content.isEmpty()) {
-                    b.tvMessage.setVisibility(View.VISIBLE);
-                    b.tvMessage.setText(content);
-                } else {
-                    b.tvMessage.setVisibility(View.GONE);
-                }
-            }
-
-            // Xử lý đính kèm File/Voice từ Media
-            loadAttachments(b.llAttachments, item.getAttachments());
-        }
-    }
-
-    static class OtherHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageOtherBinding b;
-
-        OtherHolder(ItemDmMessageOtherBinding binding) {
-            super(binding.getRoot());
-            this.b = binding;
-        }
-
-        void bind(DmMessageItem item) {
-            b.tvName.setText(item.getSenderName());
-            b.tvTime.setText(item.getTimestamp());
-            String content = item.getContent();
-
-            if (isMedia(content)) {
-                b.cardOther.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext()).asGif().load(url).into(b.ivMedia);
-            } else {
-                b.cardOther.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-
-                if (content != null && !content.isEmpty()) {
-                    b.tvMessage.setVisibility(View.VISIBLE);
-                    b.tvMessage.setText(content);
-                } else {
-                    b.tvMessage.setVisibility(View.GONE);
-                }
-            }
-
-            loadAttachments(b.llAttachments, item.getAttachments());
-        }
-    }
-
-    // ── Audio & File Open Utilities ─────────────────────────────────────────
 
     private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
         try {
@@ -375,19 +401,28 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static void downloadFile(Context context, String url, String fileName) {
         if (url == null || url.isEmpty()) return;
 
+        String finalUrl = url;
+        if (finalUrl.contains("localhost")) {
+            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
+        }
+
         String safeFileName = fileName;
         if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
         if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
         safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
 
         try {
-            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
             request.setTitle(safeFileName);
             request.setDescription("Đang tải tệp đính kèm...");
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
-            // Đã dùng tên file SẠCH để lưu
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
+
+            com.example.hubble.utils.TokenManager tokenManager = new com.example.hubble.utils.TokenManager(context);
+            if (tokenManager.getAccessToken() != null) {
+                request.addRequestHeader("Authorization", "Bearer " + tokenManager.getAccessToken());
+            }
 
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
@@ -397,6 +432,176 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    static class MeHolder extends RecyclerView.ViewHolder {
+        private final ItemDmMessageMeBinding b;
+        @Nullable
+        private final OnMessageLongClickListener onMessageLongClickListener;
+
+        MeHolder(ItemDmMessageMeBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
+            super(binding.getRoot());
+            this.b = binding;
+            this.onMessageLongClickListener = onMessageLongClickListener;
+        }
+
+        void bind(DmMessageItem item) {
+            b.tvTime.setText(item.getTimestamp());
+            String content = item.getContent();
+
+            if (item.hasReply()) {
+                b.replyQuoteContainer.setVisibility(View.VISIBLE);
+                b.tvReplyQuoteSender.setText(item.getReplyToSenderName());
+                String replyContent = item.getReplyToContent();
+                if (isMedia(replyContent)) {
+                    String title = extractMediaTitle(replyContent);
+                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                } else {
+                    b.tvReplyQuoteContent.setText(replyContent);
+                }
+            } else {
+                b.replyQuoteContainer.setVisibility(View.GONE);
+            }
+
+            if (isMedia(content)) {
+                b.cardMine.setVisibility(View.GONE);
+                b.ivMedia.setVisibility(View.VISIBLE);
+                String url = extractMediaUrl(content);
+                Glide.with(b.ivMedia.getContext())
+                        .asGif()
+                        .load(url)
+                        .into(b.ivMedia);
+            } else {
+                b.cardMine.setVisibility(View.VISIBLE);
+                b.ivMedia.setVisibility(View.GONE);
+                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
+                if (item.isDeleted()) {
+                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvEdited.setVisibility(View.GONE);
+                } else {
+                    if (content != null && !content.isEmpty()) {
+                        b.tvMessage.setVisibility(View.VISIBLE);
+                        b.tvMessage.setText(content);
+                    } else {
+                        b.tvMessage.setVisibility(View.GONE);
+                    }
+                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
+                }
+            }
+
+            loadAttachments(b.llAttachments, item.getAttachments());
+
+            b.getRoot().setOnLongClickListener(v -> {
+                if (onMessageLongClickListener != null) {
+                    onMessageLongClickListener.onMessageLongClick(item, v);
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
+    static class OtherHolder extends RecyclerView.ViewHolder {
+        private final ItemDmMessageOtherBinding b;
+        @Nullable
+        private final OnMessageLongClickListener onMessageLongClickListener;
+
+        OtherHolder(ItemDmMessageOtherBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
+            super(binding.getRoot());
+            this.b = binding;
+            this.onMessageLongClickListener = onMessageLongClickListener;
+        }
+
+        void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl) {
+            b.tvName.setText(item.getSenderName());
+            b.tvTime.setText(item.getTimestamp());
+            b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
+
+            if (b.headerRow != null) {
+                b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+            } else {
+                if (b.tvName != null) b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+                if (b.tvTime != null) b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+            }
+
+            if (showHeader) {
+                Glide.with(b.ivAvatar.getContext())
+                        .load(avatarUrl)
+                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
+                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
+                        .circleCrop()
+                        .into(b.ivAvatar);
+            }
+
+            try {
+                if (b.cardOther.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
+                    textParams.topMargin = showHeader ? dp(2) : dp(0);
+                    b.cardOther.setLayoutParams(textParams);
+                }
+                if (b.ivMedia.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams mediaParams = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
+                    mediaParams.topMargin = showHeader ? dp(2) : dp(0);
+                    b.ivMedia.setLayoutParams(mediaParams);
+                }
+            } catch (Exception ignored) {}
+
+            String content = item.getContent();
+
+            if (item.hasReply()) {
+                b.replyQuoteContainer.setVisibility(View.VISIBLE);
+                b.tvReplyQuoteSender.setText(item.getReplyToSenderName());
+                String replyContent = item.getReplyToContent();
+                if (isMedia(replyContent)) {
+                    String title = extractMediaTitle(replyContent);
+                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                } else {
+                    b.tvReplyQuoteContent.setText(replyContent);
+                }
+            } else {
+                b.replyQuoteContainer.setVisibility(View.GONE);
+            }
+
+            if (isMedia(content)) {
+                b.cardOther.setVisibility(View.GONE);
+                b.ivMedia.setVisibility(View.VISIBLE);
+                String url = extractMediaUrl(content);
+                Glide.with(b.ivMedia.getContext())
+                        .asGif()
+                        .load(url)
+                        .into(b.ivMedia);
+            } else {
+                b.cardOther.setVisibility(View.VISIBLE);
+                b.ivMedia.setVisibility(View.GONE);
+                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
+                if (item.isDeleted()) {
+                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvEdited.setVisibility(View.GONE);
+                } else {
+                    if (content != null && !content.isEmpty()) {
+                        b.tvMessage.setVisibility(View.VISIBLE);
+                        b.tvMessage.setText(content);
+                    } else {
+                        b.tvMessage.setVisibility(View.GONE);
+                    }
+                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
+                }
+            }
+
+            loadAttachments(b.llAttachments, item.getAttachments());
+
+            b.getRoot().setOnLongClickListener(v -> {
+                if (onMessageLongClickListener != null) {
+                    onMessageLongClickListener.onMessageLongClick(item, v);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        private int dp(int value) {
+            return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
         }
     }
 }

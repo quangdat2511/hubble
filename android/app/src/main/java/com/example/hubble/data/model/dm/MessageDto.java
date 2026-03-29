@@ -13,6 +13,7 @@ public class MessageDto {
     private String content;
     private String type;
     private Boolean isPinned;
+    private Boolean isDeleted;
     private String editedAt;
     private String createdAt;
 
@@ -48,6 +49,10 @@ public class MessageDto {
         return isPinned;
     }
 
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
     public String getEditedAt() {
         return editedAt;
     }
@@ -67,6 +72,7 @@ public class MessageDto {
     public void setContent(String content) { this.content = content; }
     public void setType(String type) { this.type = type; }
     public void setIsPinned(Boolean isPinned) { this.isPinned = isPinned; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
     public void setEditedAt(String editedAt) { this.editedAt = editedAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

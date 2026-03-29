@@ -1,12 +1,9 @@
 package com.hubble.dto.response;
 
-import com.hubble.enums.MessageType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -15,14 +12,18 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageResponse {
 
-    UUID id;
-    UUID channelId;
-    UUID authorId;
-    UUID replyToId;
+    String id;
+    String channelId;
+    String authorId;
+    String replyToId;
     String content;
-    MessageType type;
+    String type;
     Boolean isPinned;
-    LocalDateTime editedAt;
-    LocalDateTime createdAt;
+
+    Boolean isDeleted;
+
+    String editedAt;
+    String createdAt;
+
     List<AttachmentResponse> attachments;
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,10 @@ import java.util.UUID;
 public interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
 
     Optional<UserSession> findByRefreshTokenAndIsActiveTrue(String refreshToken);
+
+    List<UserSession> findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(UUID userId);
+
+    Optional<UserSession> findByIdAndUserIdAndIsActiveTrue(UUID id, UUID userId);
 
     @Modifying
     @Query("UPDATE UserSession s SET s.isActive = false WHERE s.userId = :userId")
