@@ -7,7 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.api.RetrofitClient;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
@@ -29,7 +29,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -356,7 +355,6 @@ public class MainViewModel extends ViewModel {
                         }
                         upsertConversationFromRealtime(dto);
                     }, throwable -> {
-                        // Keep app stable if one topic fails; refresh flow can re-sync subscriptions.
                     });
 
             dmTopicSubscriptions.put(subscribedChannelId, topicDisposable);
@@ -583,12 +581,6 @@ public class MainViewModel extends ViewModel {
         _dmStories.postValue(conversations.subList(0, Math.min(3, conversations.size())));
     }
 
-    /**
-     * Returns a Discord-style relative time label from an ISO timestamp.
-     * e.g. "now", "5m", "2h", "3d", "1mo", "2y"
-     * Handles both OffsetDateTime ("2024-01-01T10:00:00Z") and
-     * LocalDateTime ("2024-01-01T10:00:00") server formats.
-     */
     private String toShortTime(String createdAt) {
         if (createdAt == null || createdAt.trim().isEmpty()) return "";
         try {
@@ -683,7 +675,6 @@ public class MainViewModel extends ViewModel {
             collapsedCategories.add(categoryId);
         }
 
-        // Re-post current success data to trigger adapter rebuild
         AuthResult<List<ChannelDto>> current = _serverChannels.getValue();
         if (current != null && current.getStatus() == AuthResult.Status.SUCCESS && current.getData() != null) {
             _serverChannels.postValue(AuthResult.success(current.getData()));
@@ -706,7 +697,3 @@ public class MainViewModel extends ViewModel {
         super.onCleared();
     }
 }
-
-
-
-

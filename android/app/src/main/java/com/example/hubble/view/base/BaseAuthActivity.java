@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
 
 import com.example.hubble.R;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.view.MainActivity;
 import com.example.hubble.view.auth.LoginActivity;
 import com.google.android.material.snackbar.Snackbar;

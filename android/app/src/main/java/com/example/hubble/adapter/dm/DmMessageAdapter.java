@@ -1,8 +1,22 @@
 package com.example.hubble.adapter.dm;
 
+import android.app.DownloadManager;
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10,16 +24,18 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.hubble.R;
+import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    // Message type prefix constants — also used in DmChatActivity when sending
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
@@ -27,6 +43,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static final int TYPE_OTHER = 2;
 
     private final List<DmMessageItem> items = new ArrayList<>();
+
     @Nullable
     private String currentUserAvatarUrl;
     @Nullable
@@ -34,11 +51,14 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Nullable
     private OnMessageLongClickListener onMessageLongClickListener;
 
+    private static MediaPlayer currentMediaPlayer;
+    private static ImageView currentPlayButton;
+    private static Handler audioHandler = new Handler(Looper.getMainLooper());
+    private static Runnable updateSeekBarRunnable;
+
     public interface OnMessageLongClickListener {
         void onMessageLongClick(@NonNull DmMessageItem item, @NonNull View anchorView);
     }
-
-    // ── Helpers ────────────────────────────────────────────────────────────
 
     public static boolean isGif(String content) {
         return content != null && content.startsWith(GIF_PREFIX);
@@ -52,10 +72,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return isGif(content) || isSticker(content);
     }
 
-    /**
-     * Extracts the URL from a media message.
-     * Handles both old format "{gif}url" and new format "{gif}title\nurl".
-     */
     public static String extractMediaUrl(String content) {
         String body = null;
         if (isGif(content)) body = content.substring(GIF_PREFIX.length());
@@ -66,10 +82,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return nl >= 0 ? body.substring(nl + 1) : body;
     }
 
-    /**
-     * Extracts the human-readable title from a media message, or null if none is stored.
-     * Handles both old format "{gif}url" and new format "{gif}title\nurl".
-     */
     public static String extractMediaTitle(String content) {
         String body = null;
         if (isGif(content)) body = content.substring(GIF_PREFIX.length());
@@ -83,8 +95,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
         return null;
     }
-
-    // ── Adapter interface ──────────────────────────────────────────────────
 
     public void setItems(List<DmMessageItem> newItems) {
         items.clear();
@@ -162,7 +172,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public int getItemViewType(int position) {
-        // Discord-like mobile DM layout keeps all messages on the left side.
         return TYPE_OTHER;
     }
 
@@ -202,7 +211,229 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return items.size();
     }
 
-    // ── ViewHolders ────────────────────────────────────────────────────────
+    private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
+        container.removeAllViews();
+
+        if (attachments == null || attachments.isEmpty()) {
+            container.setVisibility(View.GONE);
+            return;
+        }
+
+        LayoutInflater inflater = LayoutInflater.from(container.getContext());
+
+        for (AttachmentResponse att : attachments) {
+            String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
+            String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
+
+            if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+                View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
+                ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
+                ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
+
+                ivPlayIcon.setVisibility(mimeType.startsWith("video/") ? View.VISIBLE : View.GONE);
+
+                Glide.with(container.getContext())
+                        .load(url)
+                        .centerCrop()
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_report_image)
+                        .into(ivMedia);
+
+                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+                container.addView(mediaView);
+
+            } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
+                View voiceView = inflater.inflate(R.layout.item_attachment_voice, container, false);
+                ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
+                SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
+                TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
+
+                btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
+                container.addView(voiceView);
+
+            } else {
+                View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
+                TextView tvFileName = fileView.findViewById(R.id.tvFileName);
+                ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
+                TextView tvFileType = fileView.findViewById(R.id.tvFileType);
+                ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
+                String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
+
+                String safeFileName = fileName;
+                if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+                if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+                safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+                tvFileName.setText(safeFileName);
+
+                String lowerMime = mimeType.toLowerCase();
+                String lowerName = fileName.toLowerCase();
+
+                if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
+                    tvFileType.setText("Tài liệu PDF");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+                }
+                else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+                    tvFileType.setText("Tài liệu Word");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+                }
+                else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+                    tvFileType.setText("Bảng tính Excel");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+                }
+                else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
+                    tvFileType.setText("Bài thuyết trình");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+                }
+                else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
+                    tvFileType.setText("Tệp nén");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+                }
+                else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
+                    tvFileType.setText("Tệp văn bản");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_text);
+                }
+                else {
+                    tvFileType.setText("Tệp đính kèm");
+                    ivFileIcon.setImageResource(R.drawable.ic_file_generic);
+                }
+
+                ivSaveIcon.setOnClickListener(v -> {
+                    downloadFile(container.getContext(), url, fileName);
+                });
+
+                fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+                container.addView(fileView);
+            }
+        }
+        container.setVisibility(View.VISIBLE);
+    }
+
+    private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
+        try {
+            if (currentMediaPlayer != null && currentPlayButton == btnPlayPause) {
+                if (currentMediaPlayer.isPlaying()) {
+                    currentMediaPlayer.pause();
+                    btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                } else {
+                    currentMediaPlayer.start();
+                    btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+                    audioHandler.post(updateSeekBarRunnable);
+                }
+                return;
+            }
+
+            if (currentMediaPlayer != null) {
+                currentMediaPlayer.stop();
+                currentMediaPlayer.release();
+                if (currentPlayButton != null) {
+                    currentPlayButton.setImageResource(android.R.drawable.ic_media_play);
+                }
+                audioHandler.removeCallbacks(updateSeekBarRunnable);
+            }
+
+            currentMediaPlayer = new MediaPlayer();
+            currentPlayButton = btnPlayPause;
+            currentMediaPlayer.setDataSource(url);
+            currentMediaPlayer.prepareAsync();
+            btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync);
+
+            currentMediaPlayer.setOnPreparedListener(mp -> {
+                seekBar.setMax(mp.getDuration());
+                mp.start();
+                btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+
+                updateSeekBarRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (currentMediaPlayer != null && currentMediaPlayer.isPlaying()) {
+                            seekBar.setProgress(currentMediaPlayer.getCurrentPosition());
+                            int sec = currentMediaPlayer.getCurrentPosition() / 1000;
+                            tvDuration.setText(String.format("%d:%02d", sec / 60, sec % 60));
+                            audioHandler.postDelayed(this, 100);
+                        }
+                    }
+                };
+                audioHandler.post(updateSeekBarRunnable);
+            });
+
+            currentMediaPlayer.setOnCompletionListener(mp -> {
+                btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                seekBar.setProgress(0);
+                tvDuration.setText("0:00");
+                audioHandler.removeCallbacks(updateSeekBarRunnable);
+            });
+
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser && currentMediaPlayer != null) {
+                        currentMediaPlayer.seekTo(progress);
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+            });
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void openAttachment(Context context, String url, String mimeType) {
+        if (url == null || url.isEmpty()) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.parse(url), mimeType);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(browserIntent);
+            } catch (Exception ex) {
+                Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private static void downloadFile(Context context, String url, String fileName) {
+        if (url == null || url.isEmpty()) return;
+
+        String finalUrl = url;
+        if (finalUrl.contains("localhost")) {
+            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
+        }
+
+        String safeFileName = fileName;
+        if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+        if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+        safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        try {
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
+            request.setTitle(safeFileName);
+            request.setDescription("Đang tải tệp đính kèm...");
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
+
+            com.example.hubble.utils.TokenManager tokenManager = new com.example.hubble.utils.TokenManager(context);
+            if (tokenManager.getAccessToken() != null) {
+                request.addRequestHeader("Authorization", "Bearer " + tokenManager.getAccessToken());
+            }
+
+            DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            if (downloadManager != null) {
+                downloadManager.enqueue(request);
+                Toast.makeText(context, "Bắt đầu tải " + safeFileName + "...", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
 
     static class MeHolder extends RecyclerView.ViewHolder {
         private final ItemDmMessageMeBinding b;
@@ -234,7 +465,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             if (isMedia(content)) {
-                // Hide text bubble, show image
                 b.cardMine.setVisibility(View.GONE);
                 b.ivMedia.setVisibility(View.VISIBLE);
                 String url = extractMediaUrl(content);
@@ -250,10 +480,17 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     b.tvMessage.setText("Tin nhắn đã được thu hồi");
                     b.tvEdited.setVisibility(View.GONE);
                 } else {
-                    b.tvMessage.setText(content);
+                    if (content != null && !content.isEmpty()) {
+                        b.tvMessage.setVisibility(View.VISIBLE);
+                        b.tvMessage.setText(content);
+                    } else {
+                        b.tvMessage.setVisibility(View.GONE);
+                    }
                     b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
                 }
             }
+
+            loadAttachments(b.llAttachments, item.getAttachments());
 
             b.getRoot().setOnLongClickListener(v -> {
                 if (onMessageLongClickListener != null) {
@@ -280,8 +517,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
-            b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
-            b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+
+            if (b.headerRow != null) {
+                b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+            } else {
+                if (b.tvName != null) b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+                if (b.tvTime != null) b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+            }
 
             if (showHeader) {
                 Glide.with(b.ivAvatar.getContext())
@@ -292,13 +534,18 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         .into(b.ivAvatar);
             }
 
-            ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
-            textParams.topMargin = showHeader ? dp(2) : dp(0);
-            b.cardOther.setLayoutParams(textParams);
-
-            ConstraintLayout.LayoutParams mediaParams = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
-            mediaParams.topMargin = showHeader ? dp(2) : dp(0);
-            b.ivMedia.setLayoutParams(mediaParams);
+            try {
+                if (b.cardOther.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
+                    textParams.topMargin = showHeader ? dp(2) : dp(0);
+                    b.cardOther.setLayoutParams(textParams);
+                }
+                if (b.ivMedia.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams mediaParams = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
+                    mediaParams.topMargin = showHeader ? dp(2) : dp(0);
+                    b.ivMedia.setLayoutParams(mediaParams);
+                }
+            } catch (Exception ignored) {}
 
             String content = item.getContent();
 
@@ -317,7 +564,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             if (isMedia(content)) {
-                // Hide text bubble, show image
                 b.cardOther.setVisibility(View.GONE);
                 b.ivMedia.setVisibility(View.VISIBLE);
                 String url = extractMediaUrl(content);
@@ -333,10 +579,17 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     b.tvMessage.setText("Tin nhắn đã được thu hồi");
                     b.tvEdited.setVisibility(View.GONE);
                 } else {
-                    b.tvMessage.setText(content);
+                    if (content != null && !content.isEmpty()) {
+                        b.tvMessage.setVisibility(View.VISIBLE);
+                        b.tvMessage.setText(content);
+                    } else {
+                        b.tvMessage.setVisibility(View.GONE);
+                    }
                     b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
                 }
             }
+
+            loadAttachments(b.llAttachments, item.getAttachments());
 
             b.getRoot().setOnLongClickListener(v -> {
                 if (onMessageLongClickListener != null) {

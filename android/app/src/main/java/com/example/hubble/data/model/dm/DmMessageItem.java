@@ -1,5 +1,8 @@
 package com.example.hubble.data.model.dm;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DmMessageItem {
 
     private final String id;
@@ -7,6 +10,9 @@ public class DmMessageItem {
     private String content;
     private final String timestamp;
     private final boolean mine;
+
+    private final List<AttachmentResponse> attachments;
+
     private boolean edited;
     private boolean deleted;
     private String replyToSenderName;
@@ -18,6 +24,18 @@ public class DmMessageItem {
         this.content = content;
         this.timestamp = timestamp;
         this.mine = mine;
+        this.attachments = new ArrayList<>(); // Code của bạn
+    }
+
+    public DmMessageItem(String id, String senderName, String content,
+                         String timestamp, boolean mine,
+                         List<AttachmentResponse> attachments) {
+        this.id = id;
+        this.senderName = senderName;
+        this.content = content;
+        this.timestamp = timestamp;
+        this.mine = mine;
+        this.attachments = attachments != null ? attachments : new ArrayList<>();
     }
 
     public String getId() {
@@ -32,6 +50,7 @@ public class DmMessageItem {
         return content;
     }
 
+    // Của main
     public void setContent(String content) {
         this.content = content;
     }
@@ -43,6 +62,11 @@ public class DmMessageItem {
     public boolean isMine() {
         return mine;
     }
+
+    public List<AttachmentResponse> getAttachments() {
+        return attachments;
+    }
+
 
     public boolean isEdited() {
         return edited;
@@ -80,4 +104,3 @@ public class DmMessageItem {
         return replyToSenderName != null && !replyToSenderName.trim().isEmpty();
     }
 }
-
