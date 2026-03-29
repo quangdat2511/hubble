@@ -67,6 +67,7 @@ public class NewMessageActivity extends AppCompatActivity {
         adapter.setOnFriendClickListener(friend ->
                 dmRepository.getOrCreateDirectChannel(friend.getId(), result -> {
                     if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                        dmRepository.rememberOpenedDirectChannel(result.getData().getId());
                         startActivity(DmChatActivity.createIntent(
                                 this,
                                 result.getData().getId(),

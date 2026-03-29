@@ -28,6 +28,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     private final List<DmMessageItem> items = new ArrayList<>();
     @Nullable
+    private String currentUserAvatarUrl;
+    @Nullable
+    private String peerAvatarUrl;
+    @Nullable
     private OnMessageLongClickListener onMessageLongClickListener;
 
     public interface OnMessageLongClickListener {
@@ -124,6 +128,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         this.onMessageLongClickListener = listener;
     }
 
+    public void setParticipantAvatarUrls(@Nullable String currentUserAvatarUrl, @Nullable String peerAvatarUrl) {
+        this.currentUserAvatarUrl = currentUserAvatarUrl;
+        this.peerAvatarUrl = peerAvatarUrl;
+        notifyDataSetChanged();
+    }
+
     @Nullable
     public DmMessageItem getItem(int position) {
         if (position < 0 || position >= items.size()) return null;
@@ -177,7 +187,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         if (holder instanceof MeHolder) {
             ((MeHolder) holder).bind(item);
         } else {
-            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious);
+            String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
+            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious, avatarUrl);
         }
     }
 
@@ -265,12 +276,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             this.onMessageLongClickListener = onMessageLongClickListener;
         }
 
-        void bind(DmMessageItem item, boolean showHeader) {
+        void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
             b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
             b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+
+            if (showHeader) {
+                Glide.with(b.ivAvatar.getContext())
+                        .load(avatarUrl)
+                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
+                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
+                        .circleCrop()
+                        .into(b.ivAvatar);
+            }
 
             ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
             textParams.topMargin = showHeader ? dp(2) : dp(0);

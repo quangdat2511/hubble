@@ -170,6 +170,8 @@
     <string name="dm_new_message">Tin nhắn mới</string>
     <string name="dm_default_user">Danzg</string>
     <string name="dm_me">Bạn</string>
+    <string name="dm_username_format">@%1$s</string>
+    <string name="dm_profile_intro_desc">This is the very beginning of your legendary conversation with %1$s.</string>
     <string name="dm_message_hint">Message @%1$s</string>
     <string name="dm_message_hint_static">Message</string>
     <string name="dm_send">Gửi tin nhắn</string>
