@@ -19,11 +19,11 @@ import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -59,26 +59,41 @@ import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
+import ua.naiksoftware.stomp.dto.StompHeader;
+
+import okhttp3.Dns;
+import okhttp3.OkHttpClient;
 
 public class DmChatActivity extends AppCompatActivity {
 
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
+    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
+    private static final String[] RAILWAY_FALLBACK_IPS = {
+            "151.101.2.15"
+    };
 
     private static final float KEYBOARD_HEIGHT_RATIO = 0.15f;
     private static final int DEFAULT_PANEL_DP = 300;
@@ -121,6 +136,8 @@ public class DmChatActivity extends AppCompatActivity {
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private final Runnable hideCopyBannerRunnable = this::hideCopyBanner;
+    private boolean isProfileIntroVisible = true;
+    private boolean isKeyboardVisible = false;
 
     public static Intent createIntent(Context context, String channelId, String username) {
         Intent intent = new Intent(context, DmChatActivity.class);
@@ -201,6 +218,9 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void setupToolbar() {
         setSupportActionBar(binding.toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
         binding.toolbar.setNavigationOnClickListener(v -> finish());
         refreshPeerUi();
     }
@@ -234,9 +254,13 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void refreshPeerUi() {
-        if (TextUtils.isEmpty(peerDisplayName)) peerDisplayName = getString(R.string.dm_default_user);
+        if (TextUtils.isEmpty(peerDisplayName)) {
+            peerDisplayName = getString(R.string.dm_default_user);
+        }
+        String mentionTarget = firstNonBlank(stripLeadingAt(peerUsername), peerDisplayName);
+
         binding.tvHeaderName.setText(peerDisplayName);
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.tilComposer.setHint(getString(R.string.dm_message_hint, mentionTarget));
         binding.tvProfileIntroDisplayName.setText(peerDisplayName);
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
@@ -246,12 +270,30 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private String formatUsername(String username) {
-        String safeUsername = firstNonBlank(username, peerDisplayName, getString(R.string.dm_default_user));
+        String safeUsername = firstNonBlank(
+                stripLeadingAt(username),
+                stripLeadingAt(peerUsername),
+                peerDisplayName,
+                getString(R.string.dm_default_user)
+        );
         return getString(R.string.dm_username_format, safeUsername);
     }
 
+    private String stripLeadingAt(String value) {
+        if (TextUtils.isEmpty(value)) {
+            return value;
+        }
+        String normalized = value.trim();
+        while (normalized.startsWith("@")) {
+            normalized = normalized.substring(1).trim();
+        }
+        return normalized;
+    }
+
     private String firstNonBlank(String... values) {
-        if (values == null) return null;
+        if (values == null) {
+            return null;
+        }
         for (String value : values) {
             if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) return value;
         }
@@ -281,6 +323,58 @@ public class DmChatActivity extends AppCompatActivity {
             if (isEmojiPanelVisible) hideEmojiPanel(false);
             return false;
         });
+
+        binding.rvMessages.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                if (isKeyboardVisible) {
+                    setProfileIntroVisible(false);
+                    return;
+                }
+
+                if (adapter.getItemCount() == 0) {
+                    setProfileIntroVisible(true);
+                    return;
+                }
+
+                if (dy > 0) {
+                    // While scrolling down, collapse intro to prioritize message viewport.
+                    setProfileIntroVisible(false);
+                    return;
+                }
+
+                boolean isAtTop = !recyclerView.canScrollVertically(-1);
+                if (isAtTop) {
+                    setProfileIntroVisible(true);
+                }
+            }
+        });
+    }
+
+    private void setProfileIntroVisible(boolean visible) {
+        if (binding == null || isProfileIntroVisible == visible) {
+            return;
+        }
+
+        isProfileIntroVisible = visible;
+        binding.layoutDmProfileIntro.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    private void syncProfileIntroVisibilityWithMessages() {
+        if (isKeyboardVisible) {
+            setProfileIntroVisible(false);
+            return;
+        }
+
+        if (adapter == null || adapter.getItemCount() == 0) {
+            setProfileIntroVisible(true);
+            return;
+        }
+
+        boolean atTop = !binding.rvMessages.canScrollVertically(-1);
+        setProfileIntroVisible(atTop);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -534,14 +628,22 @@ public class DmChatActivity extends AppCompatActivity {
             binding.getRoot().getWindowVisibleDisplayFrame(visibleFrame);
             int screenHeight = binding.getRoot().getRootView().getHeight();
             int detectedKeyboardHeight = screenHeight - visibleFrame.bottom;
+                        boolean keyboardNowVisible = detectedKeyboardHeight > screenHeight * KEYBOARD_HEIGHT_RATIO;
 
-            if (detectedKeyboardHeight > screenHeight * KEYBOARD_HEIGHT_RATIO) {
+            if (keyboardNowVisible) {
                 if (detectedKeyboardHeight != keyboardHeight) {
                     keyboardHeight = detectedKeyboardHeight;
                     if (isEmojiPanelVisible) setPanelHeight(keyboardHeight);
                 }
                 if (isEmojiPanelVisible && !pendingShowKeyboard) collapseEmojiPanel();
+                            if (!isKeyboardVisible) {
+                                isKeyboardVisible = true;
+                                setProfileIntroVisible(false);
+                            }
                 pendingShowKeyboard = false;
+                        } else if (isKeyboardVisible) {
+                            isKeyboardVisible = false;
+                            binding.rvMessages.post(DmChatActivity.this::syncProfileIntroVisibilityWithMessages);
             }
         });
     }
@@ -670,15 +772,27 @@ public class DmChatActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     List<DmMessageItem> items = mapMessages(ordered);
                     adapter.setItems(items);
-                    if (!items.isEmpty()) binding.rvMessages.scrollToPosition(items.size() - 1);
+                    if (!items.isEmpty()) {
+                        binding.rvMessages.scrollToPosition(items.size() - 1);
+                    }
+                    binding.rvMessages.post(this::syncProfileIntroVisibilityWithMessages);
                 });
             }
         });
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Actions & Menus (Main)
-    // ─────────────────────────────────────────────────────────────────────────
+    private void sendMessage(String content) {
+        sendMessage(content, null);
+    }
+
+    private void sendMessage(String content, String replyToId) {
+        dmRepository.sendMessage(channelId, replyToId, content, result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> appendMessage(result.getData()));
+            }
+        });
+    }
+
 
     private void showMessageActionsSheet(DmMessageItem item) {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
@@ -826,14 +940,65 @@ public class DmChatActivity extends AppCompatActivity {
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
         String wsUrl = BuildConfig.BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "ws";
-        stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
+        String accessToken = tokenManager.getAccessToken();
+        Map<String, String> handshakeHeaders = new HashMap<>();
+        List<StompHeader> connectHeaders = null;
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            String authorization = "Bearer " + accessToken;
+            handshakeHeaders.put("Authorization", authorization);
+            connectHeaders = Collections.singletonList(new StompHeader("Authorization", authorization));
+        }
+
+        stompClient = Stomp.over(
+                Stomp.ConnectionProvider.OKHTTP,
+                wsUrl,
+                handshakeHeaders.isEmpty() ? null : handshakeHeaders,
+                createRealtimeOkHttpClient()
+        );
+        stompClient.withClientHeartbeat(10000).withServerHeartbeat(10000);
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(event -> {
                     if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) subscribeToChannel();
                 }, throwable -> {}));
-        stompClient.connect();
+        stompClient.connect(connectHeaders);
+    }
+
+    private OkHttpClient createRealtimeOkHttpClient() {
+        return new OkHttpClient.Builder()
+                .dns(createDnsWithRailwayFallback())
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+    }
+
+    private Dns createDnsWithRailwayFallback() {
+        return hostname -> {
+            try {
+                return Dns.SYSTEM.lookup(hostname);
+            } catch (UnknownHostException originalError) {
+                if (!RAILWAY_HOST.equalsIgnoreCase(hostname)) {
+                    throw originalError;
+                }
+
+                List<InetAddress> fallbackAddresses = new ArrayList<>();
+                for (String ip : RAILWAY_FALLBACK_IPS) {
+                    try {
+                        fallbackAddresses.add(InetAddress.getByName(ip));
+                    } catch (UnknownHostException ignored) {
+                        // Ignore malformed fallback entries.
+                    }
+                }
+
+                if (fallbackAddresses.isEmpty()) {
+                    throw originalError;
+                }
+                return fallbackAddresses;
+            }
+        };
     }
 
     private void subscribeToChannel() {
@@ -863,6 +1028,7 @@ public class DmChatActivity extends AppCompatActivity {
         DmMessageItem item = mapMessage(dto);
         adapter.upsertItem(item);
         if (adapter.getItemCount() > 0) binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        binding.rvMessages.post(this::syncProfileIntroVisibilityWithMessages);
     }
 
     private DmMessageItem mapMessage(MessageDto dto) {
@@ -931,7 +1097,7 @@ public class DmChatActivity extends AppCompatActivity {
         String preview = item.getContent();
         if (DmMessageAdapter.isMedia(preview)) {
             String title = DmMessageAdapter.extractMediaTitle(preview);
-            preview = title != null ? title : "Media";
+            preview = title != null ? title : getString(R.string.dm_media);
         }
         binding.tvReplyContent.setText(preview);
         binding.replyBar.setVisibility(View.VISIBLE);
@@ -995,9 +1161,12 @@ public class DmChatActivity extends AppCompatActivity {
         String content = item.getContent() == null ? "" : item.getContent();
         if (DmMessageAdapter.isMedia(content)) {
             String title = DmMessageAdapter.extractMediaTitle(content);
-            deleteBinding.tvDeleteContent.setText(title != null ? title : "Media");
+            deleteBinding.tvDeleteContent.setText(title != null ? title : getString(R.string.dm_media));
         } else {
-            deleteBinding.tvDeleteContent.setText(content + (item.isEdited() ? " (edited)" : ""));
+            String editedSuffix = item.isEdited()
+                    ? getString(R.string.message_edited_suffix, getString(R.string.message_edited))
+                    : "";
+            deleteBinding.tvDeleteContent.setText(content + editedSuffix);
         }
 
         deleteBinding.btnDeleteNo.setOnClickListener(v -> dialog.dismiss());
@@ -1019,11 +1188,31 @@ public class DmChatActivity extends AppCompatActivity {
 
     private String formatTime(String rawTime) {
         if (rawTime == null || rawTime.trim().isEmpty()) return "";
+        String value = rawTime.trim();
+        ZoneId localZone = ZoneId.systemDefault();
         try {
-            LocalDateTime dateTime = LocalDateTime.parse(rawTime);
-            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
+            OffsetDateTime dateTime = OffsetDateTime.parse(value);
+            return dateTime.atZoneSameInstant(localZone)
+                    .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
         } catch (Exception ignored) {
-            return rawTime;
         }
+
+        try {
+            Instant instant = Instant.parse(value);
+            return DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+                    .format(instant.atZone(localZone));
+        } catch (Exception ignored) {
+        }
+
+        try {
+            LocalDateTime localDateTime = LocalDateTime.parse(value);
+            // Backend sometimes sends LocalDateTime without offset; treat as UTC then convert.
+            ZonedDateTime utcDateTime = localDateTime.atZone(ZoneId.of("UTC"));
+            return utcDateTime.withZoneSameInstant(localZone)
+                    .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
+        } catch (Exception ignored) {
+        }
+
+        return value;
     }
 }

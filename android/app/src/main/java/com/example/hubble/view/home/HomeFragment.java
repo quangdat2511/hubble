@@ -22,6 +22,8 @@ import com.example.hubble.adapter.dm.DmConversationAdapter;
 import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
+import com.example.hubble.data.model.dm.DmConversationItem;
+import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
 import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerItem;
@@ -32,6 +34,7 @@ import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
@@ -225,6 +228,8 @@ public class HomeFragment extends Fragment {
             viewModel.openOrCreateDirectChannel(friendId);
         });
 
+        conversationAdapter.setOnConversationLongClickListener(this::showConversationActionsSheet);
+
         viewModel.openDmState.observe(getViewLifecycleOwner(), result -> {
             if (result == null || result.getStatus() == AuthResult.Status.LOADING) {
                 return;
@@ -252,6 +257,54 @@ public class HomeFragment extends Fragment {
                 showMessage(message);
             }
         });
+    }
+
+    private void showConversationActionsSheet(DmConversationItem item) {
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        BottomSheetDmConversationActionsBinding sheet = BottomSheetDmConversationActionsBinding.inflate(getLayoutInflater());
+        dialog.setContentView(sheet.getRoot());
+
+        String displayName = item != null && item.getDisplayName() != null ? item.getDisplayName().trim() : "";
+        if (displayName.isEmpty()) {
+            displayName = getString(R.string.dm_default_user);
+        }
+        sheet.tvConversationHandle.setText("@" + displayName);
+
+        boolean isFavorite = item != null && item.isFavorite();
+        sheet.actionFavorite.setText(isFavorite ? R.string.dm_unfavorite : R.string.dm_favorite);
+
+        sheet.actionProfile.setOnClickListener(v -> {
+            dialog.dismiss();
+            showMessage(getString(R.string.main_coming_soon));
+        });
+
+        sheet.actionCloseDm.setOnClickListener(v -> {
+            dialog.dismiss();
+            showMessage(getString(R.string.main_coming_soon));
+        });
+
+        sheet.actionFavorite.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (item == null || !item.hasChannelId()) {
+                showMessage(getString(R.string.error_generic));
+                return;
+            }
+            boolean nextFavorite = !item.isFavorite();
+            viewModel.toggleConversationFavorite(item);
+            showMessage(getString(nextFavorite ? R.string.dm_favorited_success : R.string.dm_unfavorited_success));
+        });
+
+        sheet.actionMarkRead.setOnClickListener(v -> {
+            dialog.dismiss();
+            showMessage(getString(R.string.main_coming_soon));
+        });
+
+        sheet.actionMuteConversation.setOnClickListener(v -> {
+            dialog.dismiss();
+            showMessage(getString(R.string.main_coming_soon));
+        });
+
+        dialog.show();
     }
 
     private void setupActions(View view) {
