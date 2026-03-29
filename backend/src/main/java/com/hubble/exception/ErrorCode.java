@@ -17,7 +17,13 @@ public enum ErrorCode {
     USERNAME_INVALID(1004, "Tên hiển thị phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1005, "Mật khẩu phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1006, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
-    CANNOT_DM_SELF(1007, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
+
+    FILE_EMPTY(1007, "File is empty", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(1008, "File exceeds maximum allowed size", HttpStatus.BAD_REQUEST),
+    FILE_TYPE_NOT_ALLOWED(1009, "File type is not allowed", HttpStatus.BAD_REQUEST),
+    UPLOAD_FAILED(1010, "Failed to upload file to storage", HttpStatus.BAD_REQUEST),
+
+    CANNOT_DM_SELF(1017, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
     // Xác thực
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
@@ -41,6 +47,10 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+
+    // Tin nhắn
+    MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
+    MESSAGE_NOT_OWNER(5002, "Bạn không có quyền thực hiện thao tác này với tin nhắn", HttpStatus.FORBIDDEN),
 
     NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
 

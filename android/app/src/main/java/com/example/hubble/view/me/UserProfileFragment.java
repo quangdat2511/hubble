@@ -1,7 +1,6 @@
 package com.example.hubble.view.me;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,30 +11,20 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import com.example.hubble.R;
-import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
-import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.repository.UserRepository;
 import com.example.hubble.databinding.FragmentUserProfileBinding;
-import com.example.hubble.utils.TokenManager;
-import com.example.hubble.viewmodel.AuthViewModel;
-import com.example.hubble.viewmodel.AuthViewModelFactory;
-import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import java.util.Locale;
 
 public class UserProfileFragment extends Fragment {
 
-    private static final String TAG = "UserProfileFragment";
-
     private FragmentUserProfileBinding binding;
-    private AuthViewModel authViewModel;
-    private String token;
+    private UserRepository userRepository;
+    private UserResponse currentProfile;
     private boolean isEditMode = false;
 
     public UserProfileFragment() {
@@ -55,13 +44,7 @@ public class UserProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        authViewModel = new ViewModelProvider(
-                requireActivity(),
-                new AuthViewModelFactory(new AuthRepository(requireContext()))
-        ).get(AuthViewModel.class);
-
-        token = "Bearer " + authViewModel.getToken();
-
+        userRepository = new UserRepository(requireContext());
         setupStatusDropdown();
         setEditMode(false);
         setupActions();
@@ -91,54 +74,13 @@ public class UserProfileFragment extends Fragment {
     }
 
     private void loadProfile() {
-        authViewModel.getApiService().getProfile(token)
-                .enqueue(new Callback<ApiResponse<UserResponse>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<UserResponse>> call,
-                                           Response<ApiResponse<UserResponse>> response) {
-                        if (!isAdded() || binding == null) return;
-
-                        if (response.isSuccessful()
-                                && response.body() != null
-                                && response.body().getResult() != null) {
-
-                            UserResponse user = response.body().getResult();
-                            new TokenManager(requireContext()).saveUser(user);
-                            populateUserInfo(user);
-
-                        } else {
-                            String errorMessage = "Load profile failed";
-                            try {
-                                if (response.errorBody() != null) {
-                                    errorMessage = response.errorBody().string();
-                                } else {
-                                    errorMessage = "Code: " + response.code();
-                                }
-                            } catch (Exception e) {
-                                errorMessage = "Code: " + response.code() + ", read error: " + e.getMessage();
-                            }
-
-                            Log.e(TAG, "getProfile failed: " + errorMessage);
-                            Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
-                            populateUserInfo(authViewModel.getCurrentUser());
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
-                        if (!isAdded() || binding == null) return;
-
-                        String message = t.getMessage() != null ? t.getMessage() : "Unknown network error";
-                        Log.e(TAG, "getProfile onFailure", t);
-                        Toast.makeText(getContext(), "Load profile error: " + message, Toast.LENGTH_LONG).show();
-                        populateUserInfo(authViewModel.getCurrentUser());
-                    }
-                });
+        userRepository.getProfile(result -> handleProfileResult(result, true));
     }
 
     private void populateUserInfo(@Nullable UserResponse user) {
         if (user == null) return;
 
+        currentProfile = user;
         binding.tvUsername.setText(safe(user.getUsername()));
         binding.etDisplayName.setText(safe(user.getDisplayName()));
         binding.etPhone.setText(safe(user.getPhone()));
@@ -183,13 +125,11 @@ public class UserProfileFragment extends Fragment {
         binding.etStatus.setEnabled(enabled);
         binding.etStatus.setClickable(enabled);
         binding.etStatus.setFocusable(enabled);
-        binding.etStatus.setFocusableInTouchMode(false);
+        binding.etStatus.setFocusableInTouchMode(enabled);
     }
 
     private void saveProfile() {
-        String selectedStatus = binding.etStatus.getText() != null
-                ? binding.etStatus.getText().toString().trim()
-                : "";
+        String selectedStatus = resolveStatusForSave();
 
         UpdateProfileRequest request = new UpdateProfileRequest(
                 binding.etBio.getText().toString().trim(),
@@ -198,57 +138,47 @@ public class UserProfileFragment extends Fragment {
                 binding.etPhone.getText().toString().trim()
         );
 
-        Log.d(TAG, "updateProfile bio=" + request.getBio());
-        Log.d(TAG, "updateProfile displayName=" + request.getDisplayName());
-        Log.d(TAG, "updateProfile status=" + request.getStatus());
-        Log.d(TAG, "updateProfile phone=" + request.getPhone());
+        userRepository.updateProfile(request, result -> handleProfileResult(result, false));
+    }
 
-        authViewModel.getApiService().updateProfile(token, request)
-                .enqueue(new Callback<ApiResponse<UserResponse>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<UserResponse>> call,
-                                           Response<ApiResponse<UserResponse>> response) {
-                        if (!isAdded() || binding == null) return;
+    private String resolveStatusForSave() {
+        String selectedStatus = binding.etStatus.getText() != null
+                ? binding.etStatus.getText().toString().trim()
+                : "";
 
-                        if (response.isSuccessful()
-                                && response.body() != null
-                                && response.body().getResult() != null) {
+        if (selectedStatus.isEmpty() && currentProfile != null) {
+            selectedStatus = safe(currentProfile.getStatus()).trim();
+        }
+        if (selectedStatus.isEmpty()) {
+            selectedStatus = "ONLINE";
+        }
+        return selectedStatus.toUpperCase(Locale.ROOT);
+    }
 
-                            UserResponse updated = response.body().getResult();
-                            new TokenManager(requireContext()).saveUser(updated);
-                            populateUserInfo(updated);
-                            setEditMode(false);
+    private void handleProfileResult(AuthResult<UserResponse> result, boolean loadingProfile) {
+        if (!isAdded() || binding == null || result == null) {
+            return;
+        }
 
-                            Toast.makeText(getContext(), "Profile updated", Toast.LENGTH_SHORT).show();
-                        } else {
-                            String errorMessage = "Update failed";
+        if (result.isSuccess() && result.getData() != null) {
+            populateUserInfo(result.getData());
+            if (!loadingProfile) {
+                setEditMode(false);
+                Toast.makeText(getContext(), "Profile updated", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
 
-                            try {
-                                if (response.errorBody() != null) {
-                                    errorMessage = response.errorBody().string();
-                                } else if (response.body() != null) {
-                                    errorMessage = "Code: " + response.code() + ", result is null";
-                                } else {
-                                    errorMessage = "Code: " + response.code() + ", empty response body";
-                                }
-                            } catch (Exception e) {
-                                errorMessage = "Code: " + response.code() + ", cannot read error: " + e.getMessage();
-                            }
+        if (!result.isError()) {
+            return;
+        }
 
-                            Log.e(TAG, "updateProfile failed: " + errorMessage);
-                            Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
-                        }
-                    }
+        String message = result.getMessage();
+        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
 
-                    @Override
-                    public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
-                        if (!isAdded() || binding == null) return;
-
-                        String message = t.getMessage() != null ? t.getMessage() : "Unknown network error";
-                        Log.e(TAG, "updateProfile onFailure", t);
-                        Toast.makeText(getContext(), "Network error: " + message, Toast.LENGTH_LONG).show();
-                    }
-                });
+        if (loadingProfile) {
+            populateUserInfo(userRepository.getCachedUser());
+        }
     }
 
     @Override

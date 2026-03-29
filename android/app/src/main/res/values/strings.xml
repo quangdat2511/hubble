@@ -106,6 +106,8 @@
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="me_outgoing_requests">Outgoing requests</string>
+    <string name="me_blocked_users">Blocked users</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>
@@ -182,6 +184,8 @@
     <string name="dm_new_message">Tin nhắn mới</string>
     <string name="dm_default_user">Danzg</string>
     <string name="dm_me">Bạn</string>
+    <string name="dm_username_format">@%1$s</string>
+    <string name="dm_profile_intro_desc">This is the very beginning of your legendary conversation with %1$s.</string>
     <string name="dm_message_hint">Message @%1$s</string>
     <string name="dm_message_hint_static">Message</string>
     <string name="dm_send">Gửi tin nhắn</string>
@@ -196,6 +200,35 @@
     <string name="new_message_suggested">Suggested</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
     <string name="cd_close">Close</string>
+    <string name="cd_emoji_picker">Emoji picker</string>
+    <string name="emoji_search_hint">Find the perfect emoji</string>
 
-
+    <!-- Message actions / forward -->
+    <string name="reply">Reply</string>
+    <string name="forward">Forward</string>
+    <string name="copy_text">Copy Text</string>
+    <string name="edit_message">Edit Message</string>
+    <string name="unsend_message">Delete Message</string>
+    <string name="delete_message">Delete Message</string>
+    <string name="delete_message_confirm">Are you sure you want to delete this message?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="empty_message_error">Vui lòng nhập nội dung tin nhắn</string>
+    <string name="pin_message">Pin Message</string>
+    <string name="reply_to">Trả lời %1$s</string>
+    <string name="reply_cancel">Hủy trả lời</string>
+    <string name="cd_reply_cancel">Hủy trả lời tin nhắn</string>
+    <string name="forward_to">Forward To</string>
+    <string name="search">Search</string>
+    <string name="send">Send</string>
+    <string name="add_optional_message">Add an optional message...</string>
+    <string name="copied_message_text">Copied Message Text</string>
+    <string name="forward_sent_count">Đã chuyển tiếp %1$d cuộc trò chuyện</string>
+    <string name="forward_no_target">Hãy chọn ít nhất một nơi nhận</string>
+    <string name="message_edited">edited</string>
+    <string name="editing_message">Editing Message</string>
+    <string name="editing_message_hint">Edit message</string>
+    <string name="cd_cancel_edit">Hủy chỉnh sửa tin nhắn</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 </resources>

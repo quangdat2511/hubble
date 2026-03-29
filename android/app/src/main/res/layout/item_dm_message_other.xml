@@ -15,51 +15,146 @@
         app:layout_constraintTop_toTopOf="parent"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
-    <TextView
-        android:id="@+id/tvName"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
-        android:textColor="?attr/colorOnSurface"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@id/tvTime"
-        app:layout_constraintStart_toEndOf="@id/ivAvatar"
-        app:layout_constraintTop_toTopOf="@id/ivAvatar" />
-
-    <TextView
-        android:id="@+id/tvTime"
+    <LinearLayout
+        android:id="@+id/headerRow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
-        android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        app:layout_constraintBaseline_toBaselineOf="@id/tvName"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toTopOf="@id/ivAvatar">
 
-    <com.google.android.material.card.MaterialCardView
+        <TextView
+            android:id="@+id/tvName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/replyQuoteContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
-        android:layout_marginTop="@dimen/spacing_xs"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="0dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
-        app:layout_constraintTop_toBottomOf="@id/tvName">
+        app:layout_constraintTop_toBottomOf="@id/headerRow">
 
-        <TextView
-            android:id="@+id/tvMessage"
+        <View
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="6dp"
+            android:background="?attr/colorPrimary" />
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="12dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurface" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReplyQuoteSender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="220dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvReplyQuoteContent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="220dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardOther"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_marginTop="2dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="0dp"
+            android:paddingBottom="2dp">
+
+            <TextView
+                android:id="@+id/tvMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="300dp"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurface" />
+
+            <LinearLayout
+                android:id="@+id/llAttachments"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvEdited"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="2dp"
+                android:text="@string/message_edited"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:alpha="0.72"
+                android:visibility="gone" />
+
+        </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivMedia"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_marginTop="2dp"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="@null"
+        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

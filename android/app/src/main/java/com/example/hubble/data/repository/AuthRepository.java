@@ -5,13 +5,14 @@ import android.content.Context;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
 import com.example.hubble.data.model.auth.GoogleLoginRequest;
 import com.example.hubble.data.model.auth.LoginRequest;
 import com.example.hubble.data.model.auth.PhoneSendOtpRequest;
 import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
+import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
@@ -227,6 +228,18 @@ public class AuthRepository {
     }
 
     public void logout() {
+        String refreshToken = tokenManager.getRefreshToken();
+        if (refreshToken != null) {
+            apiService.logout(new RefreshTokenRequest(refreshToken)).enqueue(new Callback<ApiResponse<String>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                }
+            });
+        }
         tokenManager.clear();
     }
 }

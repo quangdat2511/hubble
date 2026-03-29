@@ -17,7 +17,11 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -32,6 +36,8 @@ public class ChannelService {
     UserRepository userRepository;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    MessageService messageService;
+
     @Transactional
     public ChannelResponse getOrCreateDirectChannel(UUID currentUserId, UUID otherUserId){
         if (currentUserId.equals(otherUserId)) {
@@ -55,17 +61,19 @@ public class ChannelService {
 
         // 4. Lấy giao nhau
         currentUserChannelIds.retainAll(otherUserChannelIds); // giờ trong set là các channel chung
-        // 5. Tìm channel DM trong các channel chung
-        for (UUID channelId : currentUserChannelIds) {
-            Channel channel = channelRepository.findById(channelId).orElse(null);
+                // 5. Tìm channel DM trong các channel chung, ưu tiên channel mới nhất để ổn định khi dữ liệu cũ bị trùng.
+                List<Channel> sharedChannels = new ArrayList<>(channelRepository.findAllById(currentUserChannelIds));
+                sharedChannels.sort(Comparator.comparing(Channel::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+
+                for (Channel channel : sharedChannels) {
+                        UUID channelId = channel.getId();
                         List<ChannelMember> members = channelMemberRepository.findAllByChannelId(channelId);
-            if (channel != null
-                    && channel.getType() == ChannelType.DM
+                        if (channel.getType() == ChannelType.DM
                                         && channel.getServerId() == null
                                         && members.size() == 2) {
                                 return buildDirectChannelResponse(channel, currentUserId); // đã có DM 1-1, dùng lại
-            }
-        }
+                        }
+                }
         Channel newChannel = Channel.builder()
                 .type(ChannelType.DM)
                 .serverId(null)
@@ -102,12 +110,25 @@ public class ChannelService {
                 .map(ChannelMember::getChannelId)
                 .collect(Collectors.toSet());
 
-        List<Channel> channels = channelRepository.findAllById(channelIds);
+                List<Channel> channels = new ArrayList<>(channelRepository.findAllById(channelIds));
 
-        return channels.stream()
-                .filter(c -> c.getType() == ChannelType.DM && c.getServerId() == null)
-                                .map(channel -> buildDirectChannelResponse(channel, currentUserId))
-                .toList();
+                // Sắp xếp mới -> cũ trước, sau đó gộp theo peer để mỗi người bạn chỉ còn 1 DM.
+                channels.sort(Comparator.comparing(Channel::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+
+                Map<String, ChannelResponse> dedupByPeer = new LinkedHashMap<>();
+                for (Channel channel : channels) {
+                        if (channel.getType() != ChannelType.DM || channel.getServerId() != null) {
+                                continue;
+                        }
+
+                        ChannelResponse response = buildDirectChannelResponse(channel, currentUserId);
+                        String key = response.getPeerUserId() != null
+                                        ? response.getPeerUserId()
+                                        : "channel:" + response.getId();
+                        dedupByPeer.putIfAbsent(key, response);
+                }
+
+                return new ArrayList<>(dedupByPeer.values());
     }
 
         private ChannelResponse buildDirectChannelResponse(Channel channel, UUID currentUserId) {
@@ -133,4 +154,9 @@ public class ChannelService {
                 response.setPeerAvatarUrl(peerUser.getAvatarUrl());
                 response.setPeerStatus(peerUser.getStatus() != null ? peerUser.getStatus().name() : null);
         }
+    @Transactional
+    public void deleteChannel(UUID channelId) {
+        messageService.deleteMessagesByChannel(channelId);
+        channelRepository.deleteById(channelId);
+    }
 }

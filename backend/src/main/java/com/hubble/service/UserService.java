@@ -46,11 +46,19 @@ public class UserService {
 
     public UserResponse updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        user.setDisplayName(request.getDisplayName());
-        user.setPhone(request.getPhone());
-        user.setBio(request.getBio());
+        String displayName = normalize(request.getDisplayName());
+        String phone = normalize(request.getPhone());
+        String bio = normalize(request.getBio());
+
+        if (phone != null && userRepository.existsByPhoneAndIdNot(phone, userId)) {
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+        }
+
+        user.setDisplayName(displayName);
+        user.setPhone(phone);
+        user.setBio(bio);
         user.setStatus(request.getStatus());
 
         userRepository.save(user);
@@ -60,12 +68,21 @@ public class UserService {
 
     public UserResponse updateCustomStatus(UUID userId, UpdateCustomStatusRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         user.setCustomStatus(request.getCustomStatus());
 
         userRepository.save(user);
 
         return userMapper.toUserResponse(user);
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
