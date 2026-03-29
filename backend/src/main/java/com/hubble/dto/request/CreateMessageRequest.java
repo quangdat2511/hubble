@@ -12,9 +12,9 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateMessageRequest {
-    UUID channelId;
-    UUID replyToId;
+    String channelId;
+    String replyToId;
     String content;
-    private String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
-    private List<UUID> attachmentIds;
+    String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
+    List<UUID> attachmentIds;
 }
