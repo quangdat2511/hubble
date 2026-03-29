@@ -82,6 +82,14 @@ public class HomeFragment extends Fragment {
         viewModel.refreshDirectMessages();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (viewModel != null) {
+            viewModel.refreshDirectMessages();
+        }
+    }
+
     private void setupServerSidebar(MainViewModel viewModel) {
         serverAdapter = new ServerSidebarAdapter();
         binding.rvServers.setLayoutManager(new LinearLayoutManager(requireContext()));

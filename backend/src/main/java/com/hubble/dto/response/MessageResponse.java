@@ -13,6 +13,7 @@ public class MessageResponse {
     private String content;
     private String type;
     private Boolean isPinned;
+    private Boolean isDeleted;
     private String editedAt;
     private String createdAt;
 }

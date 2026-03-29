@@ -56,10 +56,9 @@ BASE_URL_DEBUG=http://10.0.2.2:8080/
 
 Ghi chú:
 - 10.0.2.2 chỉ dùng cho Android Emulator.
-- Các chức năng realtime không ổn định hoặc không hoạt động đầy đủ trong mode này.
 
 ## Kết luận nhanh
-
+- Các chức năng realtime chỉ hoạt động đúng khi và chỉ khi các máy cùng dùng chung 1 backend (dù là local hay đã deploy).
 - Không có BASE_URL_DEBUG -> dùng Railway.
 - BASE_URL_DEBUG là URL ngrok -> nhiều máy cùng test 1 backend local.
-- BASE_URL_DEBUG là 10.0.2.2 -> chỉ emulator trên máy bạn, phù hợp test local nhanh.
+- BASE_URL_DEBUG là 10.0.2.2 -> chạy 2 emulator trên cùng 1 máy, phù hợp test local nhanh.

@@ -20,6 +20,7 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.UpdateMessageRequest;
 
 import java.util.List;
 
@@ -28,6 +29,7 @@ import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -165,5 +167,18 @@ public interface ApiService {
         Call<ApiResponse<MessageDto>> sendMessage(
             @Header("Authorization") String token,
             @Body CreateMessageRequest request
+        );
+
+        @PATCH("api/messages/{messageId}")
+        Call<ApiResponse<MessageDto>> editMessage(
+            @Header("Authorization") String token,
+            @Path("messageId") String messageId,
+            @Body UpdateMessageRequest request
+        );
+
+        @DELETE("api/messages/{messageId}")
+        Call<ApiResponse<MessageDto>> unsendMessage(
+            @Header("Authorization") String token,
+            @Path("messageId") String messageId
         );
 }
