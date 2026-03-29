@@ -3,15 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"> <com.google.android.material.appbar.MaterialToolbar
-    android:id="@+id/toolbar"
-    android:layout_width="0dp"
-    android:layout_height="56dp"
-    android:background="?attr/colorSurface" app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="parent"
-    app:navigationIcon="@drawable/ic_arrow_back"
-    app:navigationIconTint="?attr/colorOnSurface" app:title="" />
+    android:background="?android:attr/colorBackground">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:background="?attr/colorSurface"
+        app:contentInsetStart="0dp"
+        app:contentInsetStartWithNavigation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="?attr/colorOnSurface"
+        app:title="" />
 
     <LinearLayout
         android:id="@+id/headerInfo"
@@ -19,8 +25,8 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="54dp"
-        android:paddingEnd="8dp"
+        android:paddingStart="52dp"
+        android:paddingEnd="12dp"
         app:layout_constraintEnd_toStartOf="@+id/headerActions"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="@id/toolbar"
@@ -45,7 +51,8 @@
                 android:layout_gravity="bottom|end"
                 android:layout_marginEnd="-1dp"
                 android:layout_marginBottom="-1dp"
-                android:background="@drawable/bg_dm_header_status_dot" />
+                android:background="@drawable/bg_dm_header_status_dot"
+                android:visibility="gone" />
 
         </FrameLayout>
 
@@ -61,7 +68,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurface" android:textSize="17sp"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <ImageView
@@ -71,7 +79,9 @@
                 android:layout_marginStart="4dp"
                 android:contentDescription="@null"
                 android:src="@drawable/ic_chevron_right"
-                app:tint="?attr/colorOnSurfaceVariant" /> </LinearLayout>
+                android:tint="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -79,8 +89,9 @@
         android:id="@+id/headerActions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingEnd="8dp"
+        android:paddingEnd="10dp"
         app:layout_constraintBottom_toBottomOf="@id/toolbar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/toolbar">
@@ -88,25 +99,32 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCall"
             style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:contentDescription="@string/cd_call"
             app:icon="@drawable/ic_call"
-            app:iconTint="?attr/colorOnSurfaceVariant" app:backgroundTint="?attr/colorSurfaceVariant" /> <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnVideo"
-        style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="8dp"
-        android:contentDescription="@string/cd_video"
-        app:icon="@drawable/ic_video"
-        app:iconTint="?attr/colorOnSurfaceVariant" app:backgroundTint="?attr/colorSurfaceVariant" /> </LinearLayout>
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:backgroundTint="?attr/colorSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideo"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/cd_video"
+            app:icon="@drawable/ic_video"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:backgroundTint="?attr/colorSurfaceVariant" />
+
+    </LinearLayout>
 
     <View
         android:id="@+id/divider"
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:background="?attr/colorOutlineVariant" app:layout_constraintEnd_toEndOf="parent"
+        android:background="?attr/colorOutline"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
@@ -114,11 +132,12 @@
         android:id="@+id/layoutDmProfileIntro"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="?android:attr/colorBackground" android:orientation="vertical"
-        android:paddingStart="@dimen/spacing_md"
-        android:paddingTop="@dimen/spacing_md"
-        android:paddingEnd="@dimen/spacing_md"
-        android:paddingBottom="@dimen/spacing_md"
+        android:background="?android:attr/colorBackground"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/divider">
@@ -137,21 +156,26 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:textAppearance="?attr/textAppearanceHeadlineLarge"
-            android:textColor="?attr/colorOnSurface" android:textStyle="bold" />
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvProfileIntroUsername"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall"
-            android:textColor="?attr/colorOnSurfaceVariant" /> <TextView
-        android:id="@+id/tvProfileIntroDesc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
-        android:textColor="?attr/colorOnSurfaceVariant" /> </LinearLayout>
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/tvProfileIntroDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/copyBanner"

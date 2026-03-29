@@ -17,6 +17,8 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.google.gson.Gson;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -31,16 +34,25 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.Dns;
+import okhttp3.OkHttpClient;
 import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 import ua.naiksoftware.stomp.dto.LifecycleEvent;
+import ua.naiksoftware.stomp.dto.StompHeader;
 
 public class MainViewModel extends ViewModel {
+
+    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
+    private static final String[] RAILWAY_FALLBACK_IPS = {
+            "151.101.2.15"
+    };
 
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
@@ -51,6 +63,7 @@ public class MainViewModel extends ViewModel {
     private final Map<String, FriendUserDto> friendCacheById = new HashMap<>();
     private final Map<String, ChannelDto> channelCacheById = new HashMap<>();
     private final Set<String> desiredDmChannelIds = new HashSet<>();
+    private final Set<String> favoriteChannelIds = new HashSet<>();
 
     private StompClient dmRealtimeClient;
     private boolean dmRealtimeConnected;
@@ -189,7 +202,10 @@ public class MainViewModel extends ViewModel {
 
                 Set<String> availableChannelIds = new HashSet<>(channelCacheById.keySet());
                 dmRepository.pruneLocallyOpenedDirectChannels(availableChannelIds);
+                dmRepository.pruneFavoriteDirectChannels(availableChannelIds);
                 Set<String> locallyOpenedChannelIds = dmRepository.getLocallyOpenedDirectChannelIds();
+                favoriteChannelIds.clear();
+                favoriteChannelIds.addAll(dmRepository.getFavoriteDirectChannelIds());
 
                 syncDmRealtimeChannels(new ArrayList<>(channelByFriendId.values()));
 
@@ -216,7 +232,20 @@ public class MainViewModel extends ViewModel {
         }
 
         FriendUserDto friend = friendCacheById.get(friendId);
-        DmConversationItem openedItem = buildConversationItem(friend, channel);
+        DmConversationItem baseItem = buildConversationItem(friend, channel);
+        DmConversationItem openedItem = new DmConversationItem(
+            baseItem.getId(),
+            baseItem.getChannelId(),
+            baseItem.getFriendId(),
+            baseItem.getDisplayName(),
+            baseItem.getLastMessage(),
+            baseItem.getTimeLabel(),
+            baseItem.isOnline(),
+            baseItem.isVerified(),
+            baseItem.isSelected(),
+            baseItem.isFavorite(),
+            System.currentTimeMillis()
+        );
 
         List<DmConversationItem> current = _dmConversations.getValue();
         List<DmConversationItem> next = current != null ? new ArrayList<>(current) : new ArrayList<>();
@@ -268,7 +297,9 @@ public class MainViewModel extends ViewModel {
                 "",
                 "ONLINE".equalsIgnoreCase(peerStatus),
                 false,
-                false
+                false,
+                isFavoriteChannel(channelId),
+                0L
         );
     }
 
@@ -300,7 +331,24 @@ public class MainViewModel extends ViewModel {
         }
 
         String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
-        dmRealtimeClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
+        String accessToken = dmRepository.getAccessTokenRaw();
+        Map<String, String> handshakeHeaders = new HashMap<>();
+        List<StompHeader> connectHeaders = null;
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            String authorization = "Bearer " + accessToken;
+            handshakeHeaders.put("Authorization", authorization);
+            connectHeaders = Collections.singletonList(new StompHeader("Authorization", authorization));
+        }
+
+        dmRealtimeClient = Stomp.over(
+                Stomp.ConnectionProvider.OKHTTP,
+                wsUrl,
+                handshakeHeaders.isEmpty() ? null : handshakeHeaders,
+                createRealtimeOkHttpClient()
+        );
+        dmRealtimeClient.withClientHeartbeat(10000).withServerHeartbeat(10000);
+
+        final List<StompHeader> finalConnectHeaders = connectHeaders;
         dmRealtimeDisposables.add(dmRealtimeClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -317,7 +365,43 @@ public class MainViewModel extends ViewModel {
                     dmRealtimeConnected = false;
                 }));
 
-        dmRealtimeClient.connect();
+        dmRealtimeClient.connect(finalConnectHeaders);
+    }
+
+    private OkHttpClient createRealtimeOkHttpClient() {
+        return new OkHttpClient.Builder()
+                .dns(createDnsWithRailwayFallback())
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+    }
+
+    private Dns createDnsWithRailwayFallback() {
+        return hostname -> {
+            try {
+                return Dns.SYSTEM.lookup(hostname);
+            } catch (UnknownHostException originalError) {
+                if (!RAILWAY_HOST.equalsIgnoreCase(hostname)) {
+                    throw originalError;
+                }
+
+                List<InetAddress> fallbackAddresses = new ArrayList<>();
+                for (String ip : RAILWAY_FALLBACK_IPS) {
+                    try {
+                        fallbackAddresses.add(InetAddress.getByName(ip));
+                    } catch (UnknownHostException ignored) {
+                        // Ignore malformed fallback entries.
+                    }
+                }
+
+                if (fallbackAddresses.isEmpty()) {
+                    throw originalError;
+                }
+                return fallbackAddresses;
+            }
+        };
     }
 
     private void syncDmTopicSubscriptions() {
@@ -428,7 +512,9 @@ public class MainViewModel extends ViewModel {
                     timeLabel,
                     seededItem.isOnline(),
                     seededItem.isVerified(),
-                    seededItem.isSelected()
+                        seededItem.isSelected(),
+                        seededItem.isFavorite(),
+                        toEpochMillis(message.getCreatedAt(), seededItem.getLastMessageAtMillis())
             );
 
             List<DmConversationItem> next = new ArrayList<>(currentList);
@@ -437,7 +523,7 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        DmConversationItem currentItem = current.get(existingIndex);
+        DmConversationItem currentItem = currentList.get(existingIndex);
         String previewText = buildRealtimePreview(message, currentItem.getDisplayName());
         String timeLabel = toShortTime(message.getCreatedAt());
         if (timeLabel == null || timeLabel.trim().isEmpty()) {
@@ -453,7 +539,9 @@ public class MainViewModel extends ViewModel {
                 timeLabel,
                 currentItem.isOnline(),
                 currentItem.isVerified(),
-                currentItem.isSelected()
+                currentItem.isSelected(),
+                currentItem.isFavorite(),
+                toEpochMillis(message.getCreatedAt(), currentItem.getLastMessageAtMillis())
         );
 
         List<DmConversationItem> next = new ArrayList<>(currentList);
@@ -545,7 +633,9 @@ public class MainViewModel extends ViewModel {
                             timeLabel,
                             item.isOnline(),
                             item.isVerified(),
-                            item.isSelected()
+                                item.isSelected(),
+                                item.isFavorite(),
+                                toEpochMillis(latest.getCreatedAt(), item.getLastMessageAtMillis())
                     );
                 } else {
                     boolean showOpenedByCurrentUser = item.hasChannelId()
@@ -577,8 +667,105 @@ public class MainViewModel extends ViewModel {
     }
 
     private void publishConversations(List<DmConversationItem> conversations) {
-        _dmConversations.postValue(conversations);
-        _dmStories.postValue(conversations.subList(0, Math.min(3, conversations.size())));
+        List<DmConversationItem> sorted = sortConversationsByPriority(conversations);
+        _dmConversations.postValue(sorted);
+        _dmStories.postValue(sorted.subList(0, Math.min(3, sorted.size())));
+    }
+
+    public void toggleConversationFavorite(DmConversationItem conversation) {
+        if (conversation == null || TextUtils.isEmpty(conversation.getChannelId())) {
+            return;
+        }
+
+        boolean shouldFavorite = !conversation.isFavorite();
+        dmRepository.setDirectChannelFavorite(conversation.getChannelId(), shouldFavorite);
+        if (shouldFavorite) {
+            favoriteChannelIds.add(conversation.getChannelId());
+        } else {
+            favoriteChannelIds.remove(conversation.getChannelId());
+        }
+
+        List<DmConversationItem> current = _dmConversations.getValue();
+        if (current == null || current.isEmpty()) {
+            return;
+        }
+
+        List<DmConversationItem> updated = new ArrayList<>(current.size());
+        for (DmConversationItem item : current) {
+            if (item != null && conversation.getChannelId().equals(item.getChannelId())) {
+                updated.add(new DmConversationItem(
+                        item.getId(),
+                        item.getChannelId(),
+                        item.getFriendId(),
+                        item.getDisplayName(),
+                        item.getLastMessage(),
+                        item.getTimeLabel(),
+                        item.isOnline(),
+                        item.isVerified(),
+                        item.isSelected(),
+                        shouldFavorite,
+                        item.getLastMessageAtMillis()
+                ));
+            } else {
+                updated.add(item);
+            }
+        }
+
+        publishConversations(updated);
+    }
+
+    private List<DmConversationItem> sortConversationsByPriority(List<DmConversationItem> conversations) {
+        List<DmConversationItem> sorted = conversations != null ? new ArrayList<>(conversations) : new ArrayList<>();
+        sorted.sort((left, right) -> {
+            if (left == right) {
+                return 0;
+            }
+            if (left == null) {
+                return 1;
+            }
+            if (right == null) {
+                return -1;
+            }
+            if (left.isFavorite() != right.isFavorite()) {
+                return left.isFavorite() ? -1 : 1;
+            }
+
+            int byLatestMessage = Long.compare(right.getLastMessageAtMillis(), left.getLastMessageAtMillis());
+            if (byLatestMessage != 0) {
+                return byLatestMessage;
+            }
+
+            String leftName = left.getDisplayName() != null ? left.getDisplayName() : "";
+            String rightName = right.getDisplayName() != null ? right.getDisplayName() : "";
+            return leftName.compareToIgnoreCase(rightName);
+        });
+        return sorted;
+    }
+
+    private boolean isFavoriteChannel(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return false;
+        }
+        return favoriteChannelIds.contains(channelId);
+    }
+
+    private long toEpochMillis(String createdAt, long fallback) {
+        if (createdAt == null || createdAt.trim().isEmpty()) {
+            return fallback;
+        }
+
+        try {
+            try {
+                return OffsetDateTime.parse(createdAt).toInstant().toEpochMilli();
+            } catch (DateTimeParseException e) {
+                return LocalDateTime.parse(createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli();
+            }
+        } catch (Exception ignored) {
+            return fallback;
+        }
     }
 
     private String toShortTime(String createdAt) {

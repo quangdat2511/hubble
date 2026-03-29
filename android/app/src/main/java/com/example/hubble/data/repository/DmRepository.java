@@ -31,6 +31,7 @@ public class DmRepository {
 
     private static final String DM_PREFS = "dm_prefs";
     private static final String OPENED_DM_CHANNELS_PREFIX = "opened_dm_channels_";
+    private static final String FAVORITE_DM_CHANNELS_PREFIX = "favorite_dm_channels_";
 
     private final ApiService apiService;
     private final TokenManager tokenManager;
@@ -67,6 +68,39 @@ public class DmRepository {
         Set<String> openedChannels = readOpenedDmChannels();
         if (openedChannels.retainAll(new HashSet<>(validChannelIds))) {
             saveOpenedDmChannels(openedChannels);
+        }
+    }
+
+    public Set<String> getFavoriteDirectChannelIds() {
+        return readFavoriteDmChannels();
+    }
+
+    public void setDirectChannelFavorite(String channelId, boolean favorite) {
+        if (channelId == null || channelId.trim().isEmpty()) {
+            return;
+        }
+
+        Set<String> favoriteChannels = readFavoriteDmChannels();
+        boolean changed;
+        if (favorite) {
+            changed = favoriteChannels.add(channelId);
+        } else {
+            changed = favoriteChannels.remove(channelId);
+        }
+
+        if (changed) {
+            saveFavoriteDmChannels(favoriteChannels);
+        }
+    }
+
+    public void pruneFavoriteDirectChannels(Set<String> validChannelIds) {
+        if (validChannelIds == null) {
+            return;
+        }
+
+        Set<String> favoriteChannels = readFavoriteDmChannels();
+        if (favoriteChannels.retainAll(new HashSet<>(validChannelIds))) {
+            saveFavoriteDmChannels(favoriteChannels);
         }
     }
 
@@ -280,6 +314,14 @@ public class DmRepository {
         return tokenManager.getUser().getId();
     }
 
+    public String getAccessTokenRaw() {
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            return null;
+        }
+        return accessToken;
+    }
+
     private Set<String> readOpenedDmChannels() {
         SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
         Set<String> stored = prefs.getStringSet(openedDmStorageKey(), new HashSet<>());
@@ -292,11 +334,30 @@ public class DmRepository {
     }
 
     private String openedDmStorageKey() {
+        return OPENED_DM_CHANNELS_PREFIX + currentUserStorageKeySuffix();
+    }
+
+    private Set<String> readFavoriteDmChannels() {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        Set<String> stored = prefs.getStringSet(favoriteDmStorageKey(), new HashSet<>());
+        return stored != null ? new HashSet<>(stored) : new HashSet<>();
+    }
+
+    private void saveFavoriteDmChannels(Set<String> channelIds) {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        prefs.edit().putStringSet(favoriteDmStorageKey(), new HashSet<>(channelIds)).apply();
+    }
+
+    private String favoriteDmStorageKey() {
+        return FAVORITE_DM_CHANNELS_PREFIX + currentUserStorageKeySuffix();
+    }
+
+    private String currentUserStorageKeySuffix() {
         String currentUserId = getCurrentUserId();
         if (currentUserId == null || currentUserId.trim().isEmpty()) {
             currentUserId = "anonymous";
         }
-        return OPENED_DM_CHANNELS_PREFIX + currentUserId;
+        return currentUserId;
     }
 
     private <T> String requireAuthToken(RepositoryCallback<T> callback) {
