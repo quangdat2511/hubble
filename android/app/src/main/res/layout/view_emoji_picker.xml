@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color_surface">
+
+    <!-- Tab bar: Emoji / GIFs / Stickers -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/color_surface">
+
+        <!-- Emoji Tab -->
+        <LinearLayout
+            android:id="@+id/tabEmoji"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:text="@string/emoji_tab_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/color_text_primary" />
+
+            <View
+                android:id="@+id/tabIndicatorEmoji"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="@color/color_primary"
+                android:visibility="invisible" />
+        </LinearLayout>
+
+        <!-- GIFs Tab -->
+        <LinearLayout
+            android:id="@+id/tabGif"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:text="@string/emoji_tab_gif"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/color_text_primary" />
+
+            <View
+                android:id="@+id/tabIndicatorGif"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="@color/color_primary"
+                android:visibility="invisible" />
+        </LinearLayout>
+
+        <!-- Stickers Tab -->
+        <LinearLayout
+            android:id="@+id/tabSticker"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:text="@string/emoji_tab_sticker"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/color_text_primary" />
+
+            <View
+                android:id="@+id/tabIndicatorSticker"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="@color/color_primary"
+                android:visibility="invisible" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Tab divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/color_divider" />
+
+    <!-- ── EMOJI CONTENT ── -->
+    <LinearLayout
+        android:id="@+id/emojiContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <!-- Search bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_emoji_search">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_search"
+                    android:alpha="0.5" />
+
+                <EditText
+                    android:id="@+id/etEmojiSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="12dp"
+                    android:hint="@string/emoji_search_hint"
+                    android:textSize="13sp"
+                    android:textColor="@color/color_text_primary"
+                    android:textColorHint="@color/color_text_hint"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Category icon bar -->
+        <HorizontalScrollView
+            android:id="@+id/categoryBar"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:scrollbars="none"
+            android:background="@color/color_surface">
+
+            <LinearLayout
+                android:id="@+id/categoryIconsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp" />
+        </HorizontalScrollView>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/color_divider" />
+
+        <!-- Emoji grid -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvEmojis"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+    </LinearLayout>
+
+    <!-- ── GIF CONTENT ── -->
+    <LinearLayout
+        android:id="@+id/gifContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- GIF Search bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_emoji_search">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_search"
+                    android:alpha="0.5" />
+
+                <EditText
+                    android:id="@+id/etGifSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="12dp"
+                    android:hint="@string/emoji_search_giphy_hint"
+                    android:textSize="13sp"
+                    android:textColor="@color/color_text_primary"
+                    android:textColorHint="@color/color_text_hint"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Trending / Results label -->
+        <TextView
+            android:id="@+id/tvGifLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp"
+            android:text="@string/emoji_trending"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08"
+            android:textStyle="bold"
+            android:textColor="@color/color_text_hint" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvGifs"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+
+        <!-- GIPHY attribution -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="4dp"
+            android:paddingBottom="2dp"
+            android:text="@string/emoji_powered_by_giphy"
+            android:textSize="10sp"
+            android:textColor="@color/color_text_hint"
+            android:alpha="0.6" />
+
+    </LinearLayout>
+
+    <!-- ── STICKER CONTENT ── -->
+    <LinearLayout
+        android:id="@+id/stickerContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Sticker Search bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_emoji_search">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_search"
+                    android:alpha="0.5" />
+
+                <EditText
+                    android:id="@+id/etStickerSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="12dp"
+                    android:hint="@string/emoji_search_sticker_hint"
+                    android:textSize="13sp"
+                    android:textColor="@color/color_text_primary"
+                    android:textColorHint="@color/color_text_hint"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Trending / Results label -->
+        <TextView
+            android:id="@+id/tvStickerLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp"
+            android:text="@string/emoji_trending"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08"
+            android:textStyle="bold"
+            android:textColor="@color/color_text_hint" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvStickers"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+
+        <!-- GIPHY attribution -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="4dp"
+            android:text="@string/emoji_powered_by_giphy"
+            android:textSize="10sp"
+            android:textColor="@color/color_text_hint"
+            android:alpha="0.6" />
+
+    </LinearLayout>
+
+</LinearLayout>

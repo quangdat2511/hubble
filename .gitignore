@@ -2,6 +2,7 @@
 target/
 *.class
 *.jar
+!android/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 *.nar
@@ -40,6 +41,8 @@ nb-configuration.xml
 # ==================== MAVEN ====================
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
+backend/.m2repo/
+android/.gradle-home/
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm

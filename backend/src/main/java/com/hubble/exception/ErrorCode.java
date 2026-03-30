@@ -17,7 +17,7 @@ public enum ErrorCode {
     USERNAME_INVALID(1004, "Tên hiển thị phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1005, "Mật khẩu phải có ít nhất {min} ký tự", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1006, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
-    CANNOT_DM_SELF(1007, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
+    CANNOT_DM_SELF(1017, "Bạn không thể tạo kênh DM với chính mình", HttpStatus.BAD_REQUEST),
 
     // Authentication
     UNAUTHENTICATED(1007, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
@@ -30,7 +30,13 @@ public enum ErrorCode {
     GOOGLE_AUTH_FAILED(1014, "Xác thực Google thất bại", HttpStatus.UNAUTHORIZED),
     REFRESH_TOKEN_INVALID(1015, "Refresh token không hợp lệ hoặc đã hết hạn", HttpStatus.UNAUTHORIZED),
     PASSWORDS_NOT_MATCH(1016, "Mật khẩu xác nhận không khớp", HttpStatus.BAD_REQUEST),
-    LOCALE_INVALID(1017, "Ngôn ngữ không hợp lệ", HttpStatus.BAD_REQUEST),
+    LOCALE_INVALID(1018, "Ngôn ngữ không hợp lệ", HttpStatus.BAD_REQUEST),
+
+    // Media
+    FILE_EMPTY(1101, "File is empty", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(1102, "File exceeds maximum allowed size", HttpStatus.BAD_REQUEST),
+    FILE_TYPE_NOT_ALLOWED(1103, "File type is not allowed", HttpStatus.BAD_REQUEST),
+    UPLOAD_FAILED(1104, "Failed to upload file to storage", HttpStatus.BAD_REQUEST),
 
     // Friends
     FRIEND_REQUEST_EXISTED(2001, "Lời mời kết bạn đã tồn tại", HttpStatus.BAD_REQUEST),
@@ -43,6 +49,10 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+
+    // Message
+    MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
+    MESSAGE_NOT_OWNER(5002, "Bạn không có quyền thực hiện thao tác này với tin nhắn", HttpStatus.FORBIDDEN),
 
     NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
 

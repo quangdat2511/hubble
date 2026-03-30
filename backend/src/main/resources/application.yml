@@ -1,11 +1,11 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   datasource:
-    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
-    username: postgres.qexzpkwrfjlblrvtqvuh
-    password: hubble@56183
+    url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0}
+    username: ${DB_USERNAME:postgres.qexzpkwrfjlblrvtqvuh}
+    password: ${DB_PASSWORD:hubble@56183}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -17,10 +17,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
 
   servlet:
     multipart:
@@ -30,8 +26,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: huychienthan999@gmail.com
-    password: fkhifplujjzuqkub
+    username: ${MAIL_USERNAME:huychienthan999@gmail.com}
+    password: ${MAIL_PASSWORD:fkhifplujjzuqkub}
     properties:
       mail:
         smtp:
@@ -43,19 +39,19 @@ spring:
             trust: smtp.gmail.com
 
 jwt:
-  secret: MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=
+  secret: ${JWT_SECRET:MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=}
   access-token-expiration: 3600000
   refresh-token-expiration: 2592000000
 
 aws:
   s3:
-    bucket-name: hubble-media
-    region: ap-southeast-1
-    access-key: YOUR_AWS_ACCESS_KEY
-    secret-key: YOUR_AWS_SECRET_KEY
+    bucket-name: ${AWS_S3_BUCKET:hubble-media}
+    region: ${AWS_REGION:ap-southeast-1}
+    access-key: ${AWS_ACCESS_KEY:YOUR_AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY:YOUR_AWS_SECRET_KEY}
 
 google:
-  client-id: 571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com
+  client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}
 
 otp:
   expiry-minutes: 5
@@ -64,3 +60,39 @@ otp:
 logging:
   level:
     com.hubble: DEBUG
+
+app:
+  storage:
+    provider: supabase
+    endpoint: https://qexzpkwrfjlblrvtqvuh.supabase.co
+    access-key: ''
+    secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14
+    bucket: hubble-media
+    public-url: https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/hubble-media
+    max-file-size-mb: 25
+    allowed-types:
+      - image/jpeg
+      - image/png
+      - image/gif
+      - image/webp
+      - video/mp4
+      - audio/mpeg
+      - audio/mp4
+      - audio/ogg
+      - audio/aac
+      - audio/m4a
+      - audio/x-m4a
+      - audio/mpeg
+      - application/pdf
+      - application/octet-stream
+      - application/msword                                                      # .doc
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document # .docx
+      - application/vnd.ms-excel                                                # .xls
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet       # .xlsx
+      - application/vnd.ms-powerpoint                                           # .ppt
+      - application/vnd.openxmlformats-officedocument.presentationml.presentation # .pptx
+      - application/zip                                                         # .zip
+      - application/x-zip-compressed
+      - application/vnd.rar                                                     # .rar
+      - application/x-rar-compressed
+      - text/plain                                                              # .txt

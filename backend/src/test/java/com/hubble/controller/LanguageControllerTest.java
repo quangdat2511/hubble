@@ -3,6 +3,7 @@ package com.hubble.controller;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.service.LanguageService;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,9 @@ class LanguageControllerTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private UserSessionRepository userSessionRepository;
 
     @Test
     void getLanguage_ReturnsWrappedLocale() throws Exception {

@@ -21,7 +21,7 @@ public class Attachment {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "message_id", nullable = false)
+    @Column(name = "message_id")
     UUID messageId;
 
     @Column(name = "filename", columnDefinition = "TEXT", nullable = false)
