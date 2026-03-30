@@ -10,8 +10,14 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Dns;
 import okhttp3.Dns;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -21,6 +27,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
     private static final String BASE_URL = BuildConfig.BASE_URL;
+    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
+    private static final String[] RAILWAY_FALLBACK_IPS = {
+            "151.101.2.15"
+    };
+
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
@@ -47,6 +58,7 @@ public class RetrofitClient {
 
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(userAgentInterceptor)
+                    .dns(createDnsWithRailwayFallback())
                     .dns(createDnsWithRailwayFallback())
                     .connectTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)

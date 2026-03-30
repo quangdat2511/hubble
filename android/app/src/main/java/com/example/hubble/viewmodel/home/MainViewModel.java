@@ -838,6 +838,102 @@ public class MainViewModel extends ViewModel {
         }
     }
 
+    public void toggleConversationFavorite(DmConversationItem conversation) {
+        if (conversation == null || TextUtils.isEmpty(conversation.getChannelId())) {
+            return;
+        }
+
+        boolean shouldFavorite = !conversation.isFavorite();
+        dmRepository.setDirectChannelFavorite(conversation.getChannelId(), shouldFavorite);
+        if (shouldFavorite) {
+            favoriteChannelIds.add(conversation.getChannelId());
+        } else {
+            favoriteChannelIds.remove(conversation.getChannelId());
+        }
+
+        List<DmConversationItem> current = _dmConversations.getValue();
+        if (current == null || current.isEmpty()) {
+            return;
+        }
+
+        List<DmConversationItem> updated = new ArrayList<>(current.size());
+        for (DmConversationItem item : current) {
+            if (item != null && conversation.getChannelId().equals(item.getChannelId())) {
+                updated.add(new DmConversationItem(
+                        item.getId(),
+                        item.getChannelId(),
+                        item.getFriendId(),
+                        item.getDisplayName(),
+                        item.getLastMessage(),
+                        item.getTimeLabel(),
+                        item.isOnline(),
+                        item.isVerified(),
+                        item.isSelected(),
+                        shouldFavorite,
+                        item.getLastMessageAtMillis()
+                ));
+            } else {
+                updated.add(item);
+            }
+        }
+
+        publishConversations(updated);
+    }
+
+    private List<DmConversationItem> sortConversationsByPriority(List<DmConversationItem> conversations) {
+        List<DmConversationItem> sorted = conversations != null ? new ArrayList<>(conversations) : new ArrayList<>();
+        sorted.sort((left, right) -> {
+            if (left == right) {
+                return 0;
+            }
+            if (left == null) {
+                return 1;
+            }
+            if (right == null) {
+                return -1;
+            }
+            if (left.isFavorite() != right.isFavorite()) {
+                return left.isFavorite() ? -1 : 1;
+            }
+
+            int byLatestMessage = Long.compare(right.getLastMessageAtMillis(), left.getLastMessageAtMillis());
+            if (byLatestMessage != 0) {
+                return byLatestMessage;
+            }
+
+            String leftName = left.getDisplayName() != null ? left.getDisplayName() : "";
+            String rightName = right.getDisplayName() != null ? right.getDisplayName() : "";
+            return leftName.compareToIgnoreCase(rightName);
+        });
+        return sorted;
+    }
+
+    private boolean isFavoriteChannel(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return false;
+        }
+        return favoriteChannelIds.contains(channelId);
+    }
+
+    private long toEpochMillis(String createdAt, long fallback) {
+        if (createdAt == null || createdAt.trim().isEmpty()) {
+            return fallback;
+        }
+
+        try {
+            try {
+                return OffsetDateTime.parse(createdAt).toInstant().toEpochMilli();
+            } catch (DateTimeParseException e) {
+                return LocalDateTime.parse(createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli();
+            }
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
     private String toShortTime(String createdAt) {
         if (createdAt == null || createdAt.trim().isEmpty()) return "";
         try {

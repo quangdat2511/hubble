@@ -24,6 +24,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -57,6 +58,12 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
+import ua.naiksoftware.stomp.Stomp;
+import ua.naiksoftware.stomp.StompClient;
+import ua.naiksoftware.stomp.dto.StompHeader;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -75,14 +82,12 @@ import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 import ua.naiksoftware.stomp.dto.StompHeader;
-
 import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 
@@ -634,30 +639,46 @@ public class DmChatActivity extends AppCompatActivity {
         return url;
     }
 
+    /**
+     * Detects keyboard height by monitoring root view layout changes.
+     * When the soft keyboard appears, the root view's visible frame shrinks.
+     */
     private void setupKeyboardHeightDetection() {
-        binding.getRoot().getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-            Rect visibleFrame = new Rect();
-            binding.getRoot().getWindowVisibleDisplayFrame(visibleFrame);
-            int screenHeight = binding.getRoot().getRootView().getHeight();
-            int detectedKeyboardHeight = screenHeight - visibleFrame.bottom;
+        binding.getRoot().getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        Rect visibleFrame = new Rect();
+                        binding.getRoot().getWindowVisibleDisplayFrame(visibleFrame);
+                        int screenHeight = binding.getRoot().getRootView().getHeight();
+                        int detectedKeyboardHeight = screenHeight - visibleFrame.bottom;
                         boolean keyboardNowVisible = detectedKeyboardHeight > screenHeight * KEYBOARD_HEIGHT_RATIO;
 
-            if (keyboardNowVisible) {
-                if (detectedKeyboardHeight != keyboardHeight) {
-                    keyboardHeight = detectedKeyboardHeight;
-                    if (isEmojiPanelVisible) setPanelHeight(keyboardHeight);
-                }
-                if (isEmojiPanelVisible && !pendingShowKeyboard) collapseEmojiPanel();
+                        if (keyboardNowVisible) {
+                            // Keyboard is visible — update our stored height
+                            if (detectedKeyboardHeight != keyboardHeight) {
+                                keyboardHeight = detectedKeyboardHeight;
+                                // If emoji panel needs resize to match new keyboard height
+                                if (isEmojiPanelVisible) {
+                                    setPanelHeight(keyboardHeight);
+                                }
+                            }
+                            // Keyboard appeared → close emoji panel silently
+                            if (isEmojiPanelVisible && !pendingShowKeyboard) {
+                                // User opened keyboard manually (tapped EditText etc.)
+                                collapseEmojiPanel();
+                            }
                             if (!isKeyboardVisible) {
                                 isKeyboardVisible = true;
                                 setProfileIntroVisible(false);
                             }
-                pendingShowKeyboard = false;
+                            pendingShowKeyboard = false;
                         } else if (isKeyboardVisible) {
                             isKeyboardVisible = false;
                             binding.rvMessages.post(DmChatActivity.this::syncProfileIntroVisibilityWithMessages);
-            }
-        });
+                        }
+                    }
+                });
     }
 
     private void toggleEmojiPanel() {
@@ -961,6 +982,15 @@ public class DmChatActivity extends AppCompatActivity {
             connectHeaders = Collections.singletonList(new StompHeader("Authorization", authorization));
         }
 
+        String accessToken = tokenManager.getAccessToken();
+        Map<String, String> handshakeHeaders = new HashMap<>();
+        List<StompHeader> connectHeaders = null;
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            String authorization = "Bearer " + accessToken;
+            handshakeHeaders.put("Authorization", authorization);
+            connectHeaders = Collections.singletonList(new StompHeader("Authorization", authorization));
+        }
+
         stompClient = Stomp.over(
                 Stomp.ConnectionProvider.OKHTTP,
                 wsUrl,
@@ -968,12 +998,26 @@ public class DmChatActivity extends AppCompatActivity {
                 createRealtimeOkHttpClient()
         );
         stompClient.withClientHeartbeat(10000).withServerHeartbeat(10000);
+
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(event -> {
                     if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) subscribeToChannel();
                 }, throwable -> {}));
+        stompClient.connect(connectHeaders);
+    }
+
+    private OkHttpClient createRealtimeOkHttpClient() {
+        return new OkHttpClient.Builder()
+                .dns(createDnsWithRailwayFallback())
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+    }
+
         stompClient.connect(connectHeaders);
     }
 
@@ -1039,7 +1083,9 @@ public class DmChatActivity extends AppCompatActivity {
         if (dto == null) return;
         DmMessageItem item = mapMessage(dto);
         adapter.upsertItem(item);
-        if (adapter.getItemCount() > 0) binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        if (adapter.getItemCount() > 0) {
+            binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        }
         binding.rvMessages.post(this::syncProfileIntroVisibilityWithMessages);
     }
 
