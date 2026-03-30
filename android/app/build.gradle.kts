@@ -1,6 +1,7 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,10 +17,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Đọc local.properties (BASE_URL, GIPHY_API_KEY, …)
+    val localProps = Properties()
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
+    val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+    val giphyApiKey  = localProps.getProperty("GIPHY_API_KEY", "")
+
     buildTypes {
         debug {
-//            buildConfigField("String", "BASE_URL", "\"http://10.109.132.250:8080/\"")
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL",     "\"$localBaseUrl\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
         release {
             isMinifyEnabled = false
@@ -27,8 +35,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Đổi thành URL server production khi deploy thật
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL",     "\"https://hubble-production.up.railway.app/\"")
+            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
     }
 
@@ -46,12 +54,6 @@ android {
 dependencies {
     val lifecycle_version = "2.8.7"
 
-    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.github.bumptech.glide:glide:5.0.5")
-    implementation("com.github.yalantis:ucrop:2.2.11")
-
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-runtime:${lifecycle_version}")
@@ -65,12 +67,19 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
     implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation("com.github.yalantis:ucrop:2.2.11")
+
 
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("androidx.fragment:fragment:1.8.6")
+
+    // Glide for GIF loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

@@ -372,7 +372,7 @@ public class AvatarFragment extends Fragment {
             return avatarUrl;
         }
 
-        String baseUrl = RetrofitClient.BASE_URL;
+        String baseUrl = RetrofitClient.getBaseUrl();
         if (baseUrl.endsWith("/") && avatarUrl.startsWith("/")) {
             return baseUrl.substring(0, baseUrl.length() - 1) + avatarUrl;
         }

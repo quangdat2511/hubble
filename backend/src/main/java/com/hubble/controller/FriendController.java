@@ -43,6 +43,16 @@ public class FriendController {
         return ResponseEntity.ok(ApiResponse.<FriendRequestResponse>builder().result(response).build());
     }
 
+    @PostMapping("/requests/username/{username}")
+    public ResponseEntity<ApiResponse<FriendRequestResponse>> sendFriendRequestByUsername(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String username
+    ) {
+        UUID currentUserId = principal.getId();
+        FriendRequestResponse response = friendService.sendFriendRequestByUsername(currentUserId, username);
+        return ResponseEntity.ok(ApiResponse.<FriendRequestResponse>builder().result(response).build());
+    }
+
     @GetMapping("/requests/received")
     public ResponseEntity<ApiResponse<List<FriendRequestResponse>>> getIncomingRequests(
             @AuthenticationPrincipal UserPrincipal principal
@@ -81,6 +91,15 @@ public class FriendController {
         return ResponseEntity.ok(ApiResponse.<String>builder().result("Đã từ chối lời mời").build());
     }
 
+    @GetMapping("/blocks")
+    public ResponseEntity<ApiResponse<List<FriendUserResponse>>> getBlockedUsers(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        UUID currentUserId = principal.getId();
+        List<FriendUserResponse> result = friendService.getBlockedUsers(currentUserId);
+        return ResponseEntity.ok(ApiResponse.<List<FriendUserResponse>>builder().result(result).build());
+    }
+
     @PostMapping("/blocks/{userId}")
     public ResponseEntity<ApiResponse<String>> blockUser(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -89,6 +108,16 @@ public class FriendController {
         UUID currentUserId = principal.getId();
         friendService.blockUser(currentUserId, userId);
         return ResponseEntity.ok(ApiResponse.<String>builder().result("Đã chặn người dùng").build());
+    }
+
+    @DeleteMapping("/blocks/{userId}")
+    public ResponseEntity<ApiResponse<String>> unblockUser(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID userId
+    ) {
+        UUID currentUserId = principal.getId();
+        friendService.unblockUser(currentUserId, userId);
+        return ResponseEntity.ok(ApiResponse.<String>builder().result("Đã bỏ chặn người dùng").build());
     }
 
     @GetMapping("/friends")

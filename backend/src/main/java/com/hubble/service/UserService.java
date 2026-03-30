@@ -1,5 +1,7 @@
 package com.hubble.service;
 
+import com.hubble.dto.request.UpdateCustomStatusRequest;
+import com.hubble.dto.request.UpdateProfileRequest;
 import com.hubble.dto.response.AvatarResponse;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
@@ -31,10 +33,8 @@ public class UserService {
     static final Path AVATAR_FOLDER = Paths.get(System.getProperty("user.dir"), "uploads", "avatars")
             .toAbsolutePath()
             .normalize();
-
     static final String AVATAR_URL_PREFIX = "/uploads/avatars/";
-    static final long MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-
+    static final long MAX_SIZE_BYTES = 5 * 1024 * 1024;
     static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg",
             "image/png",
@@ -60,12 +60,10 @@ public class UserService {
         validateAvatarFile(file);
 
         User user = findById(userId);
-
         Files.createDirectories(AVATAR_FOLDER);
 
         String fileName = UUID.randomUUID() + resolveExtension(file);
         Path newAvatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
-
         if (!newAvatarPath.startsWith(AVATAR_FOLDER)) {
             throw new AppException(ErrorCode.INVALID_FILE);
         }
@@ -73,23 +71,66 @@ public class UserService {
         file.transferTo(newAvatarPath.toFile());
 
         String oldAvatarUrl = user.getAvatarUrl();
-
         user.setAvatarUrl(AVATAR_URL_PREFIX + fileName);
         userRepository.save(user);
 
         deleteOldAvatar(oldAvatarUrl);
+        return userMapper.toUserResponse(user);
+    }
+
+    public AvatarResponse getAvatarResponse(UUID userId) throws IOException {
+        User user = findById(userId);
+        String avatarUrl = user.getAvatarUrl();
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+        }
+
+        Path avatarPath = getAvatarPath(user);
+        String fileName = avatarPath.getFileName().toString();
+        String contentType = Files.probeContentType(avatarPath);
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
+
+        return AvatarResponse.builder()
+                .avatarUrl(avatarUrl)
+                .fileName(fileName)
+                .contentType(contentType)
+                .build();
+    }
+
+    public UserResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = findById(userId);
+
+        String displayName = normalize(request.getDisplayName());
+        String phone = normalize(request.getPhone());
+        String bio = normalize(request.getBio());
+
+        if (phone != null && userRepository.existsByPhoneAndIdNot(phone, userId)) {
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+        }
+
+        user.setDisplayName(displayName);
+        user.setPhone(phone);
+        user.setBio(bio);
+        user.setStatus(request.getStatus());
+        userRepository.save(user);
 
         return userMapper.toUserResponse(user);
     }
 
-    public Path getAvatarPath(UUID userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
+    public UserResponse updateCustomStatus(UUID userId, UpdateCustomStatusRequest request) {
+        User user = findById(userId);
+        user.setCustomStatus(normalize(request.getCustomStatus()));
+        userRepository.save(user);
+        return userMapper.toUserResponse(user);
+    }
 
-        String avatarUrl = userRepository.findAvatarUrlById(userId)
-                .filter(url -> !url.isBlank())
-                .orElseThrow(() -> new AppException(ErrorCode.AVATAR_NOT_FOUND));
+    private Path getAvatarPath(User user) {
+        String avatarUrl = user.getAvatarUrl();
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+        }
 
         String fileName = Paths.get(avatarUrl).getFileName().toString();
         Path avatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
@@ -97,7 +138,6 @@ public class UserService {
         if (!avatarPath.startsWith(AVATAR_FOLDER)) {
             throw new AppException(ErrorCode.INVALID_FILE);
         }
-
         if (!Files.exists(avatarPath) || !Files.isRegularFile(avatarPath)) {
             throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
         }
@@ -114,7 +154,6 @@ public class UserService {
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
             throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
-
         if (file.getSize() > MAX_SIZE_BYTES) {
             throw new AppException(ErrorCode.FILE_TOO_LARGE);
         }
@@ -122,7 +161,9 @@ public class UserService {
 
     private String resolveExtension(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType == null) return ".jpg";
+        if (contentType == null) {
+            return ".jpg";
+        }
 
         return switch (contentType) {
             case "image/png" -> ".png";
@@ -132,40 +173,27 @@ public class UserService {
     }
 
     private void deleteOldAvatar(String avatarUrl) {
-        if (avatarUrl == null || avatarUrl.isBlank()) return;
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return;
+        }
 
         try {
             String fileName = Paths.get(avatarUrl).getFileName().toString();
             Path oldAvatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
-
             if (oldAvatarPath.startsWith(AVATAR_FOLDER)) {
                 Files.deleteIfExists(oldAvatarPath);
             }
-        } catch (Exception e) {
-            System.err.println("Warning: could not delete old avatar: " + avatarUrl);
+        } catch (Exception ignored) {
+            // Keep the new avatar even if the old file cleanup fails.
         }
     }
 
-    public AvatarResponse getAvatarResponse(UUID userId) throws IOException {
-        User user = findById(userId);
-
-        String avatarUrl = user.getAvatarUrl();
-        if (avatarUrl == null || avatarUrl.isBlank()) {
-            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
         }
 
-        Path avatarPath = getAvatarPath(userId);
-
-        String fileName = avatarPath.getFileName().toString();
-        String contentType = Files.probeContentType(avatarPath);
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
-        return AvatarResponse.builder()
-                .avatarUrl(avatarUrl)
-                .fileName(fileName)
-                .contentType(contentType)
-                .build();
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
