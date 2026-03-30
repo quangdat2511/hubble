@@ -24,6 +24,7 @@ import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.UploadResponse;
 
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.me.UpdateProfileRequest;
 
 import java.util.List;
 
@@ -35,6 +36,7 @@ import retrofit2.http.Header;
 import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -146,51 +148,62 @@ public interface ApiService {
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
 
-        @GET("api/friends/friends")
-        Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
+    @GET("api/friends/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
-        );
+    );
 
-            @GET("api/contacts/friends")
-            Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
-                @Header("Authorization") String token
-            );
-
-        @GET("api/channels/dm")
-        Call<java.util.List<ChannelDto>> getDirectChannels(
+    @GET("api/contacts/friends")
+    Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
             @Header("Authorization") String token
-        );
+    );
 
-        @POST("api/channels/dm/{otherUserId}")
-        Call<ChannelDto> getOrCreateDirectChannel(
+    @GET("api/channels/dm")
+    Call<java.util.List<ChannelDto>> getDirectChannels(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/channels/dm/{otherUserId}")
+    Call<ChannelDto> getOrCreateDirectChannel(
             @Header("Authorization") String token,
             @Path("otherUserId") String otherUserId
-        );
+    );
 
-        @GET("api/messages/{channelId}")
-        Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
+    @GET("api/messages/{channelId}")
+    Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
             @Path("channelId") String channelId,
             @Query("page") int page,
             @Query("size") int size
-        );
+    );
 
-        @POST("api/messages")
-        Call<ApiResponse<MessageDto>> sendMessage(
+    @POST("api/messages")
+    Call<ApiResponse<MessageDto>> sendMessage(
             @Header("Authorization") String token,
             @Body CreateMessageRequest request
-        );
+    );
 
-        @PATCH("api/messages/{messageId}")
-        Call<ApiResponse<MessageDto>> editMessage(
+    @PATCH("api/messages/{messageId}")
+    Call<ApiResponse<MessageDto>> editMessage(
             @Header("Authorization") String token,
             @Path("messageId") String messageId,
             @Body UpdateMessageRequest request
-        );
+    );
 
-        @DELETE("api/messages/{messageId}")
-        Call<ApiResponse<MessageDto>> unsendMessage(
+    @DELETE("api/messages/{messageId}")
+    Call<ApiResponse<MessageDto>> unsendMessage(
             @Header("Authorization") String token,
             @Path("messageId") String messageId
-        );
+    );
+
+    @PUT("api/users/me")
+    Call<ApiResponse<UserResponse>> updateProfile(
+            @Header("Authorization") String token,
+            @Body UpdateProfileRequest profile
+    );
+
+    @GET("api/users/me")
+    Call<ApiResponse<UserResponse>> getProfile(
+            @Header("Authorization") String token
+    );
 }
