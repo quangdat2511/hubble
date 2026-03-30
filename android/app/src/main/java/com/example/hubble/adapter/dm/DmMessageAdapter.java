@@ -41,6 +41,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     private static final int TYPE_ME = 1;
     private static final int TYPE_OTHER = 2;
+    private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
     private final List<DmMessageItem> items = new ArrayList<>();
 
@@ -172,7 +173,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public int getItemViewType(int position) {
-        return TYPE_OTHER;
+        DmMessageItem item = getItem(position);
+        return item != null && item.isMine() ? TYPE_ME : TYPE_OTHER;
     }
 
     @NonNull
@@ -189,16 +191,30 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         DmMessageItem item = items.get(position);
         DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
-        boolean sameSenderAsPrevious = previous != null
-                && previous.isMine() == item.isMine()
-                && safeEquals(previous.getSenderName(), item.getSenderName());
+        boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
 
         if (holder instanceof MeHolder) {
-            ((MeHolder) holder).bind(item);
+            ((MeHolder) holder).bind(item, !groupedWithPrevious);
         } else {
             String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
-            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious, avatarUrl);
+            ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
         }
+    }
+
+    private boolean shouldGroupWithPrevious(@Nullable DmMessageItem current, @Nullable DmMessageItem previous) {
+        if (current == null || previous == null) return false;
+        if (!isGroupableUserMessage(current) || !isGroupableUserMessage(previous)) return false;
+        if (current.isMine() != previous.isMine()) return false;
+        if (!safeEquals(current.getSenderName(), previous.getSenderName())) return false;
+
+        long currentTime = current.getCreatedAtMillis();
+        long previousTime = previous.getCreatedAtMillis();
+        if (currentTime < 0 || previousTime < 0 || currentTime < previousTime) return false;
+        return currentTime - previousTime <= GROUPING_TIME_THRESHOLD_MILLIS;
+    }
+
+    private boolean isGroupableUserMessage(@Nullable DmMessageItem item) {
+        return item != null && !item.isDeleted() && !item.isSystemMessage();
     }
 
     private static boolean safeEquals(@Nullable String a, @Nullable String b) {
@@ -446,8 +462,9 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             this.onMessageLongClickListener = onMessageLongClickListener;
         }
 
-        void bind(DmMessageItem item) {
+        void bind(DmMessageItem item, boolean showTimestamp) {
             b.tvTime.setText(item.getTimestamp());
+            b.tvTime.setVisibility(showTimestamp ? View.VISIBLE : View.GONE);
             String content = item.getContent();
 
             if (item.hasReply()) {
