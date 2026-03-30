@@ -91,10 +91,23 @@
     <string name="me_title">Bạn</string>
     <string name="me_add_status">Thêm trạng thái</string>
     <string name="me_edit_profile">Sửa Hồ Sơ</string>
-    <string name="me_settings">Cài đặt</string>
+    <string name="me_save_profile">Lưu hồ sơ</string>
+    <string name="me_display_name">Tên hiển thị</string>
+    <string name="me_phone">Số điện thoại</string>
+    <string name="me_bio">Tiểu sử</string>
+    <string name="me_status">Trạng thái</string>
+    <string-array name="status_options">
+        <item>ONLINE</item>
+        <item>IDLE</item>
+        <item>OFFLINE</item>
+        <item>DND</item>
+    </string-array>
+
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="me_outgoing_requests">Lời mời đã gửi</string>
+    <string name="me_blocked_users">Người dùng đã chặn</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>
@@ -106,13 +119,6 @@
     <string name="settings_section_info">Có Gì Mới</string>
     <string name="settings_language">Ngôn ngữ</string>
     <string name="settings_notifications">Các Thông Báo</string>
-    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
-    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
-    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
-    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
-    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
-    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
-    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
     <string name="settings_appearance">Giao diện</string>
     <string name="settings_advanced">Nâng cao</string>
     <string name="settings_support">Hỗ trợ</string>
@@ -173,23 +179,80 @@
     <string name="channel_lounge">Lounge</string>
 
     <!-- Direct message MVP -->
-    <string name="dm_title">Messages</string>
-    <string name="dm_add_friend">Add Friends</string>
+    <string name="dm_title">Tin nhắn</string>
+    <string name="dm_add_friend">Thêm bạn bè</string>
     <string name="dm_new_message">Tin nhắn mới</string>
-    <string name="dm_default_user">Danzg</string>
+    <string name="dm_default_user">Người dùng</string>
     <string name="dm_me">Bạn</string>
-    <string name="dm_message_hint">Message @%1$s</string>
-    <string name="dm_message_hint_static">Message</string>
+    <string name="dm_username_format">%1$s</string>
+    <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
+    <string name="dm_message_hint">Nhắn tin cho %1$s</string>
+    <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>
     <string name="dm_send_demo_hint">MVP UI: đã nhận thao tác gửi tin nhắn</string>
+    <string name="dm_profile">Hồ sơ</string>
+    <string name="dm_close_dm">Đóng cuộc trò chuyện</string>
+    <string name="dm_favorite">Yêu thích</string>
+    <string name="dm_unfavorite">Bỏ yêu thích</string>
+    <string name="dm_mark_as_read">Đánh dấu đã đọc</string>
+    <string name="dm_mute_conversation">Tắt thông báo cuộc trò chuyện</string>
+    <string name="dm_favorited_success">Đã thêm vào Yêu thích</string>
+    <string name="dm_unfavorited_success">Đã bỏ khỏi Yêu thích</string>
     <string name="cd_call">Gọi thoại</string>
     <string name="cd_video">Gọi video</string>
 
-    <string name="new_message_title">New Message</string>
-    <string name="new_message_search_hint">To: Search your friends</string>
-    <string name="new_message_new_group">New Group</string>
-    <string name="new_message_add_friend">Add a Friend</string>
-    <string name="new_message_suggested">Suggested</string>
+    <string name="new_message_title">Tin nhắn mới</string>
+    <string name="new_message_search_hint">Đến: Tìm bạn bè</string>
+    <string name="new_message_new_group">Nhóm mới</string>
+    <string name="new_message_add_friend">Thêm bạn</string>
+    <string name="new_message_suggested">Gợi ý</string>
     <string name="new_message_empty_friends">Bạn chưa có bạn bè nào để nhắn tin.</string>
-    <string name="cd_close">Close</string>
+    <string name="cd_close">Đóng</string>
+    <string name="cd_emoji_picker">Bảng chọn biểu tượng cảm xúc</string>
+    <string name="emoji_search_hint">Tìm biểu tượng cảm xúc phù hợp</string>
+    <string name="emoji_tab_emoji">Emoji</string>
+    <string name="emoji_tab_gif">GIF</string>
+    <string name="emoji_tab_sticker">Sticker</string>
+    <string name="emoji_search_giphy_hint">Tìm GIF trên GIPHY</string>
+    <string name="emoji_search_sticker_hint">Tìm sticker</string>
+    <string name="emoji_trending">Thịnh hành</string>
+    <string name="emoji_powered_by_giphy">Được cung cấp bởi GIPHY</string>
+
+    <!-- Message actions / forward -->
+    <string name="reply">Trả lời</string>
+    <string name="forward">Chuyển tiếp</string>
+    <string name="copy_text">Sao chép văn bản</string>
+    <string name="edit_message">Chỉnh sửa tin nhắn</string>
+    <string name="unsend_message">Thu hồi tin nhắn</string>
+    <string name="delete_message">Xóa tin nhắn</string>
+    <string name="delete_message_confirm">Bạn có chắc muốn xóa tin nhắn này không?</string>
+    <string name="yes">Có</string>
+    <string name="no">Không</string>
+    <string name="empty_message_error">Vui lòng nhập nội dung tin nhắn</string>
+    <string name="pin_message">Ghim tin nhắn</string>
+    <string name="reply_to">Trả lời %1$s</string>
+    <string name="reply_cancel">Hủy trả lời</string>
+    <string name="cd_reply_cancel">Hủy trả lời tin nhắn</string>
+    <string name="forward_to">Chuyển tiếp đến</string>
+    <string name="search">Tìm kiếm</string>
+    <string name="send">Gửi</string>
+    <string name="add_optional_message">Thêm lời nhắn (không bắt buộc)...</string>
+    <string name="copied_message_text">Đã sao chép nội dung tin nhắn</string>
+    <string name="forward_sent_count">Đã chuyển tiếp %1$d cuộc trò chuyện</string>
+    <string name="forward_no_target">Hãy chọn ít nhất một nơi nhận</string>
+    <string name="message_edited">đã chỉnh sửa</string>
+    <string name="message_edited_suffix"> (%1$s)</string>
+    <string name="editing_message">Đang chỉnh sửa tin nhắn</string>
+    <string name="editing_message_hint">Chỉnh sửa tin nhắn</string>
+    <string name="cd_cancel_edit">Hủy chỉnh sửa tin nhắn</string>
+    <string name="dm_media">Tệp đa phương tiện</string>
+    <string name="save">Lưu</string>
+    <string name="cancel">Hủy</string>
+    <string name="settings_notifications_summary">Quáº£n lÃ½ thÃ´ng bÃ¡o Ä‘áº©y trÃªn thiáº¿t bá»‹ nÃ y</string>
+    <string name="settings_notifications_enable_title">Báº­t thÃ´ng bÃ¡o Ä‘áº©y</string>
+    <string name="settings_notifications_enable_summary">Nháº­n cáº£nh bÃ¡o khi cÃ³ tin nháº¯n vÃ  hoáº¡t Ä‘á»™ng má»›i</string>
+    <string name="settings_notifications_sound_title">Ã‚m thanh thÃ´ng bÃ¡o</string>
+    <string name="settings_notifications_sound_summary">PhÃ¡t Ã¢m thanh khi cÃ³ thÃ´ng bÃ¡o má»›i</string>
+    <string name="settings_notifications_sound_disabled_summary">Báº­t thÃ´ng bÃ¡o Ä‘áº©y Ä‘á»ƒ dÃ¹ng tÃ¹y chá»n nÃ y</string>
+    <string name="settings_notifications_saved">ÄÃ£ cáº­p nháº­t cÃ i Ä‘áº·t thÃ´ng bÃ¡o</string>
 </resources>

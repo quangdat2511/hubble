@@ -19,6 +19,7 @@ public class UserResponse {
     String avatarUrl;
     String bio;
     String status;
+    String customStatus;
     String phone;
     LocalDateTime createdAt;
 }

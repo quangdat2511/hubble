@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hubble.dto.request.PushConfigUpdateRequest;
 import com.hubble.dto.response.PushConfigResponse;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.service.PushConfigService;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class PushConfigControllerTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private UserSessionRepository userSessionRepository;
 
     @Test
     void getConfig_Success() throws Exception {

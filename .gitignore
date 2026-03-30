@@ -40,6 +40,11 @@ nb-configuration.xml
 # ==================== MAVEN ====================
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
+backend/.m2repo/
+backend/.m2/
+android/.gradle-home/
+android/_tmp_stomp_src/
+_tmp_access_token.txt
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm

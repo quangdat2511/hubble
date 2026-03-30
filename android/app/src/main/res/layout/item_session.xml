@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/ivDeviceIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_circle_surface_variant"
+            android:padding="8dp"
+            android:src="@drawable/ic_smartphone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            android:id="@+id/tvDeviceName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/btnRevoke"
+            app:layout_constraintStart_toEndOf="@+id/ivDeviceIcon"
+            app:layout_constraintTop_toTopOf="@+id/ivDeviceIcon"
+            tools:text="Android App (Samsung S23)" />
+
+        <TextView
+            android:id="@+id/tvIpAddress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toEndOf="@+id/tvDeviceName"
+            app:layout_constraintStart_toStartOf="@+id/tvDeviceName"
+            app:layout_constraintTop_toBottomOf="@+id/tvDeviceName"
+            tools:text="IP: 192.168.1.100" />
+
+        <TextView
+            android:id="@+id/tvLastActive"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toEndOf="@+id/tvIpAddress"
+            app:layout_constraintStart_toStartOf="@+id/tvIpAddress"
+            app:layout_constraintTop_toBottomOf="@+id/tvIpAddress"
+            tools:text="Hoạt động: 2026-03-24 10:00" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRevoke"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đăng xuất"
+            android:textColor="?attr/colorError"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

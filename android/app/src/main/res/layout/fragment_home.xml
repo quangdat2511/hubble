@@ -13,6 +13,24 @@
         android:background="?attr/colorSurface"
         android:orientation="vertical">
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDmView"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="@dimen/spacing_sm"
+            android:contentDescription="@string/dm_title"
+            app:icon="@drawable/ic_message"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:background="?attr/colorOutline" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvServers"
             android:layout_width="@dimen/sidebar_width"
@@ -53,75 +71,151 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_md">
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvDmTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/dm_title"
-            android:textAppearance="?attr/textAppearanceHeadlineMedium"
-            android:textColor="?attr/colorOnSurface"
-            android:textStyle="bold" />
-
+        <!-- DM Panel -->
         <LinearLayout
+            android:id="@+id/layout_dm_panel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md"
+            android:visibility="visible">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSearch"
-                style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:contentDescription="@string/cd_search"
-                app:icon="@drawable/ic_search"
-                app:iconTint="?attr/colorOnSurfaceVariant" />
+            <TextView
+                android:id="@+id/tvDmTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dm_title"
+                android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAddFriend"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="@dimen/spacing_sm"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSearch"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/cd_search"
+                    app:icon="@drawable/ic_search"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddFriend"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:text="@string/dm_add_friend"
+                    app:icon="@drawable/ic_person"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <ImageButton
+                    android:id="@+id/btnPendingRequests"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_notifications"
+                    app:tint="?attr/colorOnSurface" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvStories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingBottom="@dimen/spacing_sm" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvConversations"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="@dimen/spacing_sm"
                 android:layout_weight="1"
-                android:text="@string/dm_add_friend"
-                app:icon="@drawable/ic_person"
-                app:iconTint="?attr/colorOnSurfaceVariant" />
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingBottom="@dimen/spacing_md" />
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="@dimen/spacing_xs"
+                android:layout_marginBottom="@dimen/spacing_sm">
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabNewDm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/dm_new_message"
+                    app:backgroundTint="?attr/colorPrimary"
+                    app:elevation="8dp"
+                    app:fabCustomSize="64dp"
+                    app:maxImageSize="30dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.App.Avatar"
+                    app:srcCompat="@drawable/ic_person"
+                    app:tint="@color/white"
+                    app:useCompatPadding="false" />
+
+                <FrameLayout
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="9dp"
+                    android:background="@drawable/bg_dm_fab_badge"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:importantForAccessibility="no">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="3dp"
+                        android:src="@drawable/ic_dm_plus" />
+                </FrameLayout>
+            </FrameLayout>
 
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvStories"
+        <!-- Server Channels Panel -->
+        <LinearLayout
+            android:id="@+id/layout_server_panel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:paddingBottom="@dimen/spacing_sm" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md"
+            android:visibility="gone">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvConversations"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:paddingBottom="@dimen/spacing_md" />
+            <TextView
+                android:id="@+id/tvServerName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabNewDm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:contentDescription="@string/dm_new_message"
-            app:backgroundTint="?attr/colorPrimary"
-            app:srcCompat="@drawable/ic_person"
-            app:tint="@color/white" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvServerChannels"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingBottom="@dimen/spacing_md" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+
 
     <application
         android:allowBackup="true"
@@ -13,6 +18,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Hubble">
+
 
         <activity
             android:name=".view.auth.SplashActivity"
@@ -65,10 +71,33 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+        android:name=".view.settings.SessionManagementActivity"
+        android:exported="false" />
+
+        <activity
             android:name=".view.server.CreateServerActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+
+
+        <activity
+            android:name=".view.friend.AddFriendActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.friend.PendingRequestsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.friend.OutgoingRequestsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.friend.BlockedUsersActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

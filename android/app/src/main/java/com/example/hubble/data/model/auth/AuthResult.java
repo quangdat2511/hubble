@@ -1,4 +1,4 @@
-package com.example.hubble.data.model;
+package com.example.hubble.data.model.auth;
 
 public class AuthResult<T> {
     public enum Status { LOADING, SUCCESS, ERROR }

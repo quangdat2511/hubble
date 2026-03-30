@@ -1,241 +1,178 @@
-# Luồng Realtime Nhắn Tin Văn Bản (Backend)
+ # Luồng Gửi/Nhận Tin Nhắn Realtime - Theo Từng File
 
-Tài liệu này mô tả chi tiết cách tính năng nhắn tin văn bản realtime đang hoạt động ở backend Hubble, dựa trên:
-- Spring Boot WebSocket + STOMP
-- Simple Broker `/topic`
-- REST API cho thao tác ghi dữ liệu (send/edit/delete)
-- WebSocket push event để cập nhật UI theo thời gian thực
+Tài liệu này chỉ tập trung vào luồng gửi và nhận tin nhắn realtime của tính năng chat DM.
 
----
+Phạm vi tài liệu:
+- Có: gửi tin nhắn mới và nhận tin nhắn realtime để hiển thị.
+- Không có: edit, unsend, typing, các tính năng ngoài nhắn tin realtime.
 
-## 1. Mục tiêu kiến trúc
+## 1) Tóm tắt kiến trúc luồng realtime
 
-Backend tách thành 2 kênh giao tiếp:
+- Android gửi tin nhắn mới qua HTTP `POST /api/messages`.
+- Backend lưu DB xong thì broadcast realtime qua STOMP topic `/topic/channels/{channelId}`.
+- Các client Android đang subscribe topic này sẽ nhận payload và cập nhật RecyclerView.
 
-1. **REST (ghi/đọc dữ liệu chuẩn)**
-	- Ghi dữ liệu: gửi tin, sửa tin, xóa tin
-	- Đọc dữ liệu: lấy lịch sử tin nhắn theo channel
+Nói ngắn gọn: REST để ghi dữ liệu, STOMP/WebSocket để đồng bộ realtime.
 
-2. **WebSocket STOMP (đẩy sự kiện realtime)**
-	- Đẩy sự kiện thay đổi tin nhắn đến tất cả client đang subscribe channel
-	- Giảm độ trễ cập nhật UI, tránh phải poll liên tục
+## 2) Luồng dữ liệu qua từng file (đúng thứ tự runtime)
 
-Mô hình này giúp:
-- Validate nghiệp vụ chặt chẽ ở backend trước khi ghi DB
-- Push realtime nhanh, đồng bộ đa thiết bị
+### Bước A - Android tạo request gửi tin nhắn
 
----
+1. `android/app/src/main/java/com/example/hubble/view/dm/DmChatActivity.java`
+- Người dùng bấm nút gửi (`btnSend`) -> gọi `attemptSendMessage()`.
+- Hàm này kiểm tra dữ liệu đầu vào (nội dung không rỗng, có `channelId`).
+- Nếu hợp lệ, gọi `sendMessage(content, replyToId)` trong cùng Activity.
+- `sendMessage(...)` chuyển việc gọi mạng sang `DmRepository`.
 
-## 2. Thành phần chính trong code
+2. `android/app/src/main/java/com/example/hubble/data/repository/DmRepository.java`
+- Nhận `channelId`, `replyToId`, `content` từ Activity.
+- Tạo `CreateMessageRequest` để đóng gói payload.
+- Lấy access token từ `TokenManager`, thêm vào header `Authorization`.
+- Gọi Retrofit API `sendMessage(...)` bất đồng bộ và trả callback về Activity.
 
-### 2.1 Cấu hình WebSocket
+3. `android/app/src/main/java/com/example/hubble/data/api/ApiService.java`
+- Định nghĩa endpoint HTTP cho gửi tin nhắn:
+  - `POST /api/messages`
+- Định nghĩa kiểu body request và response để Retrofit serialize/deserialize.
 
-File: `src/main/java/com/hubble/configuration/WebSocketConfig.java`
+4. `android/app/src/main/java/com/example/hubble/data/model/dm/CreateMessageRequest.java`
+- Chứa dữ liệu gửi lên server: `channelId`, `replyToId`, `content`.
 
-- `@EnableWebSocketMessageBroker`
-- Broker:
-  - `enableSimpleBroker("/topic")`
-  - `setApplicationDestinationPrefixes("/app")`
-- Endpoint handshake:
-  - `/ws`
-- Inbound interceptor:
-  - `ChannelSubscriptionInterceptor`
+### Bước B - Backend xử lý gửi tin nhắn và lưu DB
 
-Ý nghĩa:
-- Client subscribe vào `/topic/channel/{channelId}` để nhận sự kiện tin nhắn
-- Prefix `/app` sẵn sàng cho hướng command qua STOMP (hiện tại write vẫn đi qua REST)
+5. `backend/src/main/java/com/hubble/controller/MessageController.java`
+- Nhận HTTP request ở `POST /api/messages`.
+- Lấy người dùng hiện tại từ `@AuthenticationPrincipal`.
+- Chuyển dữ liệu vào `messageService.sendMessage(...)`.
+- Trả `ApiResponse<MessageResponse>` về Android sender.
 
-### 2.2 Security cho REST
+6. `backend/src/main/java/com/hubble/service/MessageService.java`
+- Kiểm tra `channelId` có tồn tại.
+- Tạo entity `Message` từ dữ liệu request + `authorId`.
+- Lưu xuống DB qua `messageRepository.save(...)`.
+- Map entity sang DTO `MessageResponse`.
+- Broadcast realtime bằng `messagingTemplate.convertAndSend(...)` tới:
+  - `/topic/channels/{channelId}`
 
-Files:
-- `src/main/java/com/hubble/configuration/SecurityConfig.java`
-- `src/main/java/com/hubble/security/JwtAuthenticationFilter.java`
+7. `backend/src/main/java/com/hubble/entity/Message.java`
+- Định nghĩa cấu trúc bản ghi tin nhắn trong bảng `messages`.
+- Giá trị `createdAt` được gán khi lưu mới (`@PrePersist`).
 
-`SecurityConfig` cho phép:
-- `/api/auth/**` public
-- `/ws/**` permitAll ở lớp HTTP handshake
+8. `backend/src/main/java/com/hubble/repository/MessageRepository.java`
+- Thực hiện thao tác lưu bản ghi tin nhắn vào DB.
 
-Lưu ý quan trọng:
-- Handshake `/ws` permitAll, **nhưng subscribe topic bị chặn ở interceptor**
-- JWT cho REST được xử lý bởi `JwtAuthenticationFilter`, đặt `UserPrincipal` vào `SecurityContext`
+9. `backend/src/main/java/com/hubble/repository/ChannelRepository.java`
+- Dùng để kiểm tra channel tồn tại trước khi lưu tin nhắn.
 
-### 2.3 Security cho WebSocket SUBSCRIBE
+10. `backend/src/main/java/com/hubble/mapper/MessageMapper.java`
+- Chuyển đổi `Message` entity thành `MessageResponse` để:
+  - trả HTTP response cho sender
+  - dùng làm payload broadcast realtime
 
-File: `src/main/java/com/hubble/configuration/ChannelSubscriptionInterceptor.java`
+11. `backend/src/main/java/com/hubble/dto/response/MessageResponse.java`
+- DTO payload chuẩn mà backend gửi ra cho client.
 
-Interceptor chỉ xử lý frame `SUBSCRIBE` vào destination `/topic/channel/{channelId}`:
+### Bước C - Backend mở hạ tầng realtime
 
-1. Đọc `Authorization` native header (dạng `Bearer <token>`)
-2. Validate JWT qua `JwtService`
-3. Lấy `userId` từ token
-4. Parse `channelId` từ destination
-5. Check membership:
-	- `channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)`
-6. Nếu fail -> throw exception (chặn subscribe)
+12. `backend/src/main/java/com/hubble/configuration/WebSocketConfig.java`
+- Khai báo STOMP endpoint: `/ws`.
+- Bật simple broker với prefix topic: `/topic`.
+- Đặt application destination prefix: `/app`.
 
-=> Đảm bảo chỉ thành viên channel mới nghe được sự kiện realtime của channel đó.
+### Bước D - Android nhận realtime và cập nhật UI
 
-### 2.4 Ghi message + push event
+13. `android/app/src/main/java/com/example/hubble/view/dm/DmChatActivity.java`
+- Lifecycle kết nối:
+  - `onStart()` gọi `connectStomp()` để mở kết nối realtime.
+  - `onStop()` gọi `disconnectStomp()` để ngắt kết nối, tránh leak/subscription cũ.
+- Cách dựng endpoint WebSocket:
+  - `connectStomp()` lấy `BuildConfig.BASE_URL`, đổi `http -> ws`, `https -> wss`, rồi nối thêm `ws`.
+  - Ví dụ: `http://10.0.2.2:8080/` -> `ws://10.0.2.2:8080/ws`.
+- Tại sao phải đổi protocol + thêm `/ws`:
+  - `BASE_URL` đang phục vụ REST (HTTP/HTTPS), còn STOMP realtime cần WebSocket URL (`ws/wss`).
+  - Nếu không đổi `http/https` sang `ws/wss`, client sẽ không mở đúng kết nối WebSocket.
+  - Backend đã khai báo STOMP endpoint tại `/ws` trong `WebSocketConfig`, nên client bắt buộc connect đúng path này.
+  - Dùng cách suy ra từ `BASE_URL` giúp đồng bộ cấu hình theo môi trường (dev/staging/prod), tránh hard-code nhiều host.
+  - Quy ước bảo mật tương ứng: `http -> ws`, `https -> wss` để nhất quán với TLS của môi trường đang chạy.
+- Trình tự subscribe:
+  - Activity lắng nghe `stompClient.lifecycle()`.
+  - Chỉ khi event `OPENED` mới gọi `subscribeToChannel()`.
+  - `subscribeToChannel()` subscribe topic `/topic/channels/{channelId}`.
+- Xử lý payload realtime:
+  - Mỗi message STOMP trả về `payload` dạng JSON string.
+  - Payload được parse bằng Gson thành `MessageDto`.
+  - Sau đó gọi `appendOrUpdateMessage(dto)` để đẩy vào luồng render UI.
+- Mapping sang model hiển thị:
+  - `appendOrUpdateMessage()` gọi `mapMessage(dto)` để tạo `DmMessageItem`.
+  - Xác định `mine` dựa trên `authorId == currentUserId`.
+  - Convert `createdAt` sang giờ hiển thị (`HH:mm`), set cờ `edited/deleted`.
+  - Nếu có `replyToId`, Activity tìm item gốc trong adapter để dựng preview reply.
+- Cập nhật RecyclerView:
+  - `adapter.upsertItem(item)` thực hiện insert/update theo `id`.
+  - Sau khi upsert, scroll xuống cuối để thấy tin nhắn mới nhất.
 
-Files:
-- `src/main/java/com/hubble/controller/MessageController.java`
-- `src/main/java/com/hubble/service/MessageService.java`
-- `src/main/java/com/hubble/dto/event/MessageEvent.java`
+14. `android/app/src/main/java/com/example/hubble/data/model/dm/MessageDto.java`
+- Mô hình dữ liệu tin nhắn phía Android khi nhận từ:
+  - HTTP response của gửi tin nhắn
+  - STOMP realtime payload
+- Là "raw DTO" từ backend, gồm các field chính: `id`, `authorId`, `replyToId`, `content`, `isDeleted`, `editedAt`, `createdAt`.
+- Dùng chung cho cả 2 đường dữ liệu (REST + realtime) để UI xử lý thống nhất.
 
-REST endpoints:
-- `POST /api/messages` (send)
-- `PATCH /api/messages/{messageId}` (edit)
-- `DELETE /api/messages/{messageId}` (soft delete)
-- `GET /api/messages/{channelId}` (đọc lịch sử, có phân trang)
+15. `android/app/src/main/java/com/example/hubble/data/model/dm/DmMessageItem.java`
+- Model hiển thị trong UI (RecyclerView item).
+- Được tạo ra từ `MessageDto` sau khi map dữ liệu.
+- Chứa thêm thông tin phục vụ render mà DTO không có trực tiếp:
+  - `senderName` để hiện tên thân thiện.
+  - `timestamp` đã format.
+  - `mine` để phân biệt tin nhắn của mình/đối phương.
+  - `replyToSenderName`, `replyToContent` cho khối quote reply.
 
-Trong `MessageService`, sau khi thao tác DB thành công, backend push:
+16. `android/app/src/main/java/com/example/hubble/adapter/dm/DmMessageAdapter.java`
+- Chịu trách nhiệm render danh sách tin nhắn.
+- Dùng `upsertItem(...)` để:
+  - nếu id đã tồn tại -> cập nhật item cũ
+  - nếu id chưa có -> thêm item mới
+- Cơ chế này giúp tránh trùng khi sender vừa nhận HTTP response vừa nhận broadcast realtime.
+- Chi tiết chống trùng:
+  - Sender thường nhận cùng 1 tin qua 2 nguồn: callback HTTP và STOMP broadcast.
+  - Cả hai đều đi qua `appendOrUpdateMessage()` -> `upsertItem()`.
+  - Vì key là `message id`, adapter chỉ giữ 1 bản ghi duy nhất cho mỗi tin nhắn.
+- Khi `item.isDeleted() == true`, adapter remove item khỏi list thay vì hiển thị như tin mới.
 
-```java
-messagingTemplate.convertAndSend(
-	 "/topic/channel/" + savedMessage.getChannelId(),
-	 MessageEvent.builder().action("SEND"|"EDIT"|"DELETE").message(...).build()
-)
+Kết luận ngắn của Bước D:
+- Android coi STOMP message như "nguồn đồng bộ realtime".
+- Mọi payload (dù đến từ HTTP hay STOMP) đều được chuẩn hóa về `MessageDto` -> `DmMessageItem` -> `upsert`.
+- Nhờ vậy UI ổn định, realtime mượt và không bị duplicate tin nhắn.
+
+## 3) Pipeline một dòng
+
+`DmChatActivity` -> `DmRepository` -> `ApiService` -> `MessageController` -> `MessageService` -> `MessageRepository` (DB) -> `SimpMessagingTemplate` broadcast `/topic/channels/{channelId}` -> `DmChatActivity` subscriber -> `DmMessageAdapter` -> RecyclerView.
+
+## 4) Sơ đồ tuần tự (chỉ luồng gửi/nhận realtime)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Android Sender
+    participant API as MessageController
+    participant SVC as MessageService
+    participant DB as PostgreSQL
+    participant BR as STOMP Broker (/topic)
+    participant B as Android Receiver
+
+    Note over A,B: Cả hai client đã kết nối STOMP /ws và subscribe cùng channel
+
+    A->>API: POST /api/messages (channelId, replyToId, content)
+    API->>SVC: sendMessage(authorId, request)
+    SVC->>DB: save(message)
+    DB-->>SVC: saved
+    SVC->>BR: convertAndSend(/topic/channels/{channelId}, MessageResponse)
+    SVC-->>API: MessageResponse
+    API-->>A: HTTP 200 + MessageResponse
+
+    BR-->>A: MESSAGE /topic/channels/{channelId}
+    BR-->>B: MESSAGE /topic/channels/{channelId}
+
+    A->>A: parse MessageDto -> upsert adapter -> render
+    B->>B: parse MessageDto -> upsert adapter -> render
 ```
-
----
-
-## 3. Data contract realtime
-
-### 3.1 Event envelope
-
-`MessageEvent`:
-
-```json
-{
-  "action": "SEND | EDIT | DELETE",
-  "message": {
-	 "id": "uuid",
-	 "channelId": "uuid",
-	 "authorId": "uuid",
-	 "replyToId": "uuid|null",
-	 "content": "string|null",
-	 "type": "TEXT|...",
-	 "isPinned": false,
-	 "editedAt": "datetime|null",
-	 "createdAt": "datetime|null"
-  }
-}
-```
-
-### 3.2 Ý nghĩa `action`
-
-- `SEND`: có tin nhắn mới
-- `EDIT`: nội dung tin đã sửa
-- `DELETE`: message bị soft delete (`isDeleted=true` trong DB), payload thường tối thiểu id
-
-Client nên xử lý theo upsert/remove/mark-delete tùy thiết kế UI.
-
----
-
-## 4. Trình tự end-to-end
-
-### 4.1 Luồng gửi tin nhắn
-
-1. Client A gọi `POST /api/messages` kèm JWT
-2. `MessageController` lấy `currentUserId` từ `UserPrincipal`
-3. `MessageService.sendMessage`:
-	- verify channel tồn tại
-	- verify A là member channel
-	- map request -> entity
-	- save DB
-	- map entity -> `MessageResponse`
-	- `convertAndSend("/topic/channel/{channelId}", MessageEvent{action="SEND"})`
-4. Tất cả client đang subscribe topic của channel (A, B, các session khác) nhận event ngay
-5. Client cập nhật UI chat
-
-### 4.2 Luồng subscribe topic
-
-1. Client mở WebSocket đến `/ws`
-2. Client gửi STOMP SUBSCRIBE đến `/topic/channel/{channelId}` kèm native header `Authorization: Bearer ...`
-3. `ChannelSubscriptionInterceptor` validate token + membership
-4. Hợp lệ -> subscribe thành công
-5. Không hợp lệ -> bị reject
-
----
-
-## 5. Trách nhiệm từng kênh (API + Socket)
-
-### REST đảm nhiệm
-
-- Source of truth cho write/read
-- Validation nghiệp vụ (channel tồn tại, user có quyền, ...)
-- Lưu dữ liệu DB
-
-### WebSocket đảm nhiệm
-
-- Truyền event cập nhật nhanh đến subscriber
-- Không thay thế write validation
-
-Khuyến nghị client:
-- Gửi tin qua REST
-- Nghe update qua WebSocket
-- Có fallback reload REST khi cần (ví dụ reconnect, missed events)
-
----
-
-## 6. Bảo mật
-
-1. Handshake `/ws` permitAll không đồng nghĩa ai cũng nghe được dữ liệu
-2. Quyền nghe dữ liệu được enforce tại SUBSCRIBE interceptor
-3. Mọi channel subscription đều verify:
-	- JWT hợp lệ
-	- user là member của channel
-
-Nếu bỏ qua bước này, user có thể đoán channelId và nghe trộm dữ liệu.
-
----
-
-## 7. Điều kiện dừng và edge cases
-
-1. **Client không gửi Authorization ở SUBSCRIBE**
-	- Interceptor reject
-
-2. **Token hết hạn / sai**
-	- Reject subscribe
-
-3. **Không phải member channel**
-	- Reject subscribe
-
-4. **ChannelId không hợp lệ trên destination**
-	- Reject subscribe
-
-5. **Client mất kết nối websocket**
-	- Khuyến nghị client auto reconnect + resubscribe
-	- Sau reconnect, có thể pull REST để đồng bộ lại nếu cần
-
----
-
-## 8. Điểm cần lưu ý ở phiên bản hiện tại
-
-1. `GET /api/messages/{channelId}` hiện tại chưa check membership trong service.
-	- Nên bổ sung verify `existsByChannelIdAndUserId(channelId, currentUserId)` tương tự send.
-
-2. Đang dùng SimpleBroker in-memory (`enableSimpleBroker`).
-	- 1 instance: ổn
-	- Multi-instance scale out: cần broker ngoài (RabbitMQ/Redis STOMP relay) để đồng bộ event giữa các node.
-
-3. `sendMessage` chưa annotate `@Transactional`.
-	- Thường vẫn chạy được vì 1 save + push ngay sau đó.
-	- Nếu cần đảm bảo giao dịch phức tạp hơn (attachments, side effects), nên xem lại transaction boundary rõ ràng.
-
----
-
-## 9. Checklist test nhanh
-
-1. A và B là member cùng channel DM
-2. A/B cùng subscribe `/topic/channel/{channelId}` với token hợp lệ
-3. A gửi REST `POST /api/messages`
-4. A và B đều nhận event `SEND` gần như đồng thời
-5. B edit/xóa -> A nhận `EDIT`/`DELETE`
-6. User C (không phải member) subscribe topic đó -> phải bị reject
-
----
-
-## 10. Tóm tắt một câu
-
-Realtime text chat backend hiện hoạt động theo mô hình **REST write + STOMP push**, trong đó **authorization cho socket được enforce ở SUBSCRIBE interceptor theo membership channel**, và event được broadcast qua `/topic/channel/{channelId}` sau mỗi thao tác send/edit/delete.
