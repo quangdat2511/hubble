@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.server.PendingInviteAdapter;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerInviteRepository;

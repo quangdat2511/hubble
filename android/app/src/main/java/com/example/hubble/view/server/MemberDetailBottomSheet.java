@@ -11,7 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.data.model.server.ServerRoleItem;
 import com.example.hubble.databinding.BottomSheetMemberDetailBinding;

@@ -50,6 +50,11 @@ aws:
     access-key: ${AWS_ACCESS_KEY:YOUR_AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY:YOUR_AWS_SECRET_KEY}
 
+supabase:
+  url: ${SUPABASE_URL:https://qexzpkwrfjlblrvtqvuh.supabase.co}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14}
+  server-icon-bucket: ${SUPABASE_SERVER_ICON_BUCKET:server-icon}
+
 google:
   client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}
 
@@ -60,3 +65,39 @@ otp:
 logging:
   level:
     com.hubble: DEBUG
+
+app:
+  storage:
+    provider: supabase
+    endpoint: https://qexzpkwrfjlblrvtqvuh.supabase.co
+    access-key: ''
+    secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14
+    bucket: hubble-media
+    public-url: https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/hubble-media
+    max-file-size-mb: 25
+    allowed-types:
+      - image/jpeg
+      - image/png
+      - image/gif
+      - image/webp
+      - video/mp4
+      - audio/mpeg
+      - audio/mp4
+      - audio/ogg
+      - audio/aac
+      - audio/m4a
+      - audio/x-m4a
+      - audio/mpeg
+      - application/pdf
+      - application/octet-stream
+      - application/msword                                                      # .doc
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document # .docx
+      - application/vnd.ms-excel                                                # .xls
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet       # .xlsx
+      - application/vnd.ms-powerpoint                                           # .ppt
+      - application/vnd.openxmlformats-officedocument.presentationml.presentation # .pptx
+      - application/zip                                                         # .zip
+      - application/x-zip-compressed
+      - application/vnd.rar                                                     # .rar
+      - application/x-rar-compressed
+      - text/plain                                                              # .txt

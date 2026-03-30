@@ -19,7 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.server.ServerMemberAdapter;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.databinding.FragmentServerMembersBinding;
 import com.example.hubble.utils.TokenManager;

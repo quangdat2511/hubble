@@ -1,18 +1,29 @@
 package com.hubble.dto.response;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageResponse {
-    private String id;
-    private String channelId;
-    private String authorId;
-    private String replyToId;
-    private String content;
-    private String type;
-    private Boolean isPinned;
-    private String editedAt;
-    private String createdAt;
+
+    String id;
+    String channelId;
+    String authorId;
+    String replyToId;
+    String content;
+    String type;
+    Boolean isPinned;
+
+    Boolean isDeleted;
+
+    String editedAt;
+    String createdAt;
+
+    List<AttachmentResponse> attachments;
 }

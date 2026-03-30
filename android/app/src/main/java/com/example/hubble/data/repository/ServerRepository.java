@@ -10,7 +10,7 @@ import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.api.ServerService;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.server.ServerResponse;

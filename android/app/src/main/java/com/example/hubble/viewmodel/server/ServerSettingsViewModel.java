@@ -6,8 +6,10 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerItem;
+import com.example.hubble.data.repository.RepositoryCallback;
+import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.repository.ServerRepository;

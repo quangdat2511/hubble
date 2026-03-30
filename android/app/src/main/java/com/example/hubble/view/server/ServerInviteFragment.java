@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.server.ServerInviteAdapter;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.repository.ServerInviteRepository;
 import com.example.hubble.databinding.FragmentServerInvitesBinding;
 import com.example.hubble.viewmodel.server.ServerInviteViewModel;

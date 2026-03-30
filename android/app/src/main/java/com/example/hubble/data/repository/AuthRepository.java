@@ -5,7 +5,7 @@ import android.content.Context;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
 import com.example.hubble.data.model.auth.GoogleLoginRequest;
@@ -18,6 +18,10 @@ import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.utils.TokenManager;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -25,6 +29,7 @@ import retrofit2.Response;
 
 public class AuthRepository {
 
+    private final Gson gson = new Gson();
     private final TokenManager tokenManager;
     private final ApiService apiService;
     private final Context context;
@@ -51,7 +56,7 @@ public class AuthRepository {
                     tokenManager.saveUser(tokenResponse.getUser());
                     callback.onResult(AuthResult.success(tokenResponse.getUser()));
                 } else {
-                    callback.onResult(AuthResult.error("Đăng nhập thất bại"));
+                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Đăng nhập thất bại")));
                 }
             }
 
@@ -231,5 +236,28 @@ public class AuthRepository {
             });
         }
         tokenManager.clear();
+    }
+
+    private <T> String extractErrorMessage(Response<T> response, String fallback) {
+        if (response == null) {
+            return fallback;
+        }
+
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    Type type = new TypeToken<ApiResponse<Object>>() {}.getType();
+                    ApiResponse<Object> apiError = gson.fromJson(raw, type);
+                    if (apiError != null && apiError.getMessage() != null && !apiError.getMessage().trim().isEmpty()) {
+                        return apiError.getMessage();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Ignore parse errors and fall back to default message.
+        }
+
+        return fallback;
     }
 }

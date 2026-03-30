@@ -2,6 +2,7 @@ package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateMessageRequest;
+import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.MessageService;
@@ -39,6 +40,27 @@ public class MessageController {
     ) {
         return ApiResponse.<MessageResponse>builder()
                 .result(messageService.sendMessage(principal.getId().toString(), request))
+                .build();
+    }
+
+    @PatchMapping("/{messageId}")
+    public ApiResponse<MessageResponse> editMessage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String messageId,
+            @RequestBody UpdateMessageRequest request
+    ) {
+        return ApiResponse.<MessageResponse>builder()
+                .result(messageService.editMessage(principal.getId().toString(), messageId, request))
+                .build();
+    }
+
+    @DeleteMapping("/{messageId}")
+    public ApiResponse<MessageResponse> unsendMessage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String messageId
+    ) {
+        return ApiResponse.<MessageResponse>builder()
+                .result(messageService.unsendMessage(principal.getId().toString(), messageId))
                 .build();
     }
 }

@@ -38,7 +38,7 @@ public class FriendService {
 
         return users.stream()
                 .filter(user -> !user.getId().equals(currentUserId))
-            .map(user -> FriendUserResponse.builder()
+                .map(user -> FriendUserResponse.builder()
                         .id(user.getId())
                         .username(user.getUsername())
                         .displayName(user.getDisplayName())
@@ -59,6 +59,7 @@ public class FriendService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         Friendship relation = friendshipRepository.findRelationBetween(currentUserId, targetUserId).orElse(null);
+
         if (relation != null) {
             if (relation.getStatus() == FriendshipStatus.ACCEPTED) {
                 throw new AppException(ErrorCode.ALREADY_FRIENDS);
@@ -93,6 +94,14 @@ public class FriendService {
                         .relationStatus("PENDING_OUTGOING")
                         .build())
                 .build();
+    }
+
+    @Transactional
+    public FriendRequestResponse sendFriendRequestByUsername(UUID currentUserId, String username) {
+        String normalizedUsername = normalizeSearchQuery(username);
+        User target = userRepository.findByUsername(normalizedUsername)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return sendFriendRequest(currentUserId, target.getId());
     }
 
     @Transactional(readOnly = true)
@@ -132,12 +141,34 @@ public class FriendService {
         Friendship friendship = friendshipRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
-        if (!friendship.getAddresseeId().equals(currentUserId)
-                || friendship.getStatus() != FriendshipStatus.PENDING) {
+        boolean isAddressee = friendship.getAddresseeId().equals(currentUserId);
+        boolean isRequester = friendship.getRequesterId().equals(currentUserId);
+
+        if ((!isAddressee && !isRequester) || friendship.getStatus() != FriendshipStatus.PENDING) {
             throw new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND);
         }
 
         friendshipRepository.delete(friendship);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FriendUserResponse> getBlockedUsers(UUID currentUserId) {
+        return friendshipRepository.findByRequesterIdAndStatusOrderByCreatedAtDesc(currentUserId, FriendshipStatus.BLOCKED)
+                .stream()
+                .map(relation -> {
+                    User user = userRepository.findById(relation.getAddresseeId())
+                            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+                    return FriendUserResponse.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .displayName(user.getDisplayName())
+                            .avatarUrl(user.getAvatarUrl())
+                            .status(user.getStatus() != null ? user.getStatus().name() : null)
+                            .relationStatus("BLOCKED_BY_ME")
+                            .build();
+                })
+                .toList();
     }
 
     @Transactional
@@ -150,6 +181,7 @@ public class FriendService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         Friendship relation = friendshipRepository.findRelationBetween(currentUserId, targetUserId).orElse(null);
+
         if (relation == null) {
             friendshipRepository.save(Friendship.builder()
                     .requesterId(currentUserId)
@@ -173,6 +205,18 @@ public class FriendService {
                 .build());
     }
 
+    @Transactional
+    public void unblockUser(UUID currentUserId, UUID targetUserId) {
+        Friendship relation = friendshipRepository.findRelationBetween(currentUserId, targetUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        if (relation.getStatus() == FriendshipStatus.BLOCKED && relation.getRequesterId().equals(currentUserId)) {
+            friendshipRepository.delete(relation);
+        } else {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<FriendUserResponse> getFriends(UUID currentUserId) {
         return friendshipRepository.findAcceptedByUserId(currentUserId, FriendshipStatus.ACCEPTED)
@@ -184,7 +228,7 @@ public class FriendService {
                     User user = userRepository.findById(friendId)
                             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-                        return FriendUserResponse.builder()
+                    return FriendUserResponse.builder()
                             .id(user.getId())
                             .username(user.getUsername())
                             .displayName(user.getDisplayName())
@@ -221,6 +265,7 @@ public class FriendService {
 
     private String resolveRelationStatus(UUID currentUserId, UUID otherUserId) {
         Friendship relation = friendshipRepository.findRelationBetween(currentUserId, otherUserId).orElse(null);
+
         if (relation == null) {
             return "NONE";
         }
