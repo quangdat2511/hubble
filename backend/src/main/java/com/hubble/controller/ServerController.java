@@ -8,9 +8,11 @@ import com.hubble.service.ServerService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,23 +25,50 @@ public class ServerController {
 
     ServerService serverService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ServerResponse>> createServer(
-            @RequestBody CreateServerRequest request,
+            @RequestParam("name") String name,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "isPublic", required = false, defaultValue = "false") Boolean isPublic,
+            @RequestPart(value = "icon", required = false) MultipartFile iconFile,
             Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        ServerResponse serverResponse = serverService.createServer(userId, request);
+        CreateServerRequest request = CreateServerRequest.builder()
+                .name(name)
+                .description(description)
+                .isPublic(isPublic)
+                .build();
         return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
-                .result(serverResponse)
+                .result(serverService.createServer(userId, request, iconFile))
+                .build());
+    }
+
+    @PutMapping(value = "/{serverId}/icon", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ServerResponse>> updateServerIcon(
+            @PathVariable UUID serverId,
+            @RequestPart("icon") MultipartFile iconFile,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
+                .result(serverService.updateServerIcon(userId, serverId, iconFile))
+                .build());
+    }
+
+    @DeleteMapping("/{serverId}/icon")
+    public ResponseEntity<ApiResponse<ServerResponse>> removeServerIcon(
+            @PathVariable UUID serverId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
+                .result(serverService.removeServerIcon(userId, serverId))
                 .build());
     }
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<ServerResponse>>> getMyServers(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        List<ServerResponse> servers = serverService.getMyServers(userId);
         return ResponseEntity.ok(ApiResponse.<List<ServerResponse>>builder()
-                .result(servers)
+                .result(serverService.getMyServers(userId))
                 .build());
     }
 
@@ -47,9 +76,8 @@ public class ServerController {
     public ResponseEntity<ApiResponse<List<ChannelResponse>>> getServerChannels(
             @PathVariable UUID serverId,
             Authentication authentication) {
-        List<ChannelResponse> channels = serverService.getServerChannels(serverId);
         return ResponseEntity.ok(ApiResponse.<List<ChannelResponse>>builder()
-                .result(channels)
+                .result(serverService.getServerChannels(serverId))
                 .build());
     }
 }

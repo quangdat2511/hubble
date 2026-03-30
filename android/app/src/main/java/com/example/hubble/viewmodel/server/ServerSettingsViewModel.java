@@ -1,29 +1,41 @@
 package com.example.hubble.viewmodel.server;
 
+import android.net.Uri;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.RepositoryCallback;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.model.server.ServerMemberItem;
+import com.example.hubble.data.repository.ServerMemberRepository;
+import com.example.hubble.data.repository.ServerRepository;
 
 import java.util.List;
 
 public class ServerSettingsViewModel extends ViewModel {
-    private MutableLiveData<AuthResult<List<ServerMemberItem>>> membersState = new MutableLiveData<>();
-    private MutableLiveData<AuthResult<Void>> kickState = new MutableLiveData<>();
-    private MutableLiveData<AuthResult<Void>> banState = new MutableLiveData<>();
-    private MutableLiveData<AuthResult<Void>> transferOwnershipState = new MutableLiveData<>();
-    private MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
-    private ServerMemberRepository memberRepository;
+    private final MutableLiveData<AuthResult<List<ServerMemberItem>>> membersState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<Void>> kickState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<Void>> banState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<Void>> transferOwnershipState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<ServerItem>> _iconState = new MutableLiveData<>();
+    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+
+    private final ServerMemberRepository memberRepository;
+    private final ServerRepository serverRepository;
     private String currentServerId;
 
-    public ServerSettingsViewModel(ServerMemberRepository repository) {
-        this.memberRepository = repository;
+    public ServerSettingsViewModel(ServerMemberRepository memberRepository,
+                                   ServerRepository serverRepository) {
+        this.memberRepository = memberRepository;
+        this.serverRepository = serverRepository;
     }
+
+    // ── Members ───────────────────────────────────────────────────────────
 
     public void loadMembers(String serverId) {
         this.currentServerId = serverId;
@@ -71,35 +83,35 @@ public class ServerSettingsViewModel extends ViewModel {
         });
     }
 
-    public void consumeKickState() {
-        kickState.setValue(null);
+    // ── Icon management ───────────────────────────────────────────────────
+
+    public LiveData<AuthResult<ServerItem>> getIconState() { return _iconState; }
+
+    public void updateServerIcon(String serverId, Uri iconUri) {
+        _iconState.setValue(AuthResult.loading());
+        serverRepository.updateServerIcon(serverId, iconUri,
+                result -> _iconState.postValue(result));
     }
 
-    public void consumeBanState() {
-        banState.setValue(null);
+    public void deleteServerIcon(String serverId) {
+        _iconState.setValue(AuthResult.loading());
+        serverRepository.deleteServerIcon(serverId,
+                result -> _iconState.postValue(result));
     }
 
-    public void consumeTransferOwnershipState() {
-        transferOwnershipState.setValue(null);
-    }
+    public void consumeIconState() { _iconState.setValue(null); }
 
-    public LiveData<AuthResult<List<ServerMemberItem>>> getMembersState() {
-        return membersState;
-    }
+    // ── Consume helpers ───────────────────────────────────────────────────
 
-    public LiveData<AuthResult<Void>> getKickState() {
-        return kickState;
-    }
+    public void consumeKickState()             { kickState.setValue(null); }
+    public void consumeBanState()              { banState.setValue(null); }
+    public void consumeTransferOwnershipState(){ transferOwnershipState.setValue(null); }
 
-    public LiveData<AuthResult<Void>> getBanState() {
-        return banState;
-    }
+    // ── Getters ───────────────────────────────────────────────────────────
 
-    public LiveData<AuthResult<Void>> getTransferOwnershipState() {
-        return transferOwnershipState;
-    }
-
-    public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
+    public LiveData<AuthResult<List<ServerMemberItem>>> getMembersState()       { return membersState; }
+    public LiveData<AuthResult<Void>> getKickState()                            { return kickState; }
+    public LiveData<AuthResult<Void>> getBanState()                             { return banState; }
+    public LiveData<AuthResult<Void>> getTransferOwnershipState()               { return transferOwnershipState; }
+    public LiveData<String> getErrorMessage()                                   { return errorMessage; }
 }

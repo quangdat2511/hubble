@@ -125,6 +125,17 @@ public class MainActivity extends BaseAuthActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh server list when returning from ServerSettingsActivity
+        // (e.g. after icon update/delete) — MainViewModel is scoped to this activity
+        MainViewModel mainViewModel = new ViewModelProvider(this,
+                new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+                .get(MainViewModel.class);
+        mainViewModel.refreshServers();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // Disconnect WebSocket when the app is fully closed
