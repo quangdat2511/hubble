@@ -10,7 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        app:title="Lời mời đang chờ"
+        app:title="@string/pending_requests_title"
         app:navigationIcon="@drawable/ic_arrow_back" />
 
     <ProgressBar

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 
+import com.example.hubble.R;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
@@ -21,10 +22,12 @@ public class SessionRepository {
     private final ApiService apiService;
     private final TokenManager tokenManager;
     private final Gson gson;
+    private final Context appContext;
 
     public SessionRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.apiService = RetrofitClient.getApiService(context);
-        this.tokenManager = new TokenManager(context.getApplicationContext());
+        this.tokenManager = new TokenManager(appContext);
         this.gson = new Gson();
     }
 
@@ -38,14 +41,13 @@ public class SessionRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    // Trích xuất lỗi thực tế từ Backend
-                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Không thể lấy danh sách phiên")));
+                    callback.onResult(AuthResult.error(extractErrorMessage(response, appContext.getString(R.string.session_list_error))));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ApiResponse<List<SessionDto>>> call, @NonNull Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.error_network, t.getMessage())));
             }
         });
     }
@@ -60,13 +62,13 @@ public class SessionRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Không thể đăng xuất thiết bị")));
+                    callback.onResult(AuthResult.error(extractErrorMessage(response, appContext.getString(R.string.session_revoke_error))));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ApiResponse<String>> call, @NonNull Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.error_network, t.getMessage())));
             }
         });
     }
@@ -84,7 +86,7 @@ public class SessionRepository {
                 }
             }
         } catch (Exception e) {
-            Log.e("SessionRepo", "Lỗi parse error body", e);
+            Log.e("SessionRepo", "Error parsing error body", e);
         }
         return fallback + " (HTTP " + response.code() + ")";
     }

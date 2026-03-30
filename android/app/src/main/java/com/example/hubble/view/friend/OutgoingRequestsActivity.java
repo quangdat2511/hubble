@@ -5,6 +5,7 @@ import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.example.hubble.R;
 import com.example.hubble.adapter.friend.OutgoingRequestAdapter;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityOutgoingRequestsBinding;
@@ -59,7 +60,7 @@ public class OutgoingRequestsActivity extends AppCompatActivity {
             } else {
                 binding.progressBar.setVisibility(View.GONE);
                 if (result.isSuccess()) {
-                    Snackbar.make(binding.getRoot(), "Đã hủy lời mời!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(binding.getRoot(), R.string.outgoing_request_cancelled, Snackbar.LENGTH_SHORT).show();
                     viewModel.fetchOutgoingRequests();
                 } else if (result.isError()) {
                     Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();

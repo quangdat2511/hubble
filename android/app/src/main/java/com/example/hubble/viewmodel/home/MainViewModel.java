@@ -1,11 +1,13 @@
 package com.example.hubble.viewmodel.home;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
@@ -56,6 +58,7 @@ public class MainViewModel extends ViewModel {
 
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
+    private final Context appContext;
     private final String currentUserId;
     private final Gson gson = new Gson();
     private final CompositeDisposable dmRealtimeDisposables = new CompositeDisposable();
@@ -91,7 +94,8 @@ public class MainViewModel extends ViewModel {
 
     private final Set<String> collapsedCategories = new HashSet<>();
 
-    public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
+    public MainViewModel(Context appContext, DmRepository dmRepository, ServerRepository serverRepository) {
+        this.appContext = appContext.getApplicationContext();
         this.dmRepository = dmRepository;
         this.serverRepository = serverRepository;
         this.currentUserId = dmRepository.getCurrentUserId();
@@ -116,7 +120,7 @@ public class MainViewModel extends ViewModel {
 
     public void openOrCreateDirectChannel(String friendId) {
         if (friendId == null || friendId.trim().isEmpty()) {
-            _openDmState.setValue(AuthResult.error("Có lỗi xảy ra. Vui lòng thử lại."));
+            _openDmState.setValue(AuthResult.error(string(R.string.error_generic)));
             return;
         }
 
@@ -280,7 +284,7 @@ public class MainViewModel extends ViewModel {
                 channel != null ? channel.getPeerUsername() : null,
                 friend != null ? displayNameOf(friend) : null,
                 channel != null ? channel.getName() : null,
-                "Direct Message"
+                string(R.string.dm_direct_message)
         );
         String peerStatus = coalesce(
                 channel != null ? channel.getPeerStatus() : null,
@@ -570,12 +574,12 @@ public class MainViewModel extends ViewModel {
     private String buildRealtimePreview(MessageDto latest, String peerDisplayName) {
         if (Boolean.TRUE.equals(latest.getIsDeleted())) {
             String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), peerDisplayName);
-            return senderLabel + ": Tin nhắn đã được thu hồi";
+            return senderLabel + ": " + string(R.string.dm_deleted_message);
         }
 
         String preview = latest.getContent();
         if (preview == null || preview.trim().isEmpty()) {
-            preview = "Tin nhắn đa phương tiện";
+            preview = string(R.string.dm_reply_media);
         } else if (preview.startsWith("{gif}")) {
             String body = preview.substring(5);
             int nl = body.indexOf('\n');
@@ -783,17 +787,17 @@ public class MainViewModel extends ViewModel {
             long seconds = Duration.between(then, Instant.now()).getSeconds();
             if (seconds < 0) seconds = 0;
 
-            if (seconds < 60)        return "Bây giờ";
+            if (seconds < 60)        return string(R.string.time_now);
             long mins = seconds / 60;
-            if (mins < 60)           return mins + " phút";
+            if (mins < 60)           return string(R.string.time_minutes, mins);
             long hours = mins / 60;
-            if (hours < 24)          return hours + " giờ";
+            if (hours < 24)          return string(R.string.time_hours, hours);
             long days = hours / 24;
-            if (days < 30)           return days + " ngày";
+            if (days < 30)           return string(R.string.time_days, days);
             long months = days / 30;
-            if (months < 12)         return months + " tháng";
+            if (months < 12)         return string(R.string.time_months, months);
             long years = days / 365;
-            return years + " năm";
+            return string(R.string.time_years, years);
         } catch (Exception ignored) {
             return "";
         }
@@ -801,14 +805,14 @@ public class MainViewModel extends ViewModel {
 
     private String resolveSenderLabel(String currentUserId, String authorId, String peerDisplayName) {
         if (currentUserId != null && currentUserId.equalsIgnoreCase(authorId)) {
-            return "Bạn";
+            return string(R.string.main_you_sender);
         }
 
         if (peerDisplayName != null && !peerDisplayName.trim().isEmpty()) {
             return peerDisplayName;
         }
 
-        return "Người dùng";
+        return string(R.string.main_unknown_user);
     }
 
     private String displayNameOf(FriendUserDto friend) {
@@ -820,7 +824,7 @@ public class MainViewModel extends ViewModel {
         if (username != null && !username.trim().isEmpty()) {
             return username;
         }
-        return "Friend";
+        return string(R.string.main_friend_fallback);
     }
 
     private String coalesce(String... values) {
@@ -834,7 +838,7 @@ public class MainViewModel extends ViewModel {
 
     public void loadServerChannels(String serverId) {
         if (serverId == null || serverId.trim().isEmpty()) {
-            _serverChannels.postValue(AuthResult.error("Máy chủ không hợp lệ"));
+            _serverChannels.postValue(AuthResult.error(string(R.string.invalid_server_error)));
             return;
         }
 
@@ -870,6 +874,10 @@ public class MainViewModel extends ViewModel {
 
     public Set<String> getCollapsedCategories() {
         return collapsedCategories;
+    }
+
+    private String string(int resId, Object... args) {
+        return appContext.getString(resId, args);
     }
 
     @Override

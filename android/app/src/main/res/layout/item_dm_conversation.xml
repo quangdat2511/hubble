@@ -79,7 +79,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/spacing_sm"
-            android:text="OFFICIAL"
+            android:text="@string/dm_official"
             android:textAllCaps="true"
             android:textAppearance="?attr/textAppearanceLabelSmall"
             app:chipBackgroundColor="?attr/colorPrimary"

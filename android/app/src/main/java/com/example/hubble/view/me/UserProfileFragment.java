@@ -164,7 +164,7 @@ public class UserProfileFragment extends Fragment {
             populateUserInfo(result.getData());
             if (!loadingProfile) {
                 setEditMode(false);
-                Toast.makeText(getContext(), "Profile updated", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), getString(R.string.profile_updated), Toast.LENGTH_SHORT).show();
             }
             return;
         }

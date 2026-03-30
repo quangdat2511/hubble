@@ -4,6 +4,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
+import com.example.hubble.R;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
@@ -25,9 +26,10 @@ public class UserRepository {
     private final ApiService apiService;
     private final TokenManager tokenManager;
     private final Gson gson;
+    private final Context appContext;
 
     public UserRepository(Context context) {
-        Context appContext = context.getApplicationContext();
+        appContext = context.getApplicationContext();
         apiService = RetrofitClient.getApiService(appContext);
         tokenManager = new TokenManager(appContext);
         gson = new Gson();
@@ -42,7 +44,7 @@ public class UserRepository {
 
         String token = getBearerToken();
         if (token == null) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
 
@@ -59,7 +61,7 @@ public class UserRepository {
                     return;
                 }
 
-                callback.onResult(AuthResult.error(extractErrorMessage(response, "Load profile failed")));
+                callback.onResult(AuthResult.error(extractErrorMessage(response, appContext.getString(R.string.profile_load_error))));
             }
 
             @Override
@@ -74,7 +76,7 @@ public class UserRepository {
 
         String token = getBearerToken();
         if (token == null) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
 
@@ -91,7 +93,7 @@ public class UserRepository {
                     return;
                 }
 
-                callback.onResult(AuthResult.error(extractErrorMessage(response, "Update failed")));
+                callback.onResult(AuthResult.error(extractErrorMessage(response, appContext.getString(R.string.profile_update_error))));
             }
 
             @Override
@@ -111,7 +113,10 @@ public class UserRepository {
 
     private String buildNetworkError(Throwable throwable) {
         String message = throwable.getMessage();
-        return "Network error: " + (message == null || message.trim().isEmpty() ? "Unknown error" : message);
+        if (message == null || message.trim().isEmpty()) {
+            message = appContext.getString(R.string.error_network_unknown);
+        }
+        return appContext.getString(R.string.error_network, message);
     }
 
     private String extractErrorMessage(Response<?> response, String fallback) {

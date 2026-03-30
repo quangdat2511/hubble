@@ -39,7 +39,7 @@ public class ServerRepository {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
         String token = "Bearer " + accessToken;
@@ -57,13 +57,13 @@ public class ServerRepository {
                     callback.onResult(AuthResult.success(item));
                 } else {
                     String error = response.body() != null ? response.body().getMessage() : null;
-                    callback.onResult(AuthResult.error(error != null ? error : "Tạo máy chủ thất bại"));
+                    callback.onResult(AuthResult.error(error != null ? error : appContext.getString(R.string.server_create_error)));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ApiResponse<ServerResponse>> call, @NonNull Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
             }
         });
     }
@@ -72,7 +72,7 @@ public class ServerRepository {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
 
@@ -93,12 +93,12 @@ public class ServerRepository {
                         }
 
                         String error = response.body() != null ? response.body().getMessage() : null;
-                        callback.onResult(AuthResult.error(error != null ? error : "Không tải được danh sách máy chủ"));
+                        callback.onResult(AuthResult.error(error != null ? error : appContext.getString(R.string.server_list_load_error)));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ServerResponse>>> call, @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
                     }
                 });
     }
@@ -107,7 +107,7 @@ public class ServerRepository {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
 
@@ -123,12 +123,12 @@ public class ServerRepository {
                         }
 
                         String error = response.body() != null ? response.body().getMessage() : null;
-                        callback.onResult(AuthResult.error(error != null ? error : "Không tải được danh sách kênh"));
+                        callback.onResult(AuthResult.error(error != null ? error : appContext.getString(R.string.server_channels_load_error)));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ChannelDto>>> call, @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
                     }
                 });
     }
