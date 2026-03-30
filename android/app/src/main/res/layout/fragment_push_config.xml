@@ -57,7 +57,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/settings_notifications"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
@@ -65,7 +65,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="@string/settings_notifications_summary"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
                     </LinearLayout>
@@ -102,7 +102,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/settings_notifications_enable_title"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
@@ -110,7 +110,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="@string/settings_notifications_enable_summary"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
                     </LinearLayout>
@@ -152,7 +152,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/settings_notifications_sound_title"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
@@ -161,7 +161,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="@string/settings_notifications_sound_summary"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
                     </LinearLayout>

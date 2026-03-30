@@ -248,11 +248,11 @@
     <string name="dm_media">Tệp đa phương tiện</string>
     <string name="save">Lưu</string>
     <string name="cancel">Hủy</string>
-    <string name="settings_notifications_summary">Quáº£n lÃ½ thÃ´ng bÃ¡o Ä‘áº©y trÃªn thiáº¿t bá»‹ nÃ y</string>
-    <string name="settings_notifications_enable_title">Báº­t thÃ´ng bÃ¡o Ä‘áº©y</string>
-    <string name="settings_notifications_enable_summary">Nháº­n cáº£nh bÃ¡o khi cÃ³ tin nháº¯n vÃ  hoáº¡t Ä‘á»™ng má»›i</string>
-    <string name="settings_notifications_sound_title">Ã‚m thanh thÃ´ng bÃ¡o</string>
-    <string name="settings_notifications_sound_summary">PhÃ¡t Ã¢m thanh khi cÃ³ thÃ´ng bÃ¡o má»›i</string>
-    <string name="settings_notifications_sound_disabled_summary">Báº­t thÃ´ng bÃ¡o Ä‘áº©y Ä‘á»ƒ dÃ¹ng tÃ¹y chá»n nÃ y</string>
-    <string name="settings_notifications_saved">ÄÃ£ cáº­p nháº­t cÃ i Ä‘áº·t thÃ´ng bÃ¡o</string>
+    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
+    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
+    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
+    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
+    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
+    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
+    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
 </resources>
