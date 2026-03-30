@@ -1,10 +1,13 @@
 package com.example.hubble.viewmodel.home;
 
+import android.text.TextUtils;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
@@ -12,31 +15,63 @@ import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.google.gson.Gson;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import okhttp3.Dns;
+import okhttp3.OkHttpClient;
+import ua.naiksoftware.stomp.Stomp;
+import ua.naiksoftware.stomp.StompClient;
+import ua.naiksoftware.stomp.dto.LifecycleEvent;
+import ua.naiksoftware.stomp.dto.StompHeader;
 
 public class MainViewModel extends ViewModel {
 
+    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
+    private static final String[] RAILWAY_FALLBACK_IPS = {
+            "151.101.2.15"
+    };
+
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
+    private final String currentUserId;
+    private final Gson gson = new Gson();
+    private final CompositeDisposable dmRealtimeDisposables = new CompositeDisposable();
+    private final Map<String, Disposable> dmTopicSubscriptions = new HashMap<>();
+    private final Map<String, FriendUserDto> friendCacheById = new HashMap<>();
+    private final Map<String, ChannelDto> channelCacheById = new HashMap<>();
+    private final Set<String> desiredDmChannelIds = new HashSet<>();
+    private final Set<String> favoriteChannelIds = new HashSet<>();
+
+    private StompClient dmRealtimeClient;
+    private boolean dmRealtimeConnected;
 
     private final MutableLiveData<List<ServerItem>> _servers = new MutableLiveData<>();
     public final LiveData<List<ServerItem>> servers = _servers;
@@ -69,6 +104,7 @@ public class MainViewModel extends ViewModel {
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
         this.serverRepository = serverRepository;
+        this.currentUserId = dmRepository.getCurrentUserId();
         _servers.setValue(new ArrayList<>());
         _selectedServer.setValue(null);
         observeServerEvents();
@@ -126,12 +162,6 @@ public class MainViewModel extends ViewModel {
         _kickedFromServer.setValue(null);
     }
 
-    @Override
-    protected void onCleared() {
-        super.onCleared();
-        wsDisposables.clear();
-    }
-
     // ─────────────────────────────────────────────────────────────────────
 
     public void refreshServers() {
@@ -154,7 +184,12 @@ public class MainViewModel extends ViewModel {
         }
 
         _openDmState.setValue(AuthResult.loading());
-        dmRepository.getOrCreateDirectChannel(friendId, _openDmState::postValue);
+        dmRepository.getOrCreateDirectChannel(friendId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                upsertConversationForOpenedChannel(friendId, result.getData());
+            }
+            _openDmState.postValue(result);
+        });
     }
 
     public void consumeOpenDmState() {
@@ -198,149 +233,604 @@ public class MainViewModel extends ViewModel {
                 return;
             }
 
+            List<FriendUserDto> friends = friendResult.getData();
+            Map<String, FriendUserDto> friendById = new HashMap<>();
+            friendCacheById.clear();
+            for (FriendUserDto friend : friends) {
+                if (friend == null || TextUtils.isEmpty(friend.getId())) {
+                    continue;
+                }
+                friendById.put(friend.getId(), friend);
+                friendCacheById.put(friend.getId(), friend);
+            }
+
             dmRepository.getDirectChannels(channelResult -> {
                 if (channelResult.getStatus() != AuthResult.Status.SUCCESS || channelResult.getData() == null) {
                     _errorMessage.postValue(channelResult.getMessage());
                     return;
                 }
 
-                List<FriendUserDto> friends = friendResult.getData();
-                Map<String, FriendUserDto> friendById = new HashMap<>();
-                for (FriendUserDto friend : friends) {
-                    friendById.put(friend.getId(), friend);
+                Map<String, ChannelDto> channelByFriendId = new LinkedHashMap<>();
+                channelCacheById.clear();
+                for (ChannelDto channel : channelResult.getData()) {
+                    if (channel == null || TextUtils.isEmpty(channel.getId()) || TextUtils.isEmpty(channel.getPeerUserId())) {
+                        continue;
+                    }
+                    if (!friendById.containsKey(channel.getPeerUserId())) {
+                        continue;
+                    }
+                    channelCacheById.put(channel.getId(), channel);
+                    channelByFriendId.put(channel.getPeerUserId(), channel);
                 }
+
+                Set<String> availableChannelIds = new HashSet<>(channelCacheById.keySet());
+                dmRepository.pruneLocallyOpenedDirectChannels(availableChannelIds);
+                dmRepository.pruneFavoriteDirectChannels(availableChannelIds);
+                Set<String> locallyOpenedChannelIds = dmRepository.getLocallyOpenedDirectChannelIds();
+                favoriteChannelIds.clear();
+                favoriteChannelIds.addAll(dmRepository.getFavoriteDirectChannelIds());
+
+                syncDmRealtimeChannels(new ArrayList<>(channelByFriendId.values()));
 
                 List<DmConversationItem> conversations = new ArrayList<>();
-                for (ChannelDto channel : channelResult.getData()) {
-                    FriendUserDto matchedFriend = null;
-                    if (channel.getPeerUserId() != null) {
-                        matchedFriend = friendById.get(channel.getPeerUserId());
-                    }
 
-                    String peerName = coalesce(
-                            channel.getPeerDisplayName(),
-                            channel.getPeerUsername(),
-                            channel.getName(),
-                            matchedFriend != null ? displayNameOf(matchedFriend) : null,
-                            "Direct Message"
-                    );
-                    String preview = "Chưa có tin nhắn";
-                    String peerStatus = coalesce(
-                            channel.getPeerStatus(),
-                            matchedFriend != null ? matchedFriend.getStatus() : null,
-                            ""
-                    );
-                    boolean online = "ONLINE".equalsIgnoreCase(peerStatus);
-                    boolean verified = false;
-
-                    String peerUserId = coalesce(
-                            channel.getPeerUserId(),
-                            matchedFriend != null ? matchedFriend.getId() : null,
-                            null
-                    );
-
-                    conversations.add(new DmConversationItem(
-                            channel.getId(),
-                            channel.getId(),
-                            peerUserId,
-                            peerName,
-                            preview,
-                            "now",
-                            online,
-                            verified,
-                            false
-                    ));
+                for (ChannelDto channel : channelByFriendId.values()) {
+                    FriendUserDto friend = friendById.get(channel.getPeerUserId());
+                    conversations.add(buildConversationItem(friend, channel));
                 }
 
-                if (conversations.isEmpty() && !friends.isEmpty()) {
-                    for (FriendUserDto friend : friends) {
-                        conversations.add(new DmConversationItem(
-                                "friend-" + friend.getId(),
-                                null,
-                                friend.getId(),
-                                displayNameOf(friend),
-                                "Bắt đầu cuộc trò chuyện",
-                                "",
-                                "ONLINE".equalsIgnoreCase(friend.getStatus()),
-                                false,
-                                false
-                        ));
-                    }
-                }
-
-                enrichWithLatestMessages(conversations, dmRepository.getCurrentUserId());
+                enrichWithLatestMessages(conversations, currentUserId, locallyOpenedChannelIds);
             });
         });
     }
 
-    private void enrichWithLatestMessages(List<DmConversationItem> conversations, String currentUserId) {
+    private void upsertConversationForOpenedChannel(String friendId, ChannelDto channel) {
+        if (TextUtils.isEmpty(friendId)) {
+            return;
+        }
+
+        if (channel != null && !TextUtils.isEmpty(channel.getId())) {
+            channelCacheById.put(channel.getId(), channel);
+            dmRepository.rememberOpenedDirectChannel(channel.getId());
+        }
+
+        FriendUserDto friend = friendCacheById.get(friendId);
+        DmConversationItem baseItem = buildConversationItem(friend, channel);
+        DmConversationItem openedItem = new DmConversationItem(
+            baseItem.getId(),
+            baseItem.getChannelId(),
+            baseItem.getFriendId(),
+            baseItem.getDisplayName(),
+            baseItem.getLastMessage(),
+            baseItem.getTimeLabel(),
+            baseItem.isOnline(),
+            baseItem.isVerified(),
+            baseItem.isSelected(),
+            baseItem.isFavorite(),
+            System.currentTimeMillis()
+        );
+
+        List<DmConversationItem> current = _dmConversations.getValue();
+        List<DmConversationItem> next = current != null ? new ArrayList<>(current) : new ArrayList<>();
+        for (int i = 0; i < next.size(); i++) {
+            if (friendId.equals(next.get(i).getFriendId())) {
+                next.remove(i);
+                break;
+            }
+        }
+        next.add(0, openedItem);
+        publishConversations(next);
+
+        if (channel != null && !TextUtils.isEmpty(channel.getId())) {
+            desiredDmChannelIds.add(channel.getId());
+            ensureDmRealtimeConnected();
+            if (dmRealtimeConnected) {
+                syncDmTopicSubscriptions();
+            }
+        }
+    }
+
+    private DmConversationItem buildConversationItem(FriendUserDto friend, ChannelDto channel) {
+        String friendId = coalesce(
+                friend != null ? friend.getId() : null,
+                channel != null ? channel.getPeerUserId() : null,
+                ""
+        );
+        String channelId = channel != null ? channel.getId() : null;
+
+        String displayName = coalesce(
+                channel != null ? channel.getPeerDisplayName() : null,
+                channel != null ? channel.getPeerUsername() : null,
+                friend != null ? displayNameOf(friend) : null,
+                channel != null ? channel.getName() : null,
+                "Direct Message"
+        );
+        String peerStatus = coalesce(
+                channel != null ? channel.getPeerStatus() : null,
+                friend != null ? friend.getStatus() : null,
+                ""
+        );
+
+        return new DmConversationItem(
+                !TextUtils.isEmpty(channelId) ? channelId : "friend-" + friendId,
+                channelId,
+                friendId,
+                displayName,
+                "",
+                "",
+                "ONLINE".equalsIgnoreCase(peerStatus),
+                false,
+                false,
+                isFavoriteChannel(channelId),
+                0L
+        );
+    }
+
+    private void syncDmRealtimeChannels(List<ChannelDto> channels) {
+        Set<String> channelIds = new HashSet<>();
+        for (ChannelDto channel : channels) {
+            if (channel != null && !TextUtils.isEmpty(channel.getId())) {
+                channelIds.add(channel.getId());
+            }
+        }
+
+        desiredDmChannelIds.clear();
+        desiredDmChannelIds.addAll(channelIds);
+
+        if (desiredDmChannelIds.isEmpty()) {
+            clearDmTopicSubscriptions();
+            return;
+        }
+
+        ensureDmRealtimeConnected();
+        if (dmRealtimeConnected) {
+            syncDmTopicSubscriptions();
+        }
+    }
+
+    private void ensureDmRealtimeConnected() {
+        if (dmRealtimeClient != null) {
+            return;
+        }
+
+        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
+        String accessToken = dmRepository.getAccessTokenRaw();
+        Map<String, String> handshakeHeaders = new HashMap<>();
+        List<StompHeader> connectHeaders = null;
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            String authorization = "Bearer " + accessToken;
+            handshakeHeaders.put("Authorization", authorization);
+            connectHeaders = Collections.singletonList(new StompHeader("Authorization", authorization));
+        }
+
+        dmRealtimeClient = Stomp.over(
+                Stomp.ConnectionProvider.OKHTTP,
+                wsUrl,
+                handshakeHeaders.isEmpty() ? null : handshakeHeaders,
+                createRealtimeOkHttpClient()
+        );
+        dmRealtimeClient.withClientHeartbeat(10000).withServerHeartbeat(10000);
+
+        final List<StompHeader> finalConnectHeaders = connectHeaders;
+        dmRealtimeDisposables.add(dmRealtimeClient.lifecycle()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    if (event.getType() == LifecycleEvent.Type.OPENED) {
+                        dmRealtimeConnected = true;
+                        syncDmTopicSubscriptions();
+                    } else if (event.getType() == LifecycleEvent.Type.CLOSED
+                            || event.getType() == LifecycleEvent.Type.ERROR) {
+                        dmRealtimeConnected = false;
+                        clearDmTopicSubscriptions();
+                    }
+                }, throwable -> {
+                    dmRealtimeConnected = false;
+                }));
+
+        dmRealtimeClient.connect(finalConnectHeaders);
+    }
+
+    private OkHttpClient createRealtimeOkHttpClient() {
+        return new OkHttpClient.Builder()
+                .dns(createDnsWithRailwayFallback())
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+    }
+
+    private Dns createDnsWithRailwayFallback() {
+        return hostname -> {
+            try {
+                return Dns.SYSTEM.lookup(hostname);
+            } catch (UnknownHostException originalError) {
+                if (!RAILWAY_HOST.equalsIgnoreCase(hostname)) {
+                    throw originalError;
+                }
+
+                List<InetAddress> fallbackAddresses = new ArrayList<>();
+                for (String ip : RAILWAY_FALLBACK_IPS) {
+                    try {
+                        fallbackAddresses.add(InetAddress.getByName(ip));
+                    } catch (UnknownHostException ignored) {
+                        // Ignore malformed fallback entries.
+                    }
+                }
+
+                if (fallbackAddresses.isEmpty()) {
+                    throw originalError;
+                }
+                return fallbackAddresses;
+            }
+        };
+    }
+
+    private void syncDmTopicSubscriptions() {
+        if (!dmRealtimeConnected || dmRealtimeClient == null) {
+            return;
+        }
+
+        List<String> currentSubscribed = new ArrayList<>(dmTopicSubscriptions.keySet());
+        for (String channelId : currentSubscribed) {
+            if (!desiredDmChannelIds.contains(channelId)) {
+                Disposable disposable = dmTopicSubscriptions.remove(channelId);
+                if (disposable != null && !disposable.isDisposed()) {
+                    disposable.dispose();
+                }
+            }
+        }
+
+        for (String channelId : desiredDmChannelIds) {
+            if (dmTopicSubscriptions.containsKey(channelId)) {
+                continue;
+            }
+
+            final String subscribedChannelId = channelId;
+            Disposable topicDisposable = dmRealtimeClient
+                    .topic("/topic/channels/" + subscribedChannelId)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(stompMessage -> {
+                        MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
+                        if (dto == null) {
+                            return;
+                        }
+                        if (TextUtils.isEmpty(dto.getChannelId())) {
+                            dto.setChannelId(subscribedChannelId);
+                        }
+                        upsertConversationFromRealtime(dto);
+                    }, throwable -> {
+                    });
+
+            dmTopicSubscriptions.put(subscribedChannelId, topicDisposable);
+            dmRealtimeDisposables.add(topicDisposable);
+        }
+    }
+
+    private void clearDmTopicSubscriptions() {
+        for (Disposable disposable : dmTopicSubscriptions.values()) {
+            if (disposable != null && !disposable.isDisposed()) {
+                disposable.dispose();
+            }
+        }
+        dmTopicSubscriptions.clear();
+    }
+
+    private String toWebSocketUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.trim().isEmpty()) {
+            return "ws://";
+        }
+
+        String normalized = baseUrl.endsWith("/")
+                ? baseUrl.substring(0, baseUrl.length() - 1)
+                : baseUrl;
+        String lower = normalized.toLowerCase();
+
+        if (lower.startsWith("https://")) {
+            return "wss://" + normalized.substring("https://".length()) + "/";
+        }
+        if (lower.startsWith("http://")) {
+            return "ws://" + normalized.substring("http://".length()) + "/";
+        }
+        return "ws://" + normalized + "/";
+    }
+
+    private void upsertConversationFromRealtime(MessageDto message) {
+        if (message == null || TextUtils.isEmpty(message.getChannelId())) {
+            return;
+        }
+
+        List<DmConversationItem> current = _dmConversations.getValue();
+        List<DmConversationItem> currentList = current != null ? current : new ArrayList<>();
+
+        int existingIndex = -1;
+        for (int i = 0; i < currentList.size(); i++) {
+            DmConversationItem item = currentList.get(i);
+            if (message.getChannelId().equals(item.getChannelId())) {
+                existingIndex = i;
+                break;
+            }
+        }
+
+        if (existingIndex < 0) {
+            DmConversationItem seededItem = buildConversationFromChannelId(message.getChannelId());
+            if (seededItem == null) {
+                return;
+            }
+
+            String previewText = buildRealtimePreview(message, seededItem.getDisplayName());
+            String timeLabel = toShortTime(message.getCreatedAt());
+            if (timeLabel == null || timeLabel.trim().isEmpty()) {
+                timeLabel = seededItem.getTimeLabel();
+            }
+
+            DmConversationItem inserted = new DmConversationItem(
+                    seededItem.getId(),
+                    seededItem.getChannelId(),
+                    seededItem.getFriendId(),
+                    seededItem.getDisplayName(),
+                    previewText,
+                    timeLabel,
+                    seededItem.isOnline(),
+                    seededItem.isVerified(),
+                        seededItem.isSelected(),
+                        seededItem.isFavorite(),
+                        toEpochMillis(message.getCreatedAt(), seededItem.getLastMessageAtMillis())
+            );
+
+            List<DmConversationItem> next = new ArrayList<>(currentList);
+            next.add(0, inserted);
+            publishConversations(next);
+            return;
+        }
+
+        DmConversationItem currentItem = currentList.get(existingIndex);
+        String previewText = buildRealtimePreview(message, currentItem.getDisplayName());
+        String timeLabel = toShortTime(message.getCreatedAt());
+        if (timeLabel == null || timeLabel.trim().isEmpty()) {
+            timeLabel = currentItem.getTimeLabel();
+        }
+
+        DmConversationItem updated = new DmConversationItem(
+                currentItem.getId(),
+                currentItem.getChannelId(),
+                currentItem.getFriendId(),
+                currentItem.getDisplayName(),
+                previewText,
+                timeLabel,
+                currentItem.isOnline(),
+                currentItem.isVerified(),
+                currentItem.isSelected(),
+                currentItem.isFavorite(),
+                toEpochMillis(message.getCreatedAt(), currentItem.getLastMessageAtMillis())
+        );
+
+        List<DmConversationItem> next = new ArrayList<>(currentList);
+        next.remove(existingIndex);
+        next.add(0, updated);
+        publishConversations(next);
+    }
+
+    private DmConversationItem buildConversationFromChannelId(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return null;
+        }
+
+        ChannelDto channel = channelCacheById.get(channelId);
+        if (channel == null) {
+            return null;
+        }
+
+        FriendUserDto friend = null;
+        if (!TextUtils.isEmpty(channel.getPeerUserId())) {
+            friend = friendCacheById.get(channel.getPeerUserId());
+        }
+        return buildConversationItem(friend, channel);
+    }
+
+    private String buildRealtimePreview(MessageDto latest, String peerDisplayName) {
+        if (Boolean.TRUE.equals(latest.getIsDeleted())) {
+            String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), peerDisplayName);
+            return senderLabel + ": Tin nhắn đã được thu hồi";
+        }
+
+        String preview = latest.getContent();
+        if (preview == null || preview.trim().isEmpty()) {
+            preview = "Tin nhắn đa phương tiện";
+        } else if (preview.startsWith("{gif}")) {
+            String body = preview.substring(5);
+            int nl = body.indexOf('\n');
+            String title = nl > 0 ? body.substring(0, nl).trim() : null;
+            preview = (title != null && !title.isEmpty() ? title : "GIF") + " 🎬";
+        } else if (preview.startsWith("{sticker}")) {
+            String body = preview.substring(9);
+            int nl = body.indexOf('\n');
+            String title = nl > 0 ? body.substring(0, nl).trim() : null;
+            preview = (title != null && !title.isEmpty() ? title : "Sticker") + " 🎭";
+        }
+
+        String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), peerDisplayName);
+        return senderLabel + ": " + preview;
+    }
+
+    private void enrichWithLatestMessages(
+            List<DmConversationItem> conversations,
+            String currentUserId,
+            Set<String> locallyOpenedChannelIds
+    ) {
         if (conversations.isEmpty()) {
             _dmConversations.postValue(conversations);
             _dmStories.postValue(List.of());
             return;
         }
 
-        AtomicInteger pending = new AtomicInteger(0);
-        List<DmConversationItem> enriched = new ArrayList<>(conversations);
+        AtomicInteger pending = new AtomicInteger(conversations.size());
+        List<DmConversationItem> enriched = new ArrayList<>(conversations.size());
+        for (int i = 0; i < conversations.size(); i++) {
+            enriched.add(null);
+        }
 
         for (int i = 0; i < conversations.size(); i++) {
             DmConversationItem item = conversations.get(i);
-            if (!item.hasChannelId()) {
-                continue;
-            }
-
-            pending.incrementAndGet();
             final int index = i;
             dmRepository.getMessages(item.getChannelId(), 0, 1, result -> {
+                DmConversationItem resolvedItem = null;
                 if (result.getStatus() == AuthResult.Status.SUCCESS
                         && result.getData() != null
                         && !result.getData().isEmpty()) {
                     MessageDto latest = result.getData().get(0);
-                    String preview = latest.getContent();
-                    if (preview == null || preview.trim().isEmpty()) {
-                        preview = "Tin nhắn đa phương tiện";
-                    } else if (preview.startsWith("{gif}")) {
-                        String body = preview.substring(5);
-                        int nl = body.indexOf('\n');
-                        String title = nl > 0 ? body.substring(0, nl).trim() : null;
-                        preview = (title != null && !title.isEmpty() ? title : "GIF") + " 🎬";
-                    } else if (preview.startsWith("{sticker}")) {
-                        String body = preview.substring(9);
-                        int nl = body.indexOf('\n');
-                        String title = nl > 0 ? body.substring(0, nl).trim() : null;
-                        preview = (title != null && !title.isEmpty() ? title : "Sticker") + " 🎭";
+                    String previewText = buildRealtimePreview(latest, item.getDisplayName());
+                    String timeLabel = toShortTime(latest.getCreatedAt());
+                    if (timeLabel == null || timeLabel.trim().isEmpty()) {
+                        timeLabel = item.getTimeLabel();
                     }
-                    String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), item.getDisplayName());
-                    String previewText = senderLabel + ": " + preview;
-                    synchronized (enriched) {
-                        DmConversationItem current = enriched.get(index);
-                        enriched.set(index, new DmConversationItem(
-                                current.getId(), current.getChannelId(), current.getFriendId(),
-                                current.getDisplayName(), previewText, toShortTime(latest.getCreatedAt()),
-                                current.isOnline(), current.isVerified(), current.isSelected()
-                        ));
+
+                    resolvedItem = new DmConversationItem(
+                            item.getId(),
+                            item.getChannelId(),
+                            item.getFriendId(),
+                            item.getDisplayName(),
+                            previewText,
+                            timeLabel,
+                            item.isOnline(),
+                            item.isVerified(),
+                                item.isSelected(),
+                                item.isFavorite(),
+                                toEpochMillis(latest.getCreatedAt(), item.getLastMessageAtMillis())
+                    );
+                } else {
+                    boolean showOpenedByCurrentUser = item.hasChannelId()
+                            && locallyOpenedChannelIds != null
+                            && locallyOpenedChannelIds.contains(item.getChannelId());
+                    boolean keepIfMessageLookupFailed = result.getStatus() != AuthResult.Status.SUCCESS;
+                    if (showOpenedByCurrentUser || keepIfMessageLookupFailed) {
+                        resolvedItem = item;
                     }
                 }
-                if (pending.decrementAndGet() == 0) publishConversations(enriched);
-            });
-        }
 
-        if (pending.get() == 0) {
-            publishConversations(enriched);
+                synchronized (enriched) {
+                    enriched.set(index, resolvedItem);
+                }
+
+                if (pending.decrementAndGet() == 0) {
+                    List<DmConversationItem> visibleConversations = new ArrayList<>();
+                    synchronized (enriched) {
+                        for (DmConversationItem candidate : enriched) {
+                            if (candidate != null) {
+                                visibleConversations.add(candidate);
+                            }
+                        }
+                    }
+                    publishConversations(visibleConversations);
+                }
+            });
         }
     }
 
     private void publishConversations(List<DmConversationItem> conversations) {
-        _dmConversations.postValue(conversations);
-        _dmStories.postValue(conversations.subList(0, Math.min(3, conversations.size())));
+        List<DmConversationItem> sorted = sortConversationsByPriority(conversations);
+        _dmConversations.postValue(sorted);
+        _dmStories.postValue(sorted.subList(0, Math.min(3, sorted.size())));
     }
 
-    /**
-     * Returns a Discord-style relative time label from an ISO timestamp.
-     * e.g. "now", "5m", "2h", "3d", "1mo", "2y"
-     * Handles both OffsetDateTime ("2024-01-01T10:00:00Z") and
-     * LocalDateTime ("2024-01-01T10:00:00") server formats.
-     */
+    public void toggleConversationFavorite(DmConversationItem conversation) {
+        if (conversation == null || TextUtils.isEmpty(conversation.getChannelId())) {
+            return;
+        }
+
+        boolean shouldFavorite = !conversation.isFavorite();
+        dmRepository.setDirectChannelFavorite(conversation.getChannelId(), shouldFavorite);
+        if (shouldFavorite) {
+            favoriteChannelIds.add(conversation.getChannelId());
+        } else {
+            favoriteChannelIds.remove(conversation.getChannelId());
+        }
+
+        List<DmConversationItem> current = _dmConversations.getValue();
+        if (current == null || current.isEmpty()) {
+            return;
+        }
+
+        List<DmConversationItem> updated = new ArrayList<>(current.size());
+        for (DmConversationItem item : current) {
+            if (item != null && conversation.getChannelId().equals(item.getChannelId())) {
+                updated.add(new DmConversationItem(
+                        item.getId(),
+                        item.getChannelId(),
+                        item.getFriendId(),
+                        item.getDisplayName(),
+                        item.getLastMessage(),
+                        item.getTimeLabel(),
+                        item.isOnline(),
+                        item.isVerified(),
+                        item.isSelected(),
+                        shouldFavorite,
+                        item.getLastMessageAtMillis()
+                ));
+            } else {
+                updated.add(item);
+            }
+        }
+
+        publishConversations(updated);
+    }
+
+    private List<DmConversationItem> sortConversationsByPriority(List<DmConversationItem> conversations) {
+        List<DmConversationItem> sorted = conversations != null ? new ArrayList<>(conversations) : new ArrayList<>();
+        sorted.sort((left, right) -> {
+            if (left == right) {
+                return 0;
+            }
+            if (left == null) {
+                return 1;
+            }
+            if (right == null) {
+                return -1;
+            }
+            if (left.isFavorite() != right.isFavorite()) {
+                return left.isFavorite() ? -1 : 1;
+            }
+
+            int byLatestMessage = Long.compare(right.getLastMessageAtMillis(), left.getLastMessageAtMillis());
+            if (byLatestMessage != 0) {
+                return byLatestMessage;
+            }
+
+            String leftName = left.getDisplayName() != null ? left.getDisplayName() : "";
+            String rightName = right.getDisplayName() != null ? right.getDisplayName() : "";
+            return leftName.compareToIgnoreCase(rightName);
+        });
+        return sorted;
+    }
+
+    private boolean isFavoriteChannel(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return false;
+        }
+        return favoriteChannelIds.contains(channelId);
+    }
+
+    private long toEpochMillis(String createdAt, long fallback) {
+        if (createdAt == null || createdAt.trim().isEmpty()) {
+            return fallback;
+        }
+
+        try {
+            try {
+                return OffsetDateTime.parse(createdAt).toInstant().toEpochMilli();
+            } catch (DateTimeParseException e) {
+                return LocalDateTime.parse(createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli();
+            }
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
     private String toShortTime(String createdAt) {
         if (createdAt == null || createdAt.trim().isEmpty()) return "";
         try {
@@ -435,7 +925,6 @@ public class MainViewModel extends ViewModel {
             collapsedCategories.add(categoryId);
         }
 
-        // Re-post current success data to trigger adapter rebuild
         AuthResult<List<ChannelDto>> current = _serverChannels.getValue();
         if (current != null && current.getStatus() == AuthResult.Status.SUCCESS && current.getData() != null) {
             _serverChannels.postValue(AuthResult.success(current.getData()));
@@ -445,8 +934,16 @@ public class MainViewModel extends ViewModel {
     public Set<String> getCollapsedCategories() {
         return collapsedCategories;
     }
+
+    @Override
+    protected void onCleared() {
+        clearDmTopicSubscriptions();
+        dmRealtimeDisposables.clear();
+        if (dmRealtimeClient != null) {
+            dmRealtimeClient.disconnect();
+            dmRealtimeClient = null;
+        }
+        dmRealtimeConnected = false;
+        super.onCleared();
+    }
 }
-
-
-
-

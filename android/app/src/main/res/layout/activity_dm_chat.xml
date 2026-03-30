@@ -8,12 +8,15 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:background="?attr/colorSurface"
+        app:contentInsetStart="0dp"
+        app:contentInsetStartWithNavigation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="?attr/colorOnSurface"
         app:title="" />
 
     <LinearLayout
@@ -22,29 +25,63 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="56dp"
-        android:paddingEnd="@dimen/spacing_md"
-        android:paddingTop="@dimen/spacing_xs"
-        android:paddingBottom="@dimen/spacing_xs"
+        android:paddingStart="52dp"
+        android:paddingEnd="12dp"
         app:layout_constraintEnd_toStartOf="@+id/headerActions"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar"
         app:layout_constraintTop_toTopOf="@id/toolbar">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:contentDescription="@string/cd_user_avatar"
-            android:src="@mipmap/ic_launcher_round"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/tvHeaderName"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivHeaderAvatar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/cd_user_avatar"
+                android:src="@mipmap/ic_launcher_round"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+            <View
+                android:id="@+id/viewHeaderStatusDot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="-1dp"
+                android:layout_marginBottom="-1dp"
+                android:background="@drawable/bg_dm_header_status_dot"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:textColor="?attr/colorOnSurface"
-            android:textStyle="bold" />
+            android:layout_marginStart="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvHeaderName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/ivHeaderChevron"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -52,29 +89,33 @@
         android:id="@+id/headerActions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingEnd="@dimen/spacing_sm"
-        app:layout_constraintBottom_toBottomOf="@id/headerInfo"
+        android:paddingEnd="10dp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/headerInfo">
+        app:layout_constraintTop_toTopOf="@id/toolbar">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCall"
             style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:contentDescription="@string/cd_call"
             app:icon="@drawable/ic_call"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:backgroundTint="?attr/colorSurfaceVariant" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnVideo"
             style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
             android:contentDescription="@string/cd_video"
             app:icon="@drawable/ic_video"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:backgroundTint="?attr/colorSurfaceVariant" />
 
     </LinearLayout>
 
@@ -87,6 +128,97 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
+    <LinearLayout
+        android:id="@+id/layoutDmProfileIntro"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="14dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/divider">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivProfileIntroAvatar"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:contentDescription="@string/cd_user_avatar"
+            android:src="@mipmap/ic_launcher_round"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+        <TextView
+            android:id="@+id/tvProfileIntroDisplayName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceHeadlineLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvProfileIntroUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/tvProfileIntroDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/copyBanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:cardCornerRadius="22dp"
+        app:cardElevation="6dp"
+        app:layout_constraintTop_toBottomOf="@id/divider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_copy"
+                app:tint="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/tvCopyBannerText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/copied_message_text"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="0dp"
@@ -96,12 +228,126 @@
         android:paddingTop="@dimen/spacing_md"
         android:paddingEnd="@dimen/spacing_md"
         android:paddingBottom="@dimen/spacing_md"
-        app:layout_constraintBottom_toTopOf="@id/composerBar"
+        app:layout_constraintBottom_toTopOf="@id/editBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/divider" />
+        app:layout_constraintTop_toBottomOf="@id/layoutDmProfileIntro" />
 
-    <!-- Composer bar -->
+    <LinearLayout
+        android:id="@+id/editBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurfaceVariant"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/replyBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelEdit"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="@string/cd_cancel_edit"
+            app:icon="@drawable/ic_close"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/tvEditingLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:text="@string/editing_message"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/replyBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurfaceVariant"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_md"
+        android:paddingEnd="4dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/attachmentPreviewBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="10dp"
+            android:background="?attr/colorPrimary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReplySender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvReplyContent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelReply"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="@string/cd_reply_cancel"
+            app:icon="@drawable/ic_close"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/attachmentPreviewBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/spacing_sm"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/composerBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:id="@+id/llAttachmentPreviews"
+            android:layout_width="wrap_content"
+            android:layout_height="80dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" />
+
+    </HorizontalScrollView>
+
     <LinearLayout
         android:id="@+id/composerBar"
         android:layout_width="0dp"
@@ -117,7 +363,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Attach button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAttach"
             style="@style/Widget.Material3.Button.IconButton"
@@ -127,7 +372,15 @@
             app:icon="@drawable/ic_add"
             app:iconTint="?attr/colorOnSurfaceVariant" />
 
-        <!-- Message input -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVoice"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="Ghi âm"
+            app:icon="@android:drawable/ic_btn_speak_now"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilComposer"
             style="@style/Widget.Material3.TextInputLayout.FilledBox"
@@ -154,10 +407,8 @@
                 android:imeOptions="flagNoEnterAction"
                 android:maxLines="4"
                 android:minLines="1" />
-
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Emoji toggle button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEmoji"
             style="@style/Widget.Material3.Button.IconButton"
@@ -167,7 +418,6 @@
             app:icon="@drawable/ic_emoji"
             app:iconTint="?attr/colorOnSurfaceVariant" />
 
-        <!-- Send / Mic toggle -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
             style="@style/Widget.Material3.Button.IconButton.Filled"
@@ -179,7 +429,6 @@
 
     </LinearLayout>
 
-    <!-- Emoji picker panel — height is set programmatically to match keyboard height -->
     <FrameLayout
         android:id="@+id/emojiPickerContainer"
         android:layout_width="0dp"

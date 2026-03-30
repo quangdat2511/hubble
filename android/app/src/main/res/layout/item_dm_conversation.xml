@@ -58,7 +58,20 @@
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant"
             app:layout_constraintBaseline_toBaselineOf="@id/tvName"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toStartOf="@id/ivFavorite" />
+
+        <ImageView
+            android:id="@+id/ivFavorite"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:contentDescription="@string/dm_favorite"
+            android:src="@drawable/ic_star"
+            android:tint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/tvTime"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvTime" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipOfficial"

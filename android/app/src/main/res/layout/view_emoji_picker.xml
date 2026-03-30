@@ -23,7 +23,7 @@
             android:background="?attr/selectableItemBackground">
 
             <TextView
-                android:text="Emoji"
+                android:text="@string/emoji_tab_emoji"
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -51,7 +51,7 @@
             android:background="?attr/selectableItemBackground">
 
             <TextView
-                android:text="GIFs"
+                android:text="@string/emoji_tab_gif"
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -79,7 +79,7 @@
             android:background="?attr/selectableItemBackground">
 
             <TextView
-                android:text="Stickers"
+                android:text="@string/emoji_tab_sticker"
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -144,7 +144,7 @@
                     android:background="@null"
                     android:paddingStart="36dp"
                     android:paddingEnd="12dp"
-                    android:hint="Find the perfect emoji"
+                    android:hint="@string/emoji_search_hint"
                     android:textSize="13sp"
                     android:textColor="@color/color_text_primary"
                     android:textColorHint="@color/color_text_hint"
@@ -230,7 +230,7 @@
                     android:background="@null"
                     android:paddingStart="36dp"
                     android:paddingEnd="12dp"
-                    android:hint="Search GIPHY"
+                    android:hint="@string/emoji_search_giphy_hint"
                     android:textSize="13sp"
                     android:textColor="@color/color_text_primary"
                     android:textColorHint="@color/color_text_hint"
@@ -249,7 +249,7 @@
             android:paddingEnd="12dp"
             android:paddingTop="6dp"
             android:paddingBottom="4dp"
-            android:text="TRENDING"
+            android:text="@string/emoji_trending"
             android:textSize="11sp"
             android:textAllCaps="true"
             android:letterSpacing="0.08"
@@ -274,7 +274,7 @@
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="4dp"
             android:paddingBottom="2dp"
-            android:text="Powered by GIPHY"
+            android:text="@string/emoji_powered_by_giphy"
             android:textSize="10sp"
             android:textColor="@color/color_text_hint"
             android:alpha="0.6" />
@@ -321,7 +321,7 @@
                     android:background="@null"
                     android:paddingStart="36dp"
                     android:paddingEnd="12dp"
-                    android:hint="Search Stickers"
+                    android:hint="@string/emoji_search_sticker_hint"
                     android:textSize="13sp"
                     android:textColor="@color/color_text_primary"
                     android:textColorHint="@color/color_text_hint"
@@ -340,7 +340,7 @@
             android:paddingEnd="12dp"
             android:paddingTop="6dp"
             android:paddingBottom="4dp"
-            android:text="TRENDING"
+            android:text="@string/emoji_trending"
             android:textSize="11sp"
             android:textAllCaps="true"
             android:letterSpacing="0.08"
@@ -363,7 +363,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="4dp"
-            android:text="Powered by GIPHY"
+            android:text="@string/emoji_powered_by_giphy"
             android:textSize="10sp"
             android:textColor="@color/color_text_hint"
             android:alpha="0.6" />

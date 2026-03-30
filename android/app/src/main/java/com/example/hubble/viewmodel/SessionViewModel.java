@@ -3,7 +3,7 @@ package com.example.hubble.viewmodel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.data.repository.SessionRepository;
 import java.util.List;
