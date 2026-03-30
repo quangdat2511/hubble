@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.api.RoleApiService;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.MemberBriefResponse;
 import com.example.hubble.data.model.server.PermissionResponse;
 import com.example.hubble.data.model.server.RoleDetailResponse;
