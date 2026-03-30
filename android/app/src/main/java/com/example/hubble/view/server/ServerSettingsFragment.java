@@ -146,7 +146,12 @@ public class ServerSettingsFragment extends Fragment {
                         ServerInviteFragment.newInstance(serverId, serverName), true);
             }
         });
-        binding.rowRoles.setOnClickListener(v -> showComingSoon());
+        binding.rowRoles.setOnClickListener(v -> {
+            if (serverId != null) {
+                ((ServerSettingsActivity) requireActivity()).navigateTo(
+                        RolesListFragment.newInstance(serverId), true);
+            }
+        });
         binding.rowEmoji.setOnClickListener(v -> showComingSoon());
         binding.rowStickers.setOnClickListener(v -> showComingSoon());
 

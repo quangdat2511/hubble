@@ -80,6 +80,10 @@ public class RetrofitClient {
         return getRetrofit(context).create(ServerInviteService.class);
     }
 
+    public static RoleApiService getRoleApiService(Context context) {
+        return getRetrofit(context).create(RoleApiService.class);
+    }
+
     private static Dns createDnsWithRailwayFallback() {
         return hostname -> {
             try {
