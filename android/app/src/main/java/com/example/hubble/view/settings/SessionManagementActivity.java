@@ -3,6 +3,10 @@ package com.example.hubble.view.settings;
 import android.os.Bundle;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.hubble.adapter.settings.SessionAdapter;
@@ -21,9 +25,24 @@ public class SessionManagementActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         binding = ActivitySessionManagementBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Apply system bar insets: push AppBar below status bar, content above nav bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout());
+            binding.appBarLayout.setPadding(0, bars.top, 0, 0);
+            binding.rvSessions.setPadding(
+                    binding.rvSessions.getPaddingLeft(),
+                    binding.rvSessions.getPaddingTop(),
+                    binding.rvSessions.getPaddingRight(),
+                    bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         SessionRepository repository = new SessionRepository(this);
         viewModel = new ViewModelProvider(this, new SessionViewModelFactory(repository)).get(SessionViewModel.class);

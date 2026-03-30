@@ -31,6 +31,7 @@ public class SettingsActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         viewModel = new ViewModelProvider(this,
                 new SettingsViewModelFactory(new AuthRepository(this)))

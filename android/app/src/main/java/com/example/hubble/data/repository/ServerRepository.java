@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.ServerService;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
@@ -45,7 +46,7 @@ public class ServerRepository {
         String token = "Bearer " + accessToken;
         CreateServerRequest request = new CreateServerRequest(name, type);
 
-        RetrofitClient.getServerService(appContext).createServer(token, request).enqueue(new Callback<>() {
+        RetrofitClient.getServerService(appContext).createServer(token, request).enqueue(new Callback<ApiResponse<ServerResponse>>() {
             @Override
             public void onResponse(@NonNull Call<ApiResponse<ServerResponse>> call,
                                    @NonNull Response<ApiResponse<ServerResponse>> response) {
@@ -78,7 +79,7 @@ public class ServerRepository {
 
         String token = "Bearer " + accessToken;
         RetrofitClient.getServerService(appContext).getMyServers(token)
-                .enqueue(new Callback<>() {
+                .enqueue(new Callback<ApiResponse<List<ServerResponse>>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<ServerResponse>>> call,
                                            @NonNull Response<ApiResponse<List<ServerResponse>>> response) {
@@ -113,7 +114,7 @@ public class ServerRepository {
 
         String token = "Bearer " + accessToken;
         RetrofitClient.getServerService(appContext).getServerChannels(token, serverId)
-                .enqueue(new Callback<>() {
+                .enqueue(new Callback<ApiResponse<List<ChannelDto>>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<ChannelDto>>> call,
                                            @NonNull Response<ApiResponse<List<ChannelDto>>> response) {
@@ -128,6 +129,64 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ChannelDto>>> call, @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
+    public void kickMember(String serverId, String memberId, RepositoryCallback<Void> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+
+        String token = "Bearer " + accessToken;
+        RetrofitClient.getServerService(appContext).kickMember(token, serverId, memberId)
+                .enqueue(new Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<Void>> call,
+                                           @NonNull Response<ApiResponse<Void>> response) {
+                        if (response.isSuccessful()) {
+                            callback.onResult(AuthResult.success(null));
+                            return;
+                        }
+                        String error = response.body() != null ? response.body().getMessage() : null;
+                        callback.onResult(AuthResult.error(error != null ? error : "Lỗi khi đuổi thành viên"));
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<Void>> call, @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
+    public void transferOwnership(String serverId, String memberId, RepositoryCallback<Void> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+
+        String token = "Bearer " + accessToken;
+        RetrofitClient.getServerService(appContext).transferOwnership(token, serverId, memberId)
+                .enqueue(new Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<Void>> call,
+                                           @NonNull Response<ApiResponse<Void>> response) {
+                        if (response.isSuccessful()) {
+                            callback.onResult(AuthResult.success(null));
+                            return;
+                        }
+                        String error = response.body() != null ? response.body().getMessage() : null;
+                        callback.onResult(AuthResult.error(error != null ? error : "Lỗi khi chuyển quyền sở hữu"));
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<Void>> call, @NonNull Throwable t) {
                         callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
                     }
                 });
@@ -148,3 +207,4 @@ public class ServerRepository {
         };
     }
 }
+

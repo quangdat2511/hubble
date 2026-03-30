@@ -32,6 +32,7 @@ import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
+import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -83,6 +84,16 @@ public class HomeFragment extends Fragment {
         setupConversations(viewModel);
         setupActions(view);
         viewModel.refreshDirectMessages();
+
+        // Real-time: show snackbar when the current user is kicked from a server
+        viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
+            if (serverName != null) {
+                Snackbar.make(requireView(),
+                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
+                        Snackbar.LENGTH_LONG).show();
+                viewModel.consumeKickedFromServer();
+            }
+        });
     }
 
     @Override
@@ -168,6 +179,15 @@ public class HomeFragment extends Fragment {
             } else {
                 binding.layoutServerPanel.setVisibility(View.GONE);
                 binding.layoutDmPanel.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Server header click to show profile bottom sheet
+        binding.layoutServerHeader.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                ServerProfileBottomSheet sheet = ServerProfileBottomSheet.newInstance(server, 0, 0);
+                sheet.show(getParentFragmentManager(), "ServerProfile");
             }
         });
 

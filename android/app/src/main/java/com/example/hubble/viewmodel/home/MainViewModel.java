@@ -16,6 +16,11 @@ import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.google.gson.Gson;
+import com.example.hubble.data.ws.ServerEventWebSocketManager;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -86,10 +91,15 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     public final LiveData<String> errorMessage = _errorMessage;
 
+    /** Emits the server name once when the current user is kicked from a server. */
+    private final MutableLiveData<String> _kickedFromServer = new MutableLiveData<>();
+    public final LiveData<String> kickedFromServer = _kickedFromServer;
+
     private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
     public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
 
     private final Set<String> collapsedCategories = new HashSet<>();
+    private final CompositeDisposable wsDisposables = new CompositeDisposable();
 
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
@@ -97,9 +107,62 @@ public class MainViewModel extends ViewModel {
         this.currentUserId = dmRepository.getCurrentUserId();
         _servers.setValue(new ArrayList<>());
         _selectedServer.setValue(null);
+        observeServerEvents();
         refreshServers();
         refreshDirectMessages();
     }
+
+    // ── WebSocket server events ───────────────────────────────────────────
+
+    private void observeServerEvents() {
+        wsDisposables.add(
+            ServerEventWebSocketManager.getInstance().getEvents()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    switch (event.getType() != null ? event.getType() : "") {
+                        case "KICKED":
+                            // Removed from a server by an admin
+                            removeServerById(event.getServerId());
+                            _kickedFromServer.setValue(event.getServerName());
+                            break;
+                        case "SERVER_ADDED":
+                        case "SERVER_JOINED":
+                            // Added to a new server (e.g. accepted invite on another device)
+                            refreshServers();
+                            break;
+                        case "SERVER_DELETED":
+                            // Server was deleted by its owner
+                            removeServerById(event.getServerId());
+                            break;
+                        case "SERVER_UPDATED":
+                            // Server name / icon changed — re-fetch to get latest data
+                            refreshServers();
+                            break;
+                        default:
+                            break;
+                    }
+                }, throwable -> {/* connection errors handled in manager */})
+        );
+    }
+
+    /** Remove a server from the live list without a network round-trip. */
+    public void removeServerById(String serverId) {
+        List<ServerItem> current = _servers.getValue();
+        if (current == null || serverId == null) return;
+        List<ServerItem> updated = new ArrayList<>();
+        for (ServerItem item : current) {
+            if (!serverId.equals(item.getId())) updated.add(item);
+        }
+        setServers(updated);
+    }
+
+    /** Call after showing the snackbar so it won't fire again on rotation. */
+    public void consumeKickedFromServer() {
+        _kickedFromServer.setValue(null);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
 
     public void refreshServers() {
         serverRepository.getMyServers(result -> {

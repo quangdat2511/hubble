@@ -47,6 +47,14 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+    SERVER_MEMBER_NOT_FOUND(3004, "Thành viên không tồn tại trong server", HttpStatus.NOT_FOUND),
+    CANNOT_KICK_OWNER(3006, "Không thể kick chủ sở hữu server", HttpStatus.BAD_REQUEST),
+    ALREADY_SERVER_MEMBER(3005, "Người dùng đã là thành viên của server", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_NOT_FOUND(3007, "Lời mời không tồn tại", HttpStatus.NOT_FOUND),
+    SERVER_INVITE_ALREADY_RESPONDED(3008, "Lời mời đã được phản hồi", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_EXPIRED(3009, "Lời mời đã hết hạn", HttpStatus.BAD_REQUEST),
+    CANNOT_INVITE_SELF(3010, "Bạn không thể mời chính mình", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_ALREADY_SENT(3011, "Lời mời đã được gửi trước đó", HttpStatus.BAD_REQUEST),
 
     // Tin nhắn
     MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),

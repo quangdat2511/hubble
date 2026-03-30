@@ -35,9 +35,21 @@ public class NewMessageActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         binding = ActivityNewMessageBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        final int origTop    = binding.getRoot().getPaddingTop();
+        final int origBottom = binding.getRoot().getPaddingBottom();
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, wi) -> {
+            androidx.core.graphics.Insets bars = wi.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                    | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(v.getPaddingLeft(), origTop + bars.top,
+                         v.getPaddingRight(), origBottom + bars.bottom);
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
         dmRepository = new DmRepository(this);
 
         setupHeader();
