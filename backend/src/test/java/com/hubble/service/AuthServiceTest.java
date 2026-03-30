@@ -475,80 +475,80 @@
 //        assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
 //    }
 //
-////    @Test
-////    void sendPhoneOtp_Success() {
-////        PhoneSendOtpRequest request = PhoneSendOtpRequest.builder()
-////                .phone("0123456789")
-////                .build();
-////
-////        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
-////
-////        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
-////        when(otpService.generateOtp(user.getId(), OtpType.PHONE_LOGIN)).thenReturn("123456");
-////
-////        authService.sendPhoneOtp(request);
-////
-////        verify(otpService).generateOtp(user.getId(), OtpType.PHONE_LOGIN);
-////    }
-////
-////    @Test
-////    void sendPhoneOtp_PhoneNotFound_ThrowsAppException() {
-////        PhoneSendOtpRequest request = PhoneSendOtpRequest.builder()
-////                .phone("9999999999")
-////                .build();
-////
-////        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.empty());
-////
-////        AppException exception = assertThrows(AppException.class, () -> authService.sendPhoneOtp(request));
-////        assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
-////    }
-////
-////    @Test
-////    void verifyPhoneAndLogin_Success() {
-////        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
-////                .phone("0123456789")
-////                .otpCode("123456")
-////                .build();
-////
-////        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
-////
-////        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
-////        when(otpService.verifyOtp(user.getId(), request.getOtpCode(), OtpType.PHONE_LOGIN)).thenReturn(true);
-////        when(jwtService.generateAccessToken(user.getId(), user.getEmail())).thenReturn("access_token");
-////        when(jwtService.generateRefreshToken(user.getId())).thenReturn("refresh_token");
-////
-////        TokenResponse response = authService.verifyPhoneAndLogin(request);
-////
-////        assertNotNull(response);
-////        assertEquals("access_token", response.getAccessToken());
-////    }
-////
-////    @Test
-////    void verifyPhoneAndLogin_InvalidOtp_ThrowsAppException() {
-////        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
-////                .phone("0123456789")
-////                .otpCode("000000")
-////                .build();
-////
-////        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
-////
-////        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
-////        when(otpService.verifyOtp(user.getId(), request.getOtpCode(), OtpType.PHONE_LOGIN)).thenReturn(false);
-////
-////        AppException exception = assertThrows(AppException.class, () -> authService.verifyPhoneAndLogin(request));
-////        assertEquals(ErrorCode.INVALID_OTP, exception.getErrorCode());
-////    }
+//    @Test
+//    void sendPhoneOtp_Success() {
+//        PhoneSendOtpRequest request = PhoneSendOtpRequest.builder()
+//                .phone("0123456789")
+//                .build();
 //
-////    @Test
-////    void verifyPhoneAndLogin_PhoneNotFound_ThrowsAppException() {
-////        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
-////                .phone("9999999999")
-////                .otpCode("123456")
-////                .build();
-////
-////        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.empty());
-////
-////        AppException exception = assertThrows(AppException.class, () -> authService.verifyPhoneAndLogin(request));
-////        assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
-////    }
+//        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
+//
+//        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
+//        when(otpService.generateOtp(user.getId(), OtpType.PHONE_LOGIN)).thenReturn("123456");
+//
+//        authService.sendPhoneOtp(request);
+//
+//        verify(otpService).generateOtp(user.getId(), OtpType.PHONE_LOGIN);
+//    }
+//
+//    @Test
+//    void sendPhoneOtp_PhoneNotFound_ThrowsAppException() {
+//        PhoneSendOtpRequest request = PhoneSendOtpRequest.builder()
+//                .phone("9999999999")
+//                .build();
+//
+//        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.empty());
+//
+//        AppException exception = assertThrows(AppException.class, () -> authService.sendPhoneOtp(request));
+//        assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
+//    }
+//
+//    @Test
+//    void verifyPhoneAndLogin_Success() {
+//        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
+//                .phone("0123456789")
+//                .otpCode("123456")
+//                .build();
+//
+//        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
+//
+//        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
+//        when(otpService.verifyOtp(user.getId(), request.getOtpCode(), OtpType.PHONE_LOGIN)).thenReturn(true);
+//        when(jwtService.generateAccessToken(user.getId(), user.getEmail())).thenReturn("access_token");
+//        when(jwtService.generateRefreshToken(user.getId())).thenReturn("refresh_token");
+//
+//        TokenResponse response = authService.verifyPhoneAndLogin(request);
+//
+//        assertNotNull(response);
+//        assertEquals("access_token", response.getAccessToken());
+//    }
+//
+//    @Test
+//    void verifyPhoneAndLogin_InvalidOtp_ThrowsAppException() {
+//        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
+//                .phone("0123456789")
+//                .otpCode("000000")
+//                .build();
+//
+//        User user = User.builder().id(UUID.randomUUID()).phone(request.getPhone()).build();
+//
+//        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(user));
+//        when(otpService.verifyOtp(user.getId(), request.getOtpCode(), OtpType.PHONE_LOGIN)).thenReturn(false);
+//
+//        AppException exception = assertThrows(AppException.class, () -> authService.verifyPhoneAndLogin(request));
+//        assertEquals(ErrorCode.INVALID_OTP, exception.getErrorCode());
+//    }
+//
+//    @Test
+//    void verifyPhoneAndLogin_PhoneNotFound_ThrowsAppException() {
+//        PhoneVerifyOtpRequest request = PhoneVerifyOtpRequest.builder()
+//                .phone("9999999999")
+//                .otpCode("123456")
+//                .build();
+//
+//        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.empty());
+//
+//        AppException exception = assertThrows(AppException.class, () -> authService.verifyPhoneAndLogin(request));
+//        assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
+//    }
 //}

@@ -1,12 +1,20 @@
 package com.hubble.dto.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+import java.util.List;
+import java.util.UUID;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateMessageRequest {
-    private String channelId;
-    private String replyToId;
-    private String content;
+    String channelId;
+    String replyToId;
+    String content;
+    String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
+    List<UUID> attachmentIds;
 }

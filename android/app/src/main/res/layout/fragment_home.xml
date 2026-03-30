@@ -133,6 +133,13 @@
                     app:icon="@drawable/ic_person"
                     app:iconTint="?attr/colorOnSurfaceVariant" />
 
+                <ImageButton
+                    android:id="@+id/btnPendingRequests"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_notifications"
+                    app:tint="?attr/colorOnSurface" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -154,15 +161,45 @@
                 android:overScrollMode="never"
                 android:paddingBottom="@dimen/spacing_md" />
 
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabNewDm"
+            <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:contentDescription="@string/dm_new_message"
-                app:backgroundTint="?attr/colorPrimary"
-                app:srcCompat="@drawable/ic_person"
-                app:tint="@color/white" />
+                android:layout_marginEnd="@dimen/spacing_xs"
+                android:layout_marginBottom="@dimen/spacing_sm">
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabNewDm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/dm_new_message"
+                    app:backgroundTint="?attr/colorPrimary"
+                    app:elevation="8dp"
+                    app:fabCustomSize="64dp"
+                    app:maxImageSize="30dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.App.Avatar"
+                    app:srcCompat="@drawable/ic_person"
+                    app:tint="@color/white"
+                    app:useCompatPadding="false" />
+
+                <FrameLayout
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="9dp"
+                    android:background="@drawable/bg_dm_fab_badge"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:importantForAccessibility="no">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="3dp"
+                        android:src="@drawable/ic_dm_plus" />
+                </FrameLayout>
+            </FrameLayout>
 
         </LinearLayout>
 

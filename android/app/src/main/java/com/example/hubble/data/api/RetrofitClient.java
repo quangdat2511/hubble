@@ -5,8 +5,14 @@ import android.os.Build;
 
 import com.example.hubble.BuildConfig;
 import com.example.hubble.utils.TokenManager;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Dns;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -15,6 +21,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
     private static final String BASE_URL = BuildConfig.BASE_URL;
+    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
+    private static final String[] RAILWAY_FALLBACK_IPS = {
+            "151.101.2.15"
+    };
+
     private static Retrofit retrofit = null;
 
     public static String getBaseUrl() {
@@ -36,6 +47,7 @@ public class RetrofitClient {
 
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(userAgentInterceptor)
+                    .dns(createDnsWithRailwayFallback())
                     .connectTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)
                     .writeTimeout(60, TimeUnit.SECONDS)
@@ -70,5 +82,31 @@ public class RetrofitClient {
 
     public static RoleApiService getRoleApiService(Context context) {
         return getRetrofit(context).create(RoleApiService.class);
+    }
+
+    private static Dns createDnsWithRailwayFallback() {
+        return hostname -> {
+            try {
+                return Dns.SYSTEM.lookup(hostname);
+            } catch (UnknownHostException originalError) {
+                if (!RAILWAY_HOST.equalsIgnoreCase(hostname)) {
+                    throw originalError;
+                }
+
+                List<InetAddress> fallbackAddresses = new ArrayList<>();
+                for (String ip : RAILWAY_FALLBACK_IPS) {
+                    try {
+                        fallbackAddresses.add(InetAddress.getByName(ip));
+                    } catch (UnknownHostException ignored) {
+                        // Skip malformed fallback IPs and try the remaining entries.
+                    }
+                }
+
+                if (fallbackAddresses.isEmpty()) {
+                    throw originalError;
+                }
+                return fallbackAddresses;
+            }
+        };
     }
 }

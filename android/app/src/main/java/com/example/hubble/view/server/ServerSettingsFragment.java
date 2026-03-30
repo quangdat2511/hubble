@@ -18,7 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.FragmentServerSettingsBinding;
