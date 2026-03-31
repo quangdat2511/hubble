@@ -153,14 +153,6 @@ public class DmChatActivity extends AppCompatActivity {
         binding = ActivityDmChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Apply system bar insets: push content below status bar and above nav bar
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, wi) -> {
-            androidx.core.graphics.Insets bars = wi.getInsets(
-                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
-                    | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return androidx.core.view.WindowInsetsCompat.CONSUMED;
-        });
 
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
