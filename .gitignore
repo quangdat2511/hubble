@@ -40,7 +40,8 @@ nb-configuration.xml
 # ==================== MAVEN ====================
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
-backend/.m2/
+backend/.m2repo/
+android/.gradle-home/
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm
@@ -73,12 +74,3 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.orig
-
-# ==================== LOCAL BUILD TOOLS ====================
-android/.android-home/
-android/.gradle/
-android/.gradle-dist/
-android/.gradle-home/
-android/.gradle-wrapper-extract/
-android/build/
-android/gradle-*.zip

@@ -11,6 +11,8 @@ public class DmConversationItem {
     private final boolean online;
     private final boolean verified;
     private final boolean selected;
+    private final boolean favorite;
+    private final long lastMessageAtMillis;
 
     public DmConversationItem(
             String id,
@@ -21,7 +23,9 @@ public class DmConversationItem {
             String timeLabel,
             boolean online,
             boolean verified,
-            boolean selected
+            boolean selected,
+            boolean favorite,
+            long lastMessageAtMillis
     ) {
         this.id = id;
         this.channelId = channelId;
@@ -32,6 +36,8 @@ public class DmConversationItem {
         this.online = online;
         this.verified = verified;
         this.selected = selected;
+        this.favorite = favorite;
+        this.lastMessageAtMillis = lastMessageAtMillis;
     }
 
     public String getId() {
@@ -72,6 +78,14 @@ public class DmConversationItem {
 
     public boolean isSelected() {
         return selected;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public long getLastMessageAtMillis() {
+        return lastMessageAtMillis;
     }
 }
 

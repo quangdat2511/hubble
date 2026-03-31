@@ -41,14 +41,50 @@
         android:layout_height="1dp"
         android:background="?attr/colorOutline" />
 
+    <!-- Loading indicator -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progressBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:trackCornerRadius="0dp" />
+
+    <!-- Pending invites section label -->
+    <TextView
+        android:id="@+id/tvInvitesSectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:layout_marginBottom="@dimen/spacing_sm"
+        android:text="@string/invite_section_pending_label"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+
+    <!-- Pending invites list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPendingInvites"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:paddingTop="@dimen/spacing_xs"
+        android:paddingBottom="@dimen/spacing_md"
+        android:visibility="gone" />
+
     <!-- Empty state -->
     <LinearLayout
+        android:id="@+id/layoutEmpty"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_lg">
+        android:padding="@dimen/spacing_lg"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="64dp"

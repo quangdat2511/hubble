@@ -3,21 +3,21 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Light theme colors -->
-    <color name="color_background">#F8F9FD</color>
-    <color name="color_surface">#FFFFFFFF</color>
-    <color name="color_surface_elevated">#EEF1F7</color>
+    <!-- Discord Dark Theme Colors -->
+    <color name="color_background">#313338</color>
+    <color name="color_surface">#2B2D31</color>
+    <color name="color_surface_elevated">#383A40</color>
     <color name="color_primary">#5865F2</color>
     <color name="color_primary_dark">#4752C4</color>
     <color name="color_primary_light">#7289DA</color>
-    <color name="color_text_primary">#1F2328</color>
-    <color name="color_text_secondary">#5B6472</color>
-    <color name="color_text_hint">#7A8392</color>
+    <color name="color_text_primary">#F2F3F5</color>
+    <color name="color_text_secondary">#B5BAC1</color>
+    <color name="color_text_hint">#80848E</color>
     <color name="color_error">#F23F42</color>
     <color name="color_success">#23A559</color>
-    <color name="color_divider">#D7DCE5</color>
-    <color name="color_input_background">#F1F3F8</color>
-    <color name="color_otp_border">#D7DCE5</color>
+    <color name="color_divider">#3F4147</color>
+    <color name="color_input_background">#1E1F22</color>
+    <color name="color_otp_border">#3F4147</color>
     <color name="color_otp_border_focused">#5865F2</color>
     <color name="color_link">#00AFF4</color>
 
@@ -33,4 +33,13 @@
     <color name="color_dnd">#F23F42</color>
     <color name="color_offline">#80848E</color>
     <color name="color_mention">#F0B232</color>
+
+    <!-- Role preset slider colors -->
+    <color name="role_preset_decorative">#5865F2</color>
+    <color name="role_preset_member">#23A559</color>
+    <color name="role_preset_moderator">#F0B232</color>
+    <color name="role_preset_admin">#F23F42</color>
+
+    <!-- Default role color -->
+    <color name="role_default_color">#99AAB5</color>
 </resources>

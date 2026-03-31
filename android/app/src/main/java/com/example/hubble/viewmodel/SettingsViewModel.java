@@ -5,7 +5,8 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
-import com.example.hubble.data.model.AuthResult;
+
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
 

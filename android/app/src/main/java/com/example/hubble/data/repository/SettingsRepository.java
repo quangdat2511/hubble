@@ -9,7 +9,8 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.AuthResult;
+import com.example.hubble.data.model.auth.AuthResult;
+
 
 import retrofit2.Call;
 import retrofit2.Callback;
