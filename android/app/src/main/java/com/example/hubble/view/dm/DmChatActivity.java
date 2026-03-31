@@ -153,16 +153,6 @@ public class DmChatActivity extends AppCompatActivity {
         binding = ActivityDmChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Apply only top (status bar) inset; bottom is handled by adjustResize
-        final int origTop = binding.getRoot().getPaddingTop();
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, wi) -> {
-            androidx.core.graphics.Insets bars = wi.getInsets(
-                    androidx.core.view.WindowInsetsCompat.Type.statusBars()
-                    | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
-            v.setPadding(v.getPaddingLeft(), origTop + bars.top,
-                         v.getPaddingRight(), v.getPaddingBottom());
-            return androidx.core.view.WindowInsetsCompat.CONSUMED;
-        });
 
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);

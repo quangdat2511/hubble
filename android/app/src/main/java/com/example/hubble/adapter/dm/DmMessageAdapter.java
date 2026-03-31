@@ -27,7 +27,6 @@ import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
-import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
 
 import java.io.IOException;
@@ -39,7 +38,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
-    private static final int TYPE_ME = 1;
     private static final int TYPE_OTHER = 2;
     private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
@@ -173,17 +171,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public int getItemViewType(int position) {
-        DmMessageItem item = getItem(position);
-        return item != null && item.isMine() ? TYPE_ME : TYPE_OTHER;
+        return TYPE_OTHER;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == TYPE_ME) {
-            return new MeHolder(ItemDmMessageMeBinding.inflate(inflater, parent, false), onMessageLongClickListener);
-        }
         return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false), onMessageLongClickListener);
     }
 
@@ -193,12 +187,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
         boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
 
-        if (holder instanceof MeHolder) {
-            ((MeHolder) holder).bind(item, !groupedWithPrevious);
-        } else {
-            String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
-            ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
-        }
+        String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
+        ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
     }
 
     private boolean shouldGroupWithPrevious(@Nullable DmMessageItem current, @Nullable DmMessageItem previous) {
@@ -451,73 +441,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
     }
 
-    static class MeHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageMeBinding b;
-        @Nullable
-        private final OnMessageLongClickListener onMessageLongClickListener;
-
-        MeHolder(ItemDmMessageMeBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
-            super(binding.getRoot());
-            this.b = binding;
-            this.onMessageLongClickListener = onMessageLongClickListener;
-        }
-
-        void bind(DmMessageItem item, boolean showTimestamp) {
-            b.tvTime.setText(item.getTimestamp());
-            b.tvTime.setVisibility(showTimestamp ? View.VISIBLE : View.GONE);
-            String content = item.getContent();
-
-            if (item.hasReply()) {
-                b.replyQuoteContainer.setVisibility(View.VISIBLE);
-                b.tvReplyQuoteSender.setText(item.getReplyToSenderName());
-                String replyContent = item.getReplyToContent();
-                if (isMedia(replyContent)) {
-                    String title = extractMediaTitle(replyContent);
-                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
-                } else {
-                    b.tvReplyQuoteContent.setText(replyContent);
-                }
-            } else {
-                b.replyQuoteContainer.setVisibility(View.GONE);
-            }
-
-            if (isMedia(content)) {
-                b.cardMine.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext())
-                        .asGif()
-                        .load(url)
-                        .into(b.ivMedia);
-            } else {
-                b.cardMine.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-                if (item.isDeleted()) {
-                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
-                    b.tvEdited.setVisibility(View.GONE);
-                } else {
-                    if (content != null && !content.isEmpty()) {
-                        b.tvMessage.setVisibility(View.VISIBLE);
-                        b.tvMessage.setText(content);
-                    } else {
-                        b.tvMessage.setVisibility(View.GONE);
-                    }
-                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
-                }
-            }
-
-            loadAttachments(b.llAttachments, item.getAttachments());
-
-            b.getRoot().setOnLongClickListener(v -> {
-                if (onMessageLongClickListener != null) {
-                    onMessageLongClickListener.onMessageLongClick(item, v);
-                    return true;
-                }
-                return false;
-            });
-        }
-    }
 
     static class OtherHolder extends RecyclerView.ViewHolder {
         private final ItemDmMessageOtherBinding b;

@@ -213,16 +213,21 @@ public class MainViewModel extends ViewModel {
         }
 
         ServerItem current = _selectedServer.getValue();
-        if (current != null) {
-            for (ServerItem item : updated) {
-                if (item.getId() != null && item.getId().equals(current.getId())) {
-                    selectServer(item);
-                    return;
-                }
+        if (current == null) {
+            // User is on the DM panel; preserve that choice — do not auto-select any server.
+            return;
+        }
+
+        // Re-select the same server with fresh data if it still exists.
+        for (ServerItem item : updated) {
+            if (item.getId() != null && item.getId().equals(current.getId())) {
+                selectServer(item);
+                return;
             }
         }
 
-        selectServer(updated.get(0));
+        // Previously-selected server was removed; fall back to the DM panel.
+        _selectedServer.setValue(null);
     }
 
     public void selectServer(ServerItem server) {
