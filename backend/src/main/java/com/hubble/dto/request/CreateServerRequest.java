@@ -11,7 +11,6 @@ import lombok.experimental.FieldDefaults;
 public class CreateServerRequest {
     String name;
     String description;
-    String iconUrl;
     Boolean isPublic;
 }
 

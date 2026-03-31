@@ -13,16 +13,31 @@
         android:background="?attr/colorSurface"
         android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDmView"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_margin="@dimen/spacing_sm"
-            android:contentDescription="@string/dm_title"
-            app:icon="@drawable/ic_message"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+        <!-- DM button with active-indicator pill -->
+        <FrameLayout
+            android:layout_width="@dimen/sidebar_width"
+            android:layout_height="wrap_content">
+
+            <View
+                android:id="@+id/viewDmActiveIndicator"
+                android:layout_width="@dimen/server_active_indicator_width"
+                android:layout_height="@dimen/server_active_indicator_height"
+                android:layout_gravity="start|center_vertical"
+                android:background="@drawable/bg_server_active_indicator"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDmView"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:layout_margin="@dimen/spacing_sm"
+                android:contentDescription="@string/dm_title"
+                app:icon="@drawable/ic_message"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        </FrameLayout>
 
         <View
             android:layout_width="match_parent"
@@ -197,13 +212,36 @@
             android:padding="@dimen/spacing_md"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvServerName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleLarge"
-                android:textColor="?attr/colorOnSurface"
-                android:textStyle="bold" />
+            <!-- Server header row with chevron -->
+            <LinearLayout
+                android:id="@+id/layoutServerHeader"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/spacing_md"
+                android:paddingEnd="@dimen/spacing_md">
+
+                <TextView
+                    android:id="@+id/tvServerName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="?attr/textAppearanceTitleLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_expand_more"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvServerChannels"

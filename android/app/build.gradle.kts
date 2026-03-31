@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("androidx.fragment:fragment:1.8.6")
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 
     // Glide for GIF loading
     implementation("com.github.bumptech.glide:glide:4.16.0")

@@ -30,6 +30,7 @@ public class RegisterActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
                 new AuthViewModelFactory(new AuthRepository(this)))
