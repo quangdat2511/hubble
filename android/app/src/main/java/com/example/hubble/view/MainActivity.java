@@ -26,7 +26,6 @@ import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
-import com.google.android.material.badge.BadgeDrawable;
 
 public class MainActivity extends BaseAuthActivity {
 
@@ -93,10 +92,6 @@ public class MainActivity extends BaseAuthActivity {
     // ── Bottom Navigation ─────────────────────────────────────────────────
 
     private void setupBottomNavigation() {
-        // Badge on Home tab (unread count stub)
-        BadgeDrawable homeBadge = binding.bottomNav.getOrCreateBadge(R.id.nav_home);
-        homeBadge.setNumber(175);
-        homeBadge.setVisible(true);
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
