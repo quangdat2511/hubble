@@ -45,6 +45,21 @@
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_margin="@dimen/spacing_md"
+                app:cardCornerRadius="12dp">
+
+                <androidx.fragment.app.FragmentContainerView
+                    android:id="@+id/themeFragmentContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:name="com.example.hubble.view.settings.ThemeFragment" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Filled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_md"
                 app:cardCornerRadius="12dp">
 
@@ -219,6 +234,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -374,19 +390,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="@dimen/spacing_md"
-                app:cardCornerRadius="12dp">
 
-                <androidx.fragment.app.FragmentContainerView
-                    android:id="@+id/themeFragmentContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 

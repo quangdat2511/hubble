@@ -8,8 +8,10 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
+import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.SettingsViewModel;
 import com.example.hubble.viewmodel.SettingsViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -19,6 +21,8 @@ public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
     private SettingsViewModel viewModel;
+
+    private AuthViewModel authViewModel;
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -34,7 +38,7 @@ public class SettingsActivity extends BaseAuthActivity {
         applyEdgeToEdge(binding.getRoot());
 
         viewModel = new ViewModelProvider(this,
-                new SettingsViewModelFactory(new AuthRepository(this)))
+                new SettingsViewModelFactory(new SettingsRepository(this)))
                 .get(SettingsViewModel.class);
 
         setupToolbar();
@@ -73,7 +77,7 @@ public class SettingsActivity extends BaseAuthActivity {
                                 (dialog, which) -> dialog.dismiss())
                         .setPositiveButton(getString(R.string.settings_logout_confirm_yes),
                                 (dialog, which) -> {
-                                    viewModel.logout();
+                                    authViewModel.logout();
                                     navigateToLogin();
                                 })
                         .show());
