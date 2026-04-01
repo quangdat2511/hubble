@@ -3,6 +3,7 @@ package com.hubble.exception;
 import com.hubble.dto.common.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,6 +43,30 @@ public class GlobalExceptionHandler {
     }
 
     // Bắt lỗi không có quyền truy cập
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.error("Data integrity violation: ", e);
+
+        String detail = e.getMostSpecificCause() != null
+                ? e.getMostSpecificCause().getMessage()
+                : e.getMessage();
+
+        ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
+        if (detail != null) {
+            if (detail.contains("users_phone_key")) {
+                errorCode = ErrorCode.PHONE_EXISTED;
+            } else if (detail.contains("users_email_key") || detail.contains("users_username_key")) {
+                errorCode = ErrorCode.USER_EXISTED;
+            }
+        }
+
+        return ResponseEntity.status(errorCode.getHttpStatusCode())
+                .body(ApiResponse.<Void>builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e) {
         ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
@@ -53,8 +78,7 @@ public class GlobalExceptionHandler {
     }
 
     // Bắt lỗi validation (@Valid)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+    @ExceptionHandler(MethodArgumentNotValidException.class)    ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
         String enumKey = e.getFieldError().getDefaultMessage();
         ErrorCode errorCode;
         Map<String, Object> attributes = null;

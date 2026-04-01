@@ -1,5 +1,6 @@
 package com.example.hubble.view.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -30,6 +31,7 @@ public class SettingsActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         viewModel = new ViewModelProvider(this,
                 new SettingsViewModelFactory(new AuthRepository(this)))
@@ -41,7 +43,6 @@ public class SettingsActivity extends BaseAuthActivity {
     }
 
     private void setupToolbar() {
-        // Use the left-arrow (ic_expand_more rotated) as a back button
         binding.toolbar.setNavigationOnClickListener(v -> finish());
     }
 
@@ -54,7 +55,11 @@ public class SettingsActivity extends BaseAuthActivity {
         binding.rowLanguage.setOnClickListener(comingSoon);
         binding.rowNotifications.setOnClickListener(comingSoon);
         binding.rowAppearance.setOnClickListener(comingSoon);
-        binding.rowAdvanced.setOnClickListener(comingSoon);
+
+        // Mở màn hình quản lý thiết bị/phiên đăng nhập
+        binding.rowAdvanced.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
+
         binding.rowSupport.setOnClickListener(comingSoon);
         binding.rowChangelog.setOnClickListener(comingSoon);
     }

@@ -1,6 +1,6 @@
 package com.example.hubble.adapter.home;
 
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,8 +9,10 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.databinding.ItemServerBinding;
+import com.google.android.material.shape.RelativeCornerSize;
 import com.google.android.material.shape.ShapeAppearanceModel;
 
 import java.util.ArrayList;
@@ -71,15 +73,11 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
     }
 
     public void setSelectedPosition(int position) {
-        if (position < 0 || position >= servers.size()) {
-            return;
-        }
         int old = selectedPosition;
+        if (old == position) return;
         selectedPosition = position;
-        if (old >= 0 && old < servers.size()) {
-            notifyItemChanged(old);
-        }
-        notifyItemChanged(selectedPosition);
+        if (old >= 0 && old < servers.size()) notifyItemChanged(old);
+        if (position >= 0 && position < servers.size()) notifyItemChanged(position);
     }
 
     @NonNull
@@ -89,19 +87,15 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
                 LayoutInflater.from(parent.getContext()), parent, false);
         ViewHolder holder = new ViewHolder(b);
 
-        // Set click listener once during creation for better performance
         holder.itemView.setOnClickListener(v -> {
             int pos = holder.getBindingAdapterPosition();
             if (pos == RecyclerView.NO_POSITION) return;
-
-            // Immediate UI update before callback for instant feedback
             if (pos != selectedPosition) {
                 int old = selectedPosition;
                 selectedPosition = pos;
                 notifyItemChanged(old);
                 notifyItemChanged(selectedPosition);
             }
-
             if (listener != null) listener.onServerClick(servers.get(pos), pos);
         });
 
@@ -136,21 +130,24 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
         void bind(ServerItem server, boolean isSelected) {
             b.viewActiveIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
 
-            // Discord-style: rounded square (16dp) when selected, circle when not
-            // Use 16dp for squircle effect like Discord
-            float cornerSize = isSelected ? 16f : 999f;
-            b.ivServerIcon.setShapeAppearanceModel(
-                    ShapeAppearanceModel.builder().setAllCornerSizes(cornerSize).build());
+            float density = b.ivServerIcon.getContext().getResources().getDisplayMetrics().density;
+            ShapeAppearanceModel shapeModel = isSelected
+                    ? ShapeAppearanceModel.builder().setAllCornerSizes(16f * density).build()
+                    : ShapeAppearanceModel.builder().setAllCornerSizes(new RelativeCornerSize(0.5f)).build();
+            b.ivServerIcon.setShapeAppearanceModel(shapeModel);
 
-            GradientDrawable bg = new GradientDrawable();
-            bg.setShape(GradientDrawable.OVAL);
-            bg.setColor(server.getBackgroundColor());
-            b.ivServerIcon.setImageDrawable(null);
-            b.ivServerIcon.setBackground(bg);
-
-            b.tvServerInitials.setText(server.getInitials());
+            if (server.getIconUrl() != null && !server.getIconUrl().isEmpty()) {
+                b.tvServerInitials.setVisibility(View.GONE);
+                Glide.with(b.ivServerIcon.getContext())
+                        .load(server.getIconUrl())
+                        .centerCrop()
+                        .into(b.ivServerIcon);
+            } else {
+                Glide.with(b.ivServerIcon.getContext()).clear(b.ivServerIcon);
+                b.ivServerIcon.setImageDrawable(new ColorDrawable(server.getBackgroundColor()));
+                b.tvServerInitials.setVisibility(View.VISIBLE);
+                b.tvServerInitials.setText(server.getInitials());
+            }
         }
     }
 }
-
-

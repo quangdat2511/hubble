@@ -15,6 +15,7 @@ title: Material 3 UI Rules — Android Chat App
 2. [Color System](#2-color-system)
 3. [Typography](#3-typography)
 4. [Spacing & Layout](#4-spacing--layout)
+   - [4.4 Window Insets & Edge-to-Edge](#44-window-insets--edge-to-edge)
 5. [Component Rules](#5-component-rules)
 6. [Navigation Patterns](#6-navigation-patterns)
 7. [Chat & Messaging UI](#7-chat--messaging-ui)
@@ -207,6 +208,114 @@ val margin = when (windowSizeClass.widthSizeClass) {
 | Between avatar and message text | 12dp |
 | Between message groups (same sender) | 2dp |
 | Between message groups (different sender) | 12dp |
+
+---
+
+### 4.4 Window Insets & Edge-to-Edge
+
+**All screens must opt into edge-to-edge rendering** so content is not hidden behind the status bar or navigation bar. This is mandatory on Android 15+ (API 35) and strongly recommended on earlier versions.
+
+#### 4.4.1 Opting In
+
+Call `WindowCompat.setDecorFitsSystemWindows(window, false)` **before** `super.onCreate()` in every Activity:
+
+```java
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    WindowCompat.setDecorFitsSystemWindows(getWindow(), false); // ← FIRST
+    super.onCreate(savedInstanceState);
+    setContentView(...);
+}
+```
+
+`BaseAuthActivity` already does this automatically — subclasses must not skip `super.onCreate()`.
+
+#### 4.4.2 Consuming Insets
+
+After `setContentView()`, register a `ViewCompat.setOnApplyWindowInsetsListener` on the root view to pad content away from the system bars.
+
+**Auth screens** — use the inherited helper (automatically handles all four sides):
+
+```java
+// In any BaseAuthActivity subclass, after setContentView()
+applyEdgeToEdge(binding.getRoot());
+```
+
+**Non-auth activities** — apply insets manually:
+
+```java
+ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
+    Insets bars = windowInsets.getInsets(
+            WindowInsetsCompat.Type.systemBars()
+            | WindowInsetsCompat.Type.displayCutout());
+    v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+    return WindowInsetsCompat.CONSUMED;
+});
+```
+
+For screens with a dedicated `AppBarLayout`/`Toolbar` and scrolling content, apply insets separately to each region:
+
+```java
+ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, wi) -> {
+    Insets bars = wi.getInsets(WindowInsetsCompat.Type.systemBars()
+            | WindowInsetsCompat.Type.displayCutout());
+    // Top bar absorbs status-bar height
+    binding.appBarLayout.setPadding(0, bars.top, 0, 0);
+    // Scrollable content absorbs nav-bar height so last item isn't cut off
+    binding.recyclerView.setPadding(
+            binding.recyclerView.getPaddingLeft(),
+            binding.recyclerView.getPaddingTop(),
+            binding.recyclerView.getPaddingRight(),
+            bars.bottom);
+    return WindowInsetsCompat.CONSUMED;
+});
+```
+
+#### 4.4.3 Screens with Bottom Input (Chat)
+
+Chat screens manage the bottom inset differently because the soft keyboard must push the composer up. Apply only the **status-bar** inset to the root, and let `android:windowSoftInputMode="adjustResize"` handle the rest:
+
+```java
+ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, wi) -> {
+    Insets status = wi.getInsets(
+            WindowInsetsCompat.Type.statusBars()
+            | WindowInsetsCompat.Type.displayCutout());
+    v.setPadding(v.getPaddingLeft(), status.top,
+                 v.getPaddingRight(), v.getPaddingBottom());
+    return WindowInsetsCompat.CONSUMED;
+});
+```
+
+#### 4.4.4 Preserving XML Padding
+
+If a view already has `android:padding*` set in XML, snapshot the original values **before** the listener fires to avoid double-adding on configuration changes:
+
+```java
+final int origTop    = rootView.getPaddingTop();
+final int origBottom = rootView.getPaddingBottom();
+ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, wi) -> {
+    Insets bars = wi.getInsets(WindowInsetsCompat.Type.systemBars());
+    v.setPadding(v.getPaddingLeft(), origTop + bars.top,
+                 v.getPaddingRight(), origBottom + bars.bottom);
+    return WindowInsetsCompat.CONSUMED;
+});
+```
+
+#### 4.4.5 Compliance Checklist
+
+| Screen type | Required call |
+|---|---|
+| `BaseAuthActivity` subclass | `applyEdgeToEdge(binding.getRoot())` |
+| Standalone `AppCompatActivity` | `WindowCompat.setDecorFitsSystemWindows` + `ViewCompat.setOnApplyWindowInsetsListener` |
+| `BottomSheetDialogFragment` | Handled by Material's `BottomSheetDialog` automatically |
+| `Fragment` (hosted in an activity that already consumes insets) | No extra work needed |
+
+- ✅ Every Activity calls `WindowCompat.setDecorFitsSystemWindows(getWindow(), false)` before `super.onCreate()`
+- ✅ Every Activity registers an insets listener on its root view (or delegates to `applyEdgeToEdge()`)
+- ✅ Inset listener always returns `WindowInsetsCompat.CONSUMED`
+- ✅ Original XML padding is snapshotted before the listener when the view has pre-existing padding
+- ❌ Never rely on `android:fitsSystemWindows="true"` — it only handles the top inset and is not reliable across all layouts
+- ❌ Never set a fixed `android:paddingTop` to manually offset the status bar height
 
 ---
 

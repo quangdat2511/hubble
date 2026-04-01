@@ -1,22 +1,27 @@
 package com.example.hubble.data.repository;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
-import com.example.hubble.data.model.auth.UserResponse;
+// Chú ý: Dùng duy nhất đường dẫn AuthResult chuẩn này
+import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -24,14 +29,79 @@ import retrofit2.Response;
 
 public class DmRepository {
 
+    private static final String DM_PREFS = "dm_prefs";
+    private static final String OPENED_DM_CHANNELS_PREFIX = "opened_dm_channels_";
+    private static final String FAVORITE_DM_CHANNELS_PREFIX = "favorite_dm_channels_";
+
     private final ApiService apiService;
     private final TokenManager tokenManager;
     private final Gson gson;
+    private final Context appContext;
 
     public DmRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.apiService = RetrofitClient.getApiService(context);
         this.tokenManager = new TokenManager(context.getApplicationContext());
         this.gson = new Gson();
+    }
+
+    public void rememberOpenedDirectChannel(String channelId) {
+        if (channelId == null || channelId.trim().isEmpty()) {
+            return;
+        }
+
+        Set<String> openedChannels = readOpenedDmChannels();
+        if (openedChannels.add(channelId)) {
+            saveOpenedDmChannels(openedChannels);
+        }
+    }
+
+    public Set<String> getLocallyOpenedDirectChannelIds() {
+        return readOpenedDmChannels();
+    }
+
+    public void pruneLocallyOpenedDirectChannels(Set<String> validChannelIds) {
+        if (validChannelIds == null) {
+            return;
+        }
+
+        Set<String> openedChannels = readOpenedDmChannels();
+        if (openedChannels.retainAll(new HashSet<>(validChannelIds))) {
+            saveOpenedDmChannels(openedChannels);
+        }
+    }
+
+    public Set<String> getFavoriteDirectChannelIds() {
+        return readFavoriteDmChannels();
+    }
+
+    public void setDirectChannelFavorite(String channelId, boolean favorite) {
+        if (channelId == null || channelId.trim().isEmpty()) {
+            return;
+        }
+
+        Set<String> favoriteChannels = readFavoriteDmChannels();
+        boolean changed;
+        if (favorite) {
+            changed = favoriteChannels.add(channelId);
+        } else {
+            changed = favoriteChannels.remove(channelId);
+        }
+
+        if (changed) {
+            saveFavoriteDmChannels(favoriteChannels);
+        }
+    }
+
+    public void pruneFavoriteDirectChannels(Set<String> validChannelIds) {
+        if (validChannelIds == null) {
+            return;
+        }
+
+        Set<String> favoriteChannels = readFavoriteDmChannels();
+        if (favoriteChannels.retainAll(new HashSet<>(validChannelIds))) {
+            saveFavoriteDmChannels(favoriteChannels);
+        }
     }
 
     public void getFriends(RepositoryCallback<List<FriendUserDto>> callback) {
@@ -46,8 +116,9 @@ public class DmRepository {
                                    Response<ApiResponse<List<FriendUserDto>>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<FriendUserDto> result = response.body().getResult();
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(
-                            result != null ? result : new ArrayList<>()));
+                    callback.onResult(AuthResult.success(
+                            result != null ? result : new ArrayList<>())
+                    );
                     return;
                 }
 
@@ -57,100 +128,26 @@ public class DmRepository {
                                            Response<ApiResponse<List<FriendUserDto>>> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             List<FriendUserDto> result = response.body().getResult();
-                            callback.onResult(com.example.hubble.data.model.AuthResult.success(
-                                    result != null ? result : new ArrayList<>()));
+                            callback.onResult(AuthResult.success(
+                                    result != null ? result : new ArrayList<>())
+                            );
                             return;
                         }
-                        callback.onResult(com.example.hubble.data.model.AuthResult.error(
-                                extractErrorMessage(response, "Khong tai duoc danh sach ban be")
+                        callback.onResult(AuthResult.error(
+                                extractErrorMessage(response, "Không tải được danh sách bạn bè")
                         ));
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<List<FriendUserDto>>> call, Throwable t) {
-                        callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                        callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
                     }
                 });
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<FriendUserDto>>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
-            }
-        });
-    }
-
-    public void getMyQrToken(RepositoryCallback<String> callback) {
-        String token = requireAuthToken(callback);
-        if (token == null) {
-            return;
-        }
-
-        apiService.getMyQrToken(token).enqueue(new Callback<ApiResponse<String>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
-                    return;
-                }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error(
-                        extractErrorMessage(response, "Khong tai duoc ma QR")
-                ));
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
-            }
-        });
-    }
-
-    public void scanQrProfile(String qrToken, RepositoryCallback<UserResponse> callback) {
-        String token = requireAuthToken(callback);
-        if (token == null) {
-            return;
-        }
-
-        apiService.scanQrProfile(token, qrToken).enqueue(new Callback<ApiResponse<UserResponse>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
-                    return;
-                }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error(
-                        extractErrorMessage(response, "Khong doc duoc ma QR")
-                ));
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
-            }
-        });
-    }
-
-    public void sendFriendRequest(String userId, RepositoryCallback<String> callback) {
-        String token = requireAuthToken(callback);
-        if (token == null) {
-            return;
-        }
-
-        apiService.sendFriendRequest(token, userId).enqueue(new Callback<ApiResponse<Object>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
-                if (response.isSuccessful()) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success("Da gui loi moi ket ban"));
-                    return;
-                }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error(
-                        extractErrorMessage(response, "Khong gui duoc loi moi ket ban")
-                ));
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
@@ -165,15 +162,15 @@ public class DmRepository {
             @Override
             public void onResponse(Call<List<ChannelDto>> call, Response<List<ChannelDto>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body()));
+                    callback.onResult(AuthResult.success(response.body()));
                     return;
                 }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Khong tai duoc danh sach DM"));
+                callback.onResult(AuthResult.error("Không tải được danh sách DM"));
             }
 
             @Override
             public void onFailure(Call<List<ChannelDto>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
@@ -188,15 +185,15 @@ public class DmRepository {
             @Override
             public void onResponse(Call<ChannelDto> call, Response<ChannelDto> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body()));
+                    callback.onResult(AuthResult.success(response.body()));
                     return;
                 }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Khong tao duoc kenh DM"));
+                callback.onResult(AuthResult.error("Không tạo được kênh DM"));
             }
 
             @Override
             public void onFailure(Call<ChannelDto> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
@@ -212,39 +209,100 @@ public class DmRepository {
             public void onResponse(Call<ApiResponse<List<MessageDto>>> call,
                                    Response<ApiResponse<List<MessageDto>>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
+                    callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Khong tai duoc tin nhan"));
+                callback.onResult(AuthResult.error("Không tải được tin nhắn"));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<MessageDto>>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
 
+    // Gộp tất cả SendMessage cũ thành 1 hàm duy nhất nhận đủ tham số
+    public void sendMessage(String channelId, String replyToId, String content,
+                            List<String> attachmentIds, String type,
+                            RepositoryCallback<MessageDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+
+        CreateMessageRequest request = new CreateMessageRequest(
+                channelId, replyToId, content, type, attachmentIds
+        );
+
+        apiService.sendMessage(token, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MessageDto>> call,
+                                   Response<ApiResponse<MessageDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error("Không gửi được tin nhắn"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    // Giữ lại hàm rút gọn (Overload) để không bị lỗi ở các màn hình khác
+    public void sendMessage(String channelId, String replyToId, String content, RepositoryCallback<MessageDto> callback) {
+        sendMessage(channelId, replyToId, content, new ArrayList<>(), "TEXT", callback);
+    }
+
     public void sendMessage(String channelId, String content, RepositoryCallback<MessageDto> callback) {
+        sendMessage(channelId, null, content, new ArrayList<>(), "TEXT", callback);
+    }
+
+    public void editMessage(String messageId, String content, RepositoryCallback<MessageDto> callback) {
         String token = requireAuthToken(callback);
         if (token == null) {
             return;
         }
 
-        CreateMessageRequest request = new CreateMessageRequest(channelId, null, content);
-        apiService.sendMessage(token, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
+        UpdateMessageRequest request = new UpdateMessageRequest(content);
+        apiService.editMessage(token, messageId, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
             @Override
             public void onResponse(Call<ApiResponse<MessageDto>> call, Response<ApiResponse<MessageDto>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    callback.onResult(com.example.hubble.data.model.AuthResult.success(response.body().getResult()));
+                    callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Khong gui duoc tin nhan"));
+                callback.onResult(AuthResult.error("Không chỉnh sửa được tin nhắn"));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
-                callback.onResult(com.example.hubble.data.model.AuthResult.error("Loi mang: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void unsendMessage(String messageId, RepositoryCallback<MessageDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.unsendMessage(token, messageId).enqueue(new Callback<ApiResponse<MessageDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MessageDto>> call, Response<ApiResponse<MessageDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error("Không thu hồi được tin nhắn"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
     }
@@ -256,10 +314,56 @@ public class DmRepository {
         return tokenManager.getUser().getId();
     }
 
+    public String getAccessTokenRaw() {
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            return null;
+        }
+        return accessToken;
+    }
+
+    private Set<String> readOpenedDmChannels() {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        Set<String> stored = prefs.getStringSet(openedDmStorageKey(), new HashSet<>());
+        return stored != null ? new HashSet<>(stored) : new HashSet<>();
+    }
+
+    private void saveOpenedDmChannels(Set<String> channelIds) {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        prefs.edit().putStringSet(openedDmStorageKey(), new HashSet<>(channelIds)).apply();
+    }
+
+    private String openedDmStorageKey() {
+        return OPENED_DM_CHANNELS_PREFIX + currentUserStorageKeySuffix();
+    }
+
+    private Set<String> readFavoriteDmChannels() {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        Set<String> stored = prefs.getStringSet(favoriteDmStorageKey(), new HashSet<>());
+        return stored != null ? new HashSet<>(stored) : new HashSet<>();
+    }
+
+    private void saveFavoriteDmChannels(Set<String> channelIds) {
+        SharedPreferences prefs = appContext.getSharedPreferences(DM_PREFS, Context.MODE_PRIVATE);
+        prefs.edit().putStringSet(favoriteDmStorageKey(), new HashSet<>(channelIds)).apply();
+    }
+
+    private String favoriteDmStorageKey() {
+        return FAVORITE_DM_CHANNELS_PREFIX + currentUserStorageKeySuffix();
+    }
+
+    private String currentUserStorageKeySuffix() {
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null || currentUserId.trim().isEmpty()) {
+            currentUserId = "anonymous";
+        }
+        return currentUserId;
+    }
+
     private <T> String requireAuthToken(RepositoryCallback<T> callback) {
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(com.example.hubble.data.model.AuthResult.error("Ban chua dang nhap"));
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
             return null;
         }
         return "Bearer " + accessToken;
@@ -283,10 +387,11 @@ public class DmRepository {
                 }
             }
         } catch (Exception ignored) {
+            // fallback below
         }
 
         if (httpCode == 401 || httpCode == 403) {
-            return "Phien dang nhap het han hoac khong hop le. Vui long dang nhap lai.";
+            return "Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.";
         }
         return fallback + " (HTTP " + httpCode + ")";
     }

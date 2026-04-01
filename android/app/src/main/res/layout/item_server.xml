@@ -8,7 +8,6 @@
     android:paddingTop="@dimen/spacing_sm"
     android:paddingBottom="@dimen/spacing_sm">
 
-    <!-- Active indicator pill on the left edge -->
     <View
         android:id="@+id/viewActiveIndicator"
         android:layout_width="@dimen/server_active_indicator_width"
@@ -17,7 +16,6 @@
         android:background="@drawable/bg_server_active_indicator"
         android:visibility="gone" />
 
-    <!-- Server icon (colored background circle) -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivServerIcon"
         android:layout_width="@dimen/server_icon_size"
@@ -27,7 +25,6 @@
         android:scaleType="centerCrop"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
-    <!-- Initials overlay -->
     <TextView
         android:id="@+id/tvServerInitials"
         android:layout_width="@dimen/server_icon_size"
