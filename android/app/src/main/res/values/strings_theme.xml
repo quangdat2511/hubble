@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_theme">Theme</string>
-    <string name="theme_title">Theme</string>
-    <string name="theme_description">Choose how Hubble should look across the app.</string>
-    <string name="theme_light">LIGHT</string>
-    <string name="theme_light_description">Bright surfaces for daytime use.</string>
-    <string name="theme_dark">DARK</string>
-    <string name="theme_dark_description">Low-light colors for the full app.</string>
+    <string name="settings_theme">Giao diện</string>
+    <string name="theme_title">Giao diện</string>
+    <string name="theme_description">Chọn cách Hubble hiển thị trong toàn bộ ứng dụng.</string>
+    <string name="theme_light">SÁNG</string>
+    <string name="theme_light_description">Giao diện sáng phù hợp khi dùng ban ngày.</string>
+    <string name="theme_dark">TỐI</string>
+    <string name="theme_dark_description">Tông màu dịu mắt cho toàn bộ ứng dụng.</string>
 </resources>

@@ -111,6 +111,16 @@
     <string name="settings_logout_confirm_yes">Log out</string>
     <string name="settings_logout_confirm_no">Cancel</string>
     <string name="cd_settings_back">Back</string>
+    <string name="settings_notifications_summary">Manage push notifications on this device</string>
+    <string name="settings_notifications_enable_title">Enable push notifications</string>
+    <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>
+    <string name="settings_notifications_sound_title">Notification sound</string>
+    <string name="settings_notifications_sound_summary">Play a sound for new notifications</string>
+    <string name="settings_notifications_sound_disabled_summary">Turn on push notifications to use this option</string>
+    <string name="settings_notifications_saved">Notification settings updated</string>
+    <string name="settings_notifications_status_off">Notifications are off</string>
+    <string name="settings_notifications_status_on_silent">On, no sound</string>
+    <string name="settings_notifications_status_on_sound">On, with sound</string>
 
     <string name="create_server_title">Create server</string>
     <string name="create_server_subtitle">Your server is where you and your friends hang out. Make yours and start talking.</string>
