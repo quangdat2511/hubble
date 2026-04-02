@@ -9,6 +9,8 @@ public class DmMessageItem {
     private final String senderName;
     private String content;
     private final String timestamp;
+    private final String type;
+    private final long createdAtMillis;
     private final boolean mine;
 
     private final List<AttachmentResponse> attachments;
@@ -19,21 +21,24 @@ public class DmMessageItem {
     private String replyToContent;
 
     public DmMessageItem(String id, String senderName, String content, String timestamp, boolean mine) {
-        this.id = id;
-        this.senderName = senderName;
-        this.content = content;
-        this.timestamp = timestamp;
-        this.mine = mine;
-        this.attachments = new ArrayList<>(); // Code của bạn
+        this(id, senderName, content, timestamp, "TEXT", -1L, mine, null);
     }
 
     public DmMessageItem(String id, String senderName, String content,
                          String timestamp, boolean mine,
                          List<AttachmentResponse> attachments) {
+        this(id, senderName, content, timestamp, "TEXT", -1L, mine, attachments);
+    }
+
+    public DmMessageItem(String id, String senderName, String content,
+                         String timestamp, String type, long createdAtMillis,
+                         boolean mine, List<AttachmentResponse> attachments) {
         this.id = id;
         this.senderName = senderName;
         this.content = content;
         this.timestamp = timestamp;
+        this.type = type;
+        this.createdAtMillis = createdAtMillis;
         this.mine = mine;
         this.attachments = attachments != null ? attachments : new ArrayList<>();
     }
@@ -57,6 +62,18 @@ public class DmMessageItem {
 
     public String getTimestamp() {
         return timestamp;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public long getCreatedAtMillis() {
+        return createdAtMillis;
+    }
+
+    public boolean isSystemMessage() {
+        return type != null && "SYSTEM".equalsIgnoreCase(type);
     }
 
     public boolean isMine() {

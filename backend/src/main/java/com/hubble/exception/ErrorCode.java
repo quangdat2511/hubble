@@ -47,12 +47,33 @@ public enum ErrorCode {
     SERVER_NOT_FOUND(3001, "Server không tồn tại", HttpStatus.NOT_FOUND),
     CHANNEL_NOT_FOUND(3002, "Kênh không tồn tại", HttpStatus.NOT_FOUND),
     INVITE_CODE_INVALID(3003, "Link mời không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+    SERVER_MEMBER_NOT_FOUND(3004, "Thành viên không tồn tại trong server", HttpStatus.NOT_FOUND),
+    CANNOT_KICK_OWNER(3006, "Không thể kick chủ sở hữu server", HttpStatus.BAD_REQUEST),
+    ALREADY_SERVER_MEMBER(3005, "Người dùng đã là thành viên của server", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_NOT_FOUND(3007, "Lời mời không tồn tại", HttpStatus.NOT_FOUND),
+    SERVER_INVITE_ALREADY_RESPONDED(3008, "Lời mời đã được phản hồi", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_EXPIRED(3009, "Lời mời đã hết hạn", HttpStatus.BAD_REQUEST),
+    CANNOT_INVITE_SELF(3010, "Bạn không thể mời chính mình", HttpStatus.BAD_REQUEST),
+    SERVER_INVITE_ALREADY_SENT(3011, "Lời mời đã được gửi trước đó", HttpStatus.BAD_REQUEST),
 
     // Tin nhắn
     MESSAGE_NOT_FOUND(5001, "Tin nhắn không tồn tại", HttpStatus.NOT_FOUND),
     MESSAGE_NOT_OWNER(5002, "Bạn không có quyền thực hiện thao tác này với tin nhắn", HttpStatus.FORBIDDEN),
 
-    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND);
+    NOT_FOUND(4001, "Tài nguyên không tồn tại", HttpStatus.NOT_FOUND),
+
+    // Server icon
+    NOT_SERVER_OWNER(3012, "Bạn không phải chủ sở hữu server", HttpStatus.FORBIDDEN),
+
+    // Roles
+    ROLE_NOT_FOUND(3020, "Vai trò không tồn tại", HttpStatus.NOT_FOUND),
+    ROLE_NAME_DUPLICATED(3021, "Tên vai trò đã tồn tại trong server", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_DEFAULT_ROLE(3022, "Không thể xoá vai trò mặc định", HttpStatus.BAD_REQUEST),
+    CANNOT_MODIFY_DEFAULT_ROLE_NAME(3023, "Không thể đổi tên vai trò mặc định", HttpStatus.BAD_REQUEST),
+    CANNOT_MANAGE_HIGHER_ROLE(3024, "Không thể quản lý vai trò có vị trí cao hơn", HttpStatus.FORBIDDEN),
+
+    FILE_UPLOAD_FAILED(6001, "Không thể tải file lên", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_FILE_TYPE(6002, "Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (jpeg, png, gif, webp, svg)", HttpStatus.BAD_REQUEST);
 
     final int code;
     final String message;

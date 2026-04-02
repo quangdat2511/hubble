@@ -20,6 +20,9 @@ public class SettingsViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<PushConfigResponse>> _pushConfigSaveState = new MutableLiveData<>();
     public final LiveData<AuthResult<PushConfigResponse>> pushConfigSaveState = _pushConfigSaveState;
 
+    private final MutableLiveData<PushConfigResponse> _currentPushConfig = new MutableLiveData<>();
+    public final LiveData<PushConfigResponse> currentPushConfig = _currentPushConfig;
+
     public SettingsViewModel(AuthRepository authRepository, PushConfigRepository pushConfigRepository) {
         this.authRepository = authRepository;
         this.pushConfigRepository = pushConfigRepository;
@@ -30,11 +33,25 @@ public class SettingsViewModel extends ViewModel {
     }
 
     public void loadPushConfig() {
-        pushConfigRepository.getPushConfig(_pushConfigState::setValue);
+        pushConfigRepository.getPushConfig(result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                _currentPushConfig.setValue(result.getData());
+            }
+            _pushConfigState.setValue(result);
+        });
     }
 
     public void updatePushConfig(boolean notificationEnabled, boolean notificationSound) {
-        pushConfigRepository.updatePushConfig(notificationEnabled, notificationSound, _pushConfigSaveState::setValue);
+        pushConfigRepository.updatePushConfig(notificationEnabled, notificationSound, result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                _currentPushConfig.setValue(result.getData());
+            }
+            _pushConfigSaveState.setValue(result);
+        });
+    }
+
+    public PushConfigResponse getCurrentPushConfigValue() {
+        return _currentPushConfig.getValue();
     }
 
     public void resetPushConfigState() {

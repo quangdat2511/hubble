@@ -31,6 +31,7 @@ public class SplashActivity extends BaseAuthActivity {
 
         binding = ActivitySplashBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         AuthViewModel authViewModel = new ViewModelProvider(this,
                 new AuthViewModelFactory(new AuthRepository(this)))

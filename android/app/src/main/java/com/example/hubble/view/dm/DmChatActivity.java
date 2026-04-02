@@ -148,9 +148,11 @@ public class DmChatActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         binding = ActivityDmChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
 
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
@@ -1039,7 +1041,8 @@ public class DmChatActivity extends AppCompatActivity {
         DmMessageItem item = new DmMessageItem(
                 dto.getId(), sender,
                 dto.getContent() == null ? "" : dto.getContent(),
-                formatTime(dto.getCreatedAt()), mine, dto.getAttachments()
+            formatTime(dto.getCreatedAt()), dto.getType(), parseCreatedAtMillis(dto.getCreatedAt()),
+            mine, dto.getAttachments()
         );
         item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
         item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
@@ -1068,7 +1071,8 @@ public class DmChatActivity extends AppCompatActivity {
             DmMessageItem item = new DmMessageItem(
                     dto.getId(), sender,
                     dto.getContent() == null ? "" : dto.getContent(),
-                    formatTime(dto.getCreatedAt()), mine, dto.getAttachments()
+                    formatTime(dto.getCreatedAt()), dto.getType(), parseCreatedAtMillis(dto.getCreatedAt()),
+                    mine, dto.getAttachments()
             );
             item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
             item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
@@ -1206,13 +1210,38 @@ public class DmChatActivity extends AppCompatActivity {
 
         try {
             LocalDateTime localDateTime = LocalDateTime.parse(value);
-            // Backend sometimes sends LocalDateTime without offset; treat as UTC then convert.
-            ZonedDateTime utcDateTime = localDateTime.atZone(ZoneId.of("UTC"));
-            return utcDateTime.withZoneSameInstant(localZone)
+            // LocalDateTime values from backend have no offset, so display them as local time.
+            return localDateTime.atZone(localZone)
                     .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
         } catch (Exception ignored) {
         }
 
         return value;
+    }
+
+    private long parseCreatedAtMillis(String rawTime) {
+        if (rawTime == null || rawTime.trim().isEmpty()) return -1L;
+        String value = rawTime.trim();
+        ZoneId localZone = ZoneId.systemDefault();
+        try {
+            return OffsetDateTime.parse(value)
+                    .atZoneSameInstant(localZone)
+                    .toInstant()
+                    .toEpochMilli();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            return Instant.parse(value).toEpochMilli();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            LocalDateTime localDateTime = LocalDateTime.parse(value);
+            return localDateTime.atZone(localZone).toInstant().toEpochMilli();
+        } catch (Exception ignored) {
+        }
+
+        return -1L;
     }
 }

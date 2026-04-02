@@ -2,7 +2,6 @@ package com.example.hubble.view.home;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,6 +31,7 @@ import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
+import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -83,6 +83,15 @@ public class HomeFragment extends Fragment {
         setupConversations(viewModel);
         setupActions(view);
         viewModel.refreshDirectMessages();
+
+        viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
+            if (serverName != null) {
+                Snackbar.make(requireView(),
+                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
+                        Snackbar.LENGTH_LONG).show();
+                viewModel.consumeKickedFromServer();
+            }
+        });
     }
 
     @Override
@@ -123,12 +132,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateDmButtonState(boolean isActive) {
+        binding.viewDmActiveIndicator.setVisibility(isActive ? View.VISIBLE : View.GONE);
+
+        int color = isActive
+                ? ContextCompat.getColor(requireContext(), R.color.color_primary)
+                : ContextCompat.getColor(requireContext(), R.color.color_text_secondary);
+        binding.btnDmView.setIconTint(ColorStateList.valueOf(color));
+
         if (isActive) {
-            int color = ContextCompat.getColor(requireContext(), R.color.color_primary);
-            binding.btnDmView.setIconTint(ColorStateList.valueOf(color));
             serverAdapter.setSelectedPosition(-1);
-        } else {
-            binding.btnDmView.setIconTint(ColorStateList.valueOf(Color.GRAY));
         }
     }
 
@@ -148,17 +160,13 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-            channel -> {
-                // TODO: Open channel chat activity
-                showMessage("Mở kênh: " + channel.getName());
-            },
-            categoryId -> viewModel.toggleCategoryCollapse(categoryId)
+            channel -> showMessage("Mở kênh: " + channel.getName()),
+            viewModel::toggleCategoryCollapse
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvServerChannels.setAdapter(serverChannelAdapter);
 
-        // Panel switching based on selected server
         viewModel.selectedServer.observe(getViewLifecycleOwner(), server -> {
             if (server != null) {
                 binding.layoutDmPanel.setVisibility(View.GONE);
@@ -171,12 +179,16 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Update channel list
-        viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
-            if (result == null || result.getStatus() == AuthResult.Status.LOADING) {
-                return;
+        binding.layoutServerHeader.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                ServerProfileBottomSheet sheet = ServerProfileBottomSheet.newInstance(server, 0, 0);
+                sheet.show(getParentFragmentManager(), "ServerProfile");
             }
+        });
 
+        viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 serverChannelAdapter.submitChannels(result.getData(), viewModel.getCollapsedCategories());
                 return;

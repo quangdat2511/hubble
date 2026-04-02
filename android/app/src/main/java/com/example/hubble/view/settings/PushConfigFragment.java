@@ -77,9 +77,24 @@ public class PushConfigFragment extends Fragment {
             viewModel.updatePushConfig(binding.switchPushEnabled.isChecked(), isChecked);
         });
 
+        viewModel.currentPushConfig.observe(getViewLifecycleOwner(), config -> {
+            if (config == null) {
+                return;
+            }
+
+            lastKnownPushConfig = config;
+            applyPushConfig(config);
+        });
         viewModel.pushConfigState.observe(getViewLifecycleOwner(), this::renderPushConfigLoadState);
         viewModel.pushConfigSaveState.observe(getViewLifecycleOwner(), this::renderPushConfigSaveState);
-        viewModel.loadPushConfig();
+
+        PushConfigResponse cachedConfig = viewModel.getCurrentPushConfigValue();
+        if (cachedConfig != null) {
+            lastKnownPushConfig = cachedConfig;
+            applyPushConfig(cachedConfig);
+        } else {
+            viewModel.loadPushConfig();
+        }
     }
 
     private void renderPushConfigLoadState(AuthResult<PushConfigResponse> result) {
@@ -95,9 +110,7 @@ public class PushConfigFragment extends Fragment {
         setPushConfigBusy(false);
         viewModel.resetPushConfigState();
 
-        if (result.isSuccess() && result.getData() != null) {
-            lastKnownPushConfig = result.getData();
-            applyPushConfig(result.getData());
+        if (result.isSuccess()) {
             return;
         }
 
@@ -120,8 +133,6 @@ public class PushConfigFragment extends Fragment {
         viewModel.resetPushConfigSaveState();
 
         if (result.isSuccess() && result.getData() != null) {
-            lastKnownPushConfig = result.getData();
-            applyPushConfig(result.getData());
             Snackbar.make(binding.getRoot(),
                     getString(R.string.settings_notifications_saved),
                     Snackbar.LENGTH_SHORT).show();

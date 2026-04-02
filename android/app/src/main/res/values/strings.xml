@@ -248,6 +248,7 @@
     <string name="dm_media">Tệp đa phương tiện</string>
     <string name="save">Lưu</string>
     <string name="cancel">Hủy</string>
+
     <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
     <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
     <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
@@ -255,4 +256,243 @@
     <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
     <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
     <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
+    <string name="settings_notifications_status_off">Thông báo đang tắt</string>
+    <string name="settings_notifications_status_on_silent">Đang bật, không âm thanh</string>
+    <string name="settings_notifications_status_on_sound">Đang bật, có âm thanh</string>
+    <!-- Server Settings -->
+    <string name="server_settings_title">Cài đặt máy chủ</string>
+    <string name="server_settings_section_overview">TỔNG QUAN</string>
+    <string name="server_settings_section_members">THÀNH VIÊN</string>
+    <string name="server_settings_section_moderation">KIỂM DUYỆT</string>
+    <string name="server_settings_server_name">Tên máy chủ</string>
+    <string name="server_settings_server_icon">Biểu tượng máy chủ</string>
+    <string name="server_settings_server_description">Mô tả máy chủ</string>
+    <string name="server_settings_members">Thành viên</string>
+    <string name="server_settings_bans">Danh sách cấm</string>
+    <string name="server_settings_invites">Lời mời</string>
+    <string name="server_settings_roles">Vai trò</string>
+    <string name="server_settings_emoji">Emoji</string>
+    <string name="server_settings_stickers">Sticker</string>
+    <string name="server_settings_delete">Xóa máy chủ</string>
+    <string name="server_settings_delete_confirm_title">Xóa máy chủ</string>
+    <string name="server_settings_delete_confirm_message">Thao tác này không thể hoàn tác. Bạn có chắc chắn?</string>
+    <string name="server_settings_remove_icon">Xóa ảnh đại diện máy chủ</string>
+    <string name="server_settings_remove_icon_confirm_title">Xóa ảnh đại diện</string>
+    <string name="server_settings_remove_icon_confirm_message">Ảnh đại diện máy chủ sẽ bị xóa. Bạn có chắc chắn?</string>
+
+    <!-- Server icon feedback -->
+    <string name="server_icon_update_success">Ảnh đại diện đã được cập nhật</string>
+    <string name="server_icon_delete_success">Ảnh đại diện đã được xóa</string>
+
+    <!-- File validation errors -->
+    <string name="error_invalid_file_type">Chỉ chấp nhận ảnh (jpg, png, gif, webp, svg)</string>
+    <string name="error_file_too_large">Ảnh phải nhỏ hơn 5 MB</string>
+    <string name="error_server_name_too_long">Tên máy chủ không được vượt quá 100 ký tự</string>
+
+    <!-- Server Profile Bottom Sheet -->
+    <string name="server_profile_member_count">%1$d Thành viên  •  %2$d Trực tuyến</string>
+    <string name="server_profile_online_count">%1$d Trực tuyến</string>
+    <string name="server_profile_member_count_only">%1$d Thành Viên</string>
+    <string name="server_profile_requests">Yêu cầu</string>
+    <string name="server_profile_announcements">Thông báo</string>
+    <string name="server_profile_events">Sự kiện</string>
+    <string name="server_profile_more">Thêm</string>
+    <string name="server_profile_upgrade">Nâng Cấp</string>
+    <string name="server_profile_notifications">Các Thông Báo</string>
+    <string name="server_profile_invite_people_short">Lời mời</string>
+    <string name="server_profile_create_channel">Tạo kênh</string>
+    <string name="server_profile_create_category">Tạo Danh Mục</string>
+    <string name="server_profile_create_event">Tạo Sự kiện</string>
+    <string name="server_profile_mark_as_read">Đánh Dấu Đã Đọc</string>
+    <string name="server_profile_edit_server_profile">Chỉnh Sửa Hồ Sơ Theo Máy Chủ</string>
+    <string name="server_profile_hide_muted">Ẩn Các Kênh Bị Tắt Âm</string>
+    <string name="server_profile_invite_people">Mời mọi người</string>
+    <string name="server_profile_notification_settings">Cài đặt thông báo</string>
+    <string name="server_profile_privacy_settings">Cài đặt quyền riêng tư</string>
+
+    <!-- Member Management -->
+    <string name="members_search_hint">Tìm kiếm thành viên</string>
+    <string name="members_section_label">THÀNH VIÊN — %1$d</string>
+    <string name="member_action_kick">Kick %1$s</string>
+    <string name="member_action_ban">Ban %1$s</string>
+    <string name="member_action_transfer_ownership">Chuyển quyền sở hữu</string>
+    <string name="member_action_manage_roles">Quản lý vai trò</string>
+    <string name="member_action_message">Nhắn tin</string>
+    <string name="member_kick_confirm_title">Kick thành viên</string>
+    <string name="member_kick_confirm_message">Kick %1$s khỏi máy chủ?</string>
+    <string name="member_ban_confirm_title">Ban thành viên</string>
+    <string name="member_ban_confirm_message">Ban %1$s khỏi máy chủ? Họ sẽ không thể tham gia lại.</string>
+    <string name="member_transfer_confirm_title">Chuyển quyền sở hữu</string>
+    <string name="member_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Không thể hoàn tác.</string>
+    <string name="member_kicked_success">Đã kick %1$s</string>
+    <string name="member_banned_success">Đã ban %1$s</string>
+    <!-- Member Edit Activity -->
+    <string name="member_edit_title">Sửa đổi %1$s</string>
+    <string name="member_edit_nickname_label">Biệt danh</string>
+    <string name="member_edit_nickname_hint">Nhấn vào để thêm biệt danh</string>
+    <string name="member_edit_roles_label">Vai trò</string>
+    <string name="member_edit_roles_edit">Sửa Vai trò</string>
+    <string name="member_edit_kick">Loại \'%1$s\'</string>
+    <string name="member_edit_kick_confirm_title">Loại thành viên</string>
+    <string name="member_edit_kick_confirm_message">Bạn có muốn loại %1$s khỏi máy chủ không?</string>
+    <string name="member_edit_kick_success">Đã loại %1$s khỏi máy chủ</string>
+    <string name="member_edit_transfer_confirm_title">Chuyển quyền sở hữu</string>
+    <string name="member_edit_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Thao tác này không thể hoàn tác.</string>
+    <string name="member_edit_transfer_success">Đã chuyển quyền sở hữu cho %1$s</string>
+
+    <!-- Server Invites -->
+    <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>
+    <string name="invite_section_pending_label">LỜI MỜI ĐANG CHỜ</string>
+    <string name="invite_people_title">Mời mọi người</string>
+    <string name="invite_to_server">vào %1$s</string>
+    <string name="invite_send_short">Gửi</string>
+    <string name="invite_recent_header">ĐÃ GỬI GẦN ĐÂY</string>
+    <string name="invite_no_recent">Chưa có lời mời nào được gửi</string>
+    <string name="invite_empty_server">Chưa có lời mời nào cho máy chủ này</string>
+    <string name="invite_create_btn">Mời người dùng</string>
+    <string name="invite_create_title">Mời người dùng</string>
+    <string name="invite_dialog_subtitle">Nhập tên người dùng để gửi lời mời tham gia máy chủ.</string>
+    <string name="invite_username_hint">Tên người dùng</string>
+    <string name="invite_send_btn">Gửi lời mời</string>
+    <string name="invite_sent_success">Đã gửi lời mời thành công!</string>
+    <string name="invite_created_at">Tạo lúc: %1$s</string>
+    <string name="invite_from_inviter">Từ %1$s</string>
+    <string name="invite_accept">Chấp nhận</string>
+    <string name="invite_decline">Từ chối</string>
+    <string name="invite_respond_success">Đã phản hồi lời mời</string>
+    <string name="invite_error_empty_username">Vui lòng nhập tên người dùng</string>
+
+    <!-- Roles Management -->
+    <string name="roles_title">Vai Trò Máy Chủ</string>
+    <string name="roles_description">Sử dụng vai trò để phân nhóm các thành viên máy chủ và chỉ định quyền của họ.</string>
+    <string name="roles_empty_title">Quản lý thành viên</string>
+    <string name="roles_empty_description">Sử dụng vai trò để phân nhóm các thành viên máy chủ và chỉ định quyền của họ.</string>
+    <string name="roles_create_btn">Tạo Vai Trò</string>
+    <string name="roles_everyone">@everyone</string>
+    <string name="roles_everyone_description">Quyền mặc định cho tất cả các thành viên máy chủ</string>
+    <string name="roles_count">Vai trò — %1$d</string>
+    <string name="roles_reorder">Sắp Xếp Lại</string>
+    <string name="roles_member_count">%1$d Thành Viên</string>
+    <string name="roles_search_hint">Tìm kiếm</string>
+    <string name="roles_help_link">Bắt đầu với một trong các mẫu</string>
+    <string name="roles_need_help">Cần giúp đỡ?</string>
+
+    <!-- Role permissions sections -->
+    <string name="role_perm_section_general">QUYỀN TỔNG QUÁT MÁY CHỦ</string>
+    <string name="role_perm_section_member">QUYỀN THÀNH VIÊN</string>
+    <string name="role_perm_section_text">QUYỀN KÊNH TIN NHẮN</string>
+
+    <!-- General server permissions -->
+    <string name="role_perm_view_channels">Xem Các Kênh</string>
+    <string name="role_perm_view_channels_desc">Cho phép thành viên mặc định xem kênh (không tính kênh riêng tư).</string>
+    <string name="role_perm_manage_channels">Quản Lý Kênh</string>
+    <string name="role_perm_manage_channels_desc">Cho phép thành viên tạo, chỉnh sửa, hoặc xóa kênh.</string>
+    <string name="role_perm_manage_roles">Quản Lý Vai Trò</string>
+    <string name="role_perm_manage_roles_desc">Cho phép thành viên tạo vai trò mới và chỉnh sửa hoặc xóa vai trò thấp hơn vai trò cao nhất của họ. Đồng thời cho phép thành viên thay đổi quyền hạn của các kênh riêng lẻ mà họ có quyền truy cập.</string>
+    <string name="role_perm_create_expressions">Tạo Biểu Cảm</string>
+    <string name="role_perm_create_expressions_desc">Cho phép thành viên thêm emoji, sticker và âm thanh tùy chỉnh trong máy chủ này.</string>
+    <string name="role_perm_manage_expressions">Quản lý biểu cảm</string>
+    <string name="role_perm_manage_expressions_desc">Cho phép thành viên chỉnh sửa hoặc xóa emoji, sticker và âm thanh tùy chỉnh trong máy chủ này.</string>
+    <string name="role_perm_view_audit_log">Xem Nhật Ký Chỉnh Sửa</string>
+    <string name="role_perm_view_audit_log_desc">Cho phép thành viên xem lịch sử thay đổi trong máy chủ này.</string>
+    <string name="role_perm_manage_server">Quản Lý Máy Chủ</string>
+    <string name="role_perm_manage_server_desc">Cho phép thành viên thay đổi tên, hình ảnh và cài đặt máy chủ.</string>
+    <string name="role_perm_manage_webhooks">Quản lý Webhook</string>
+    <string name="role_perm_manage_webhooks_desc">Cho phép thành viên tạo, chỉnh sửa, hoặc xóa webhook, bao gồm cả việc có thể đăng tin nhắn.</string>
+
+    <!-- Member permissions -->
+    <string name="role_perm_create_invite">Tạo Lời Mời</string>
+    <string name="role_perm_create_invite_desc">Cho phép thành viên mời người mới vào máy chủ này.</string>
+    <string name="role_perm_change_nickname">Đổi Biệt Danh</string>
+    <string name="role_perm_change_nickname_desc">Cho phép thành viên tùy ý thay đổi biệt danh trong máy chủ này.</string>
+    <string name="role_perm_manage_nicknames">Quản Lý Biệt Danh</string>
+    <string name="role_perm_manage_nicknames_desc">Cho phép thành viên thay đổi biệt danh của thành viên khác.</string>
+    <string name="role_perm_kick_members">Đuổi, Chấp thuận và Từ chối Thành viên</string>
+    <string name="role_perm_kick_members_desc">Tính năng Đuổi sẽ xóa các thành viên khác khỏi máy chủ này. Thành viên bị đuổi có thể tham gia lại nếu nhận được lời mời khác. Nếu máy chủ kích hoạt Yêu Cầu Đối Với Thành Viên, quyền này cho phép chấp thuận hoặc từ chối các thành viên yêu cầu tham gia vào máy chủ.</string>
+    <string name="role_perm_ban_members">Cấm Thành Viên</string>
+    <string name="role_perm_ban_members_desc">Cho phép thành viên cấm vĩnh viễn và xóa lịch sử tin nhắn của các thành viên khác từ máy chủ này.</string>
+    <string name="role_perm_timeout_members">Hạn chế thành viên</string>
+    <string name="role_perm_timeout_members_desc">Khi bạn đặt một người dùng về trạng thái chờ (timeout) thì họ sẽ không thể gửi tin nhắn trò chuyện, trả lời chủ đề thảo luận, tương tác với tin nhắn, hoặc nói trong kênh thoại hoặc kênh Sân khấu.</string>
+
+    <!-- Text channel permissions -->
+    <string name="role_perm_send_messages">Gửi tin nhắn và tạo bài đăng</string>
+    <string name="role_perm_send_messages_desc">Cho phép thành viên gửi tin nhắn trong các kênh văn bản và tạo bài đăng trong các kênh diễn đàn.</string>
+    <string name="role_perm_send_messages_threads">Gửi tin nhắn trong chủ đề và bài đăng</string>
+    <string name="role_perm_send_messages_threads_desc">Cho phép các thành viên gửi tin nhắn trong chủ đề và trong bài đăng trên các kênh diễn đàn.</string>
+    <string name="role_perm_create_public_threads">Tạo Chủ Đề Công Khai</string>
+    <string name="role_perm_create_public_threads_desc">Cho phép thành viên được tạo chủ đề mà mọi người trong kênh đều có thể xem.</string>
+    <string name="role_perm_create_private_threads">Tạo Các Chủ Đề Riêng Tư</string>
+    <string name="role_perm_create_private_threads_desc">Cho phép thành viên được tạo chủ đề theo chỉ được mời.</string>
+    <string name="role_perm_embed_links">Nhúng liên kết</string>
+    <string name="role_perm_embed_links_desc">Cho phép hiển thị nội dung nhúng của liên kết do thành viên chia sẻ trong các kênh chat.</string>
+    <string name="role_perm_attach_files">Đính kèm tập tin</string>
+    <string name="role_perm_attach_files_desc">Cho phép thành viên tải lên tệp hoặc tệp media trong kênh chat.</string>
+    <string name="role_perm_add_reactions">Thêm Biểu Cảm</string>
+    <string name="role_perm_add_reactions_desc">Cho phép thành viên thêm hiệu ứng tương tác emoji mới vào tin nhắn. Nếu không cấp quyền này, thành viên vẫn có thể sử dụng các tương tác đã được thêm.</string>
+    <string name="role_perm_use_external_emojis">Sử dụng Emoji Ngoài</string>
+    <string name="role_perm_use_external_emojis_desc">Cho phép thành viên sử dụng emoji từ các máy chủ khác trong máy chủ này.</string>
+
+    <!-- Create Role Wizard -->
+    <string name="create_role_title">Tạo một vai trò mới</string>
+    <string name="create_role_subtitle">Đặt cho vai trò này một cái tên và màu sắc độc nhất. Có thể thay đổi sau nếu bạn muốn.</string>
+    <string name="create_role_name_label">TÊN VAI TRÒ</string>
+    <string name="create_role_name_hint">ví dụ: huấn luyện viên, điều phối viên, người theo dõi, câu lạc bộ thú cưng</string>
+    <string name="create_role_color_label">Màu Vai Trò</string>
+    <string name="create_role_color_hint">Các thành viên sẽ sử dụng màu của vai trò cao nhất mà họ có trong danh sách vai trò.</string>
+    <string name="create_role_btn">Tạo</string>
+
+    <!-- Color Picker Bottom Sheet -->
+    <string name="color_picker_title">Chọn một màu</string>
+    <string name="color_picker_save">Lưu</string>
+    <string name="color_picker_reset">Đặt lại</string>
+    <string name="create_role_step">Bước %1$d/3</string>
+    <string name="role_members_empty">Vai trò này chưa có thành viên nào.</string>
+
+    <!-- Create Role Step 2 - Permissions -->
+    <string name="create_role_perm_title">Thiết lập quyền hạn</string>
+    <string name="create_role_perm_subtitle">Vai trò này có quyền hạn đến đâu? Có thể thay đổi quyền hạn sau nếu bạn muốn.</string>
+    <string name="create_role_perm_decorative">Trang trí</string>
+    <string name="create_role_perm_member">Thành viên</string>
+    <string name="create_role_perm_moderator">Điều phối viên</string>
+    <string name="create_role_perm_admin">Quản lý</string>
+    <string name="create_role_perm_choose">Chọn</string>
+    <string name="create_role_perm_skip">Bỏ qua bước này</string>
+
+    <!-- Permission presets descriptions -->
+    <string name="create_role_preset_decorative_desc">Chỉ để trang trí. Tuyệt khi gán nhãn hoặc màu sắc cho các thành viên.</string>
+    <string name="create_role_preset_decorative_1">Hiển thị trên hồ sơ</string>
+    <string name="create_role_preset_decorative_2">Tô màu tên</string>
+    <string name="create_role_preset_member_desc">Quyền cơ bản của một thành viên thông thường để trò chuyện.</string>
+    <string name="create_role_preset_member_1">Trò chuyện trong các kênh</string>
+    <string name="create_role_preset_member_2">Mời bạn bè</string>
+    <string name="create_role_preset_member_3">Đổi biệt danh</string>
+    <string name="create_role_preset_moderator_desc">Những người có thể giúp bạn quản lý các thành viên trong máy chủ này.</string>
+    <string name="create_role_preset_moderator_extra">Mọi thứ thành viên có thể làm, và:</string>
+    <string name="create_role_preset_moderator_1">Xóa tin nhắn bất kỳ</string>
+    <string name="create_role_preset_moderator_2">Tắt âm mọi người trong trò chuyện thoại</string>
+    <string name="create_role_preset_moderator_3">Đuổi/cấm thành viên</string>
+    <string name="create_role_preset_moderator_4">Thành viên bị hạn chế</string>
+    <string name="create_role_preset_admin_desc">Các nhà lãnh đạo đáng tin cậy có thể giúp bạn xây dựng máy chủ.</string>
+    <string name="create_role_preset_admin_extra">Mọi thứ điều phối viên có thể làm, và:</string>
+    <string name="create_role_preset_admin_1">Tạo và xóa kênh</string>
+    <string name="create_role_preset_admin_2">Tạo và xóa vai trò</string>
+    <string name="create_role_preset_admin_3">Thêm emoji và ứng dụng</string>
+    <string name="create_role_preset_admin_4">Gần như mọi thứ</string>
+
+    <!-- Create Role Step 3 - Add Members -->
+    <string name="create_role_members_title">Thêm thành viên</string>
+    <string name="create_role_members_subtitle">Chỉ định vai trò này cho các thành viên. Một thành viên có thể giữ nhiều vai trò. Bạn có thể thêm tối đa 30 thành viên cùng một lúc.</string>
+    <string name="create_role_members_search_hint">Tìm kiếm thành viên</string>
+    <string name="create_role_members_finish">Hoàn tất</string>
+
+    <!-- Role Detail / Edit screen (#13) -->
+    <string name="role_detail_name_label">Tên vai trò</string>
+    <string name="role_detail_color_label">Màu Vai Trò</string>
+    <string name="role_detail_display_separate">Hiển thị riêng</string>
+    <string name="role_detail_display_separate_desc">Hiển thị vai trò thành viên riêng biệt với các thành viên trực tuyến</string>
+    <string name="role_detail_mentionable">Cho phép mọi người @mention vai trò này</string>
+    <string name="role_detail_permissions">Quyền hạn</string>
+    <string name="role_detail_links">Liên kết</string>
+    <string name="role_detail_members">Thành viên</string>
+    <string name="role_detail_delete">Xóa Vai Trò</string>
 </resources>

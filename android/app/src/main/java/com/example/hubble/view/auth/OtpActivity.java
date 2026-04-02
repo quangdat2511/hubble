@@ -39,6 +39,7 @@ public class OtpActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityOtpBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         phoneNumber = getIntent().getStringExtra(EXTRA_PHONE_NUMBER);
         email = getIntent().getStringExtra(EXTRA_EMAIL);

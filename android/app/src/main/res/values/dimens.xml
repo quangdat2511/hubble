@@ -18,6 +18,7 @@
     <dimen name="toolbar_height">56dp</dimen>
 
     <!-- Border radius (Discord-style) -->
+    <dimen name="corner_radius_sm">4dp</dimen>
     <dimen name="radius_sm">4dp</dimen>
     <dimen name="radius_md">8dp</dimen>
     <dimen name="radius_lg">12dp</dimen>

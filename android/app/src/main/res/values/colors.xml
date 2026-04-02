@@ -33,4 +33,13 @@
     <color name="color_dnd">#F23F42</color>
     <color name="color_offline">#80848E</color>
     <color name="color_mention">#F0B232</color>
+
+    <!-- Role preset slider colors -->
+    <color name="role_preset_decorative">#5865F2</color>
+    <color name="role_preset_member">#23A559</color>
+    <color name="role_preset_moderator">#F0B232</color>
+    <color name="role_preset_admin">#F23F42</color>
+
+    <!-- Default role color -->
+    <color name="role_default_color">#99AAB5</color>
 </resources>

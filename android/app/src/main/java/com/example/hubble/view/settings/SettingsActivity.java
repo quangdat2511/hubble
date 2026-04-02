@@ -1,5 +1,6 @@
 package com.example.hubble.view.settings;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -9,6 +10,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
@@ -19,6 +21,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 public class SettingsActivity extends BaseAuthActivity {
+
+    public static final String EXTRA_OPEN_PUSH_CONFIG = "extra_open_push_config";
 
     private ActivitySettingsBinding binding;
     private SettingsViewModel viewModel;
@@ -38,6 +42,7 @@ public class SettingsActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         viewModel = new ViewModelProvider(this,
                 new SettingsViewModelFactory(
@@ -48,7 +53,11 @@ public class SettingsActivity extends BaseAuthActivity {
         setupToolbar();
         getSupportFragmentManager().addOnBackStackChangedListener(this::syncVisibleContent);
         setupRows();
+        setupPushConfigSummary();
         setupLogout();
+        if (savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_OPEN_PUSH_CONFIG, false)) {
+            navigateTo(new PushConfigFragment(), false);
+        }
         syncVisibleContent();
     }
 
@@ -76,6 +85,12 @@ public class SettingsActivity extends BaseAuthActivity {
                 startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
         binding.rowSupport.setOnClickListener(comingSoon);
         binding.rowChangelog.setOnClickListener(comingSoon);
+    }
+
+    private void setupPushConfigSummary() {
+        viewModel.currentPushConfig.observe(this, this::renderPushConfigSummary);
+        renderPushConfigSummary(viewModel.getCurrentPushConfigValue());
+        viewModel.loadPushConfig();
     }
 
     private void setupLogout() {
@@ -120,5 +135,29 @@ public class SettingsActivity extends BaseAuthActivity {
         if (!showDetailScreen) {
             binding.toolbar.setTitle(R.string.settings_title);
         }
+    }
+
+    private void renderPushConfigSummary(PushConfigResponse config) {
+        int summaryRes = R.string.settings_notifications_summary;
+        if (config != null) {
+            if (!config.isNotificationEnabled()) {
+                summaryRes = R.string.settings_notifications_status_off;
+            } else if (config.isNotificationSound()) {
+                summaryRes = R.string.settings_notifications_status_on_sound;
+            } else {
+                summaryRes = R.string.settings_notifications_status_on_silent;
+            }
+        }
+        binding.textNotificationsSummary.setText(summaryRes);
+    }
+
+    public static Intent createIntent(Context context) {
+        return new Intent(context, SettingsActivity.class);
+    }
+
+    public static Intent createIntent(Context context, boolean openPushConfig) {
+        Intent intent = createIntent(context);
+        intent.putExtra(EXTRA_OPEN_PUSH_CONFIG, openPushConfig);
+        return intent;
     }
 }
