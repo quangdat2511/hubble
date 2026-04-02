@@ -50,6 +50,7 @@ public class HomeFragment extends Fragment {
     private MainViewModel viewModel;
     private final List<ServerItem> currentServers = new ArrayList<>();
     private String pendingDmDisplayName;
+    private String pendingDmAvatarUrl;
 
     private final ActivityResultLauncher<Intent> createServerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -227,10 +228,14 @@ public class HomeFragment extends Fragment {
 
         conversationAdapter.setOnConversationClickListener(item -> {
             if (item.hasChannelId()) {
+                pendingDmDisplayName = null;
+                pendingDmAvatarUrl = null;
+                viewModel.consumeOpenDmState();
                 startActivity(DmChatActivity.createIntent(
                         requireContext(),
                         item.getChannelId(),
-                        item.getDisplayName()
+                        item.getDisplayName(),
+                        item.getAvatarUrl()
                 ));
                 return;
             }
@@ -241,6 +246,7 @@ public class HomeFragment extends Fragment {
                 return;
             }
             pendingDmDisplayName = item.getDisplayName();
+            pendingDmAvatarUrl = item.getAvatarUrl();
             viewModel.openOrCreateDirectChannel(friendId);
         });
 
@@ -255,9 +261,16 @@ public class HomeFragment extends Fragment {
                 startActivity(DmChatActivity.createIntent(
                         requireContext(),
                         result.getData().getId(),
-                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user)
+                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user),
+                        pendingDmAvatarUrl
                 ));
                 pendingDmDisplayName = null;
+                pendingDmAvatarUrl = null;
+                viewModel.consumeOpenDmState();
+                return;
+            }
+
+            if (result.getStatus() != AuthResult.Status.ERROR) {
                 viewModel.consumeOpenDmState();
                 return;
             }
@@ -265,12 +278,14 @@ public class HomeFragment extends Fragment {
             String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
             showMessage(error);
             pendingDmDisplayName = null;
+            pendingDmAvatarUrl = null;
             viewModel.consumeOpenDmState();
         });
 
         viewModel.errorMessage.observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.trim().isEmpty()) {
                 showMessage(message);
+                viewModel.consumeErrorMessage();
             }
         });
     }

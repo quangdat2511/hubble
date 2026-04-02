@@ -25,9 +25,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
+import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +38,7 @@ import java.util.List;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
+    private static final int TYPE_ME = 1;
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
@@ -171,13 +175,17 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public int getItemViewType(int position) {
-        return TYPE_OTHER;
+        DmMessageItem item = getItem(position);
+        return item != null && item.isMine() ? TYPE_ME : TYPE_OTHER;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        if (viewType == TYPE_ME) {
+            return new MeHolder(ItemDmMessageMeBinding.inflate(inflater, parent, false), onMessageLongClickListener);
+        }
         return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false), onMessageLongClickListener);
     }
 
@@ -187,8 +195,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
         boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
 
-        String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
-        ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
+        String avatarUrl = toAbsoluteUrl(item.isMine() ? currentUserAvatarUrl : peerAvatarUrl);
+        if (holder instanceof MeHolder) {
+            ((MeHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
+        } else if (holder instanceof OtherHolder) {
+            ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
+        }
     }
 
     private boolean shouldGroupWithPrevious(@Nullable DmMessageItem current, @Nullable DmMessageItem previous) {
@@ -210,6 +222,27 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static boolean safeEquals(@Nullable String a, @Nullable String b) {
         if (a == null) return b == null;
         return a.equals(b);
+    }
+
+    @Nullable
+    private static String toAbsoluteUrl(@Nullable String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmedUrl = url.trim();
+        if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+            return trimmedUrl.replace("localhost", "10.0.2.2");
+        }
+
+        String baseUrl = RetrofitClient.getBaseUrl();
+        if (baseUrl.endsWith("/") && trimmedUrl.startsWith("/")) {
+            return baseUrl.substring(0, baseUrl.length() - 1) + trimmedUrl;
+        }
+        if (!baseUrl.endsWith("/") && !trimmedUrl.startsWith("/")) {
+            return baseUrl + "/" + trimmedUrl;
+        }
+        return baseUrl + trimmedUrl;
     }
 
     @Override
@@ -442,6 +475,96 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
 
+    static class MeHolder extends RecyclerView.ViewHolder {
+        private final ItemDmMessageMeBinding b;
+        @Nullable
+        private final OnMessageLongClickListener onMessageLongClickListener;
+
+        MeHolder(ItemDmMessageMeBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
+            super(binding.getRoot());
+            this.b = binding;
+            this.onMessageLongClickListener = onMessageLongClickListener;
+        }
+
+        void bind(DmMessageItem item, boolean showAvatar, @Nullable String avatarUrl) {
+            b.ivAvatar.setVisibility(showAvatar ? View.VISIBLE : View.INVISIBLE);
+            int avatarSize = b.ivAvatar.getLayoutParams() != null ? b.ivAvatar.getLayoutParams().width : b.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(b.ivAvatar.getContext(), item.getSenderName(), avatarSize);
+
+            if (showAvatar) {
+                Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+                if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+                    b.ivAvatar.setImageDrawable(avatarFallback);
+                } else {
+                    b.ivAvatar.setImageDrawable(null);
+                    Glide.with(b.ivAvatar.getContext())
+                            .load(avatarUrl)
+                            .error(avatarFallback)
+                            .fallback(avatarFallback)
+                            .circleCrop()
+                            .into(b.ivAvatar);
+                }
+            } else {
+                Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+                b.ivAvatar.setImageDrawable(avatarFallback);
+            }
+
+            String content = item.getContent();
+
+            if (item.hasReply()) {
+                b.replyQuoteContainer.setVisibility(View.VISIBLE);
+                b.tvReplyQuoteSender.setText(item.getReplyToSenderName());
+                String replyContent = item.getReplyToContent();
+                if (isMedia(replyContent)) {
+                    String title = extractMediaTitle(replyContent);
+                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                } else {
+                    b.tvReplyQuoteContent.setText(replyContent);
+                }
+            } else {
+                b.replyQuoteContainer.setVisibility(View.GONE);
+            }
+
+            if (isMedia(content)) {
+                b.cardMine.setVisibility(View.GONE);
+                b.ivMedia.setVisibility(View.VISIBLE);
+                String url = extractMediaUrl(content);
+                Glide.with(b.ivMedia.getContext())
+                        .asGif()
+                        .load(url)
+                        .into(b.ivMedia);
+            } else {
+                b.cardMine.setVisibility(View.VISIBLE);
+                b.ivMedia.setVisibility(View.GONE);
+                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
+                if (item.isDeleted()) {
+                    b.tvMessage.setText("Tin nháº¯n Ä‘Ã£ Ä‘Æ°á»£c thu há»“i");
+                    b.tvEdited.setVisibility(View.GONE);
+                } else {
+                    if (content != null && !content.isEmpty()) {
+                        b.tvMessage.setVisibility(View.VISIBLE);
+                        b.tvMessage.setText(content);
+                    } else {
+                        b.tvMessage.setVisibility(View.GONE);
+                    }
+                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
+                }
+            }
+
+            b.tvTime.setText(item.getTimestamp());
+            loadAttachments(b.llAttachments, item.getAttachments());
+
+            b.getRoot().setOnLongClickListener(v -> {
+                if (onMessageLongClickListener != null) {
+                    onMessageLongClickListener.onMessageLongClick(item, v);
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
     static class OtherHolder extends RecyclerView.ViewHolder {
         private final ItemDmMessageOtherBinding b;
         @Nullable
@@ -457,6 +580,9 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
+            int avatarSize = b.ivAvatar.getLayoutParams() != null ? b.ivAvatar.getLayoutParams().width : b.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(b.ivAvatar.getContext(), item.getSenderName(), avatarSize);
 
             if (b.headerRow != null) {
                 b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
@@ -466,12 +592,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             if (showHeader) {
-                Glide.with(b.ivAvatar.getContext())
-                        .load(avatarUrl)
-                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .circleCrop()
-                        .into(b.ivAvatar);
+                Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+                if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+                    b.ivAvatar.setImageDrawable(avatarFallback);
+                } else {
+                    b.ivAvatar.setImageDrawable(null);
+                    Glide.with(b.ivAvatar.getContext())
+                            .load(avatarUrl)
+                            .error(avatarFallback)
+                            .fallback(avatarFallback)
+                            .circleCrop()
+                            .into(b.ivAvatar);
+                }
+            } else {
+                Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+                b.ivAvatar.setImageDrawable(avatarFallback);
             }
 
             try {
