@@ -5,10 +5,18 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
+    <FrameLayout
+        android:id="@+id/avatarFragmentContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="@dimen/spacing_md" />
+
     <TextView
         android:id="@+id/tvUsername"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:layout_marginBottom="@dimen/spacing_md"
         android:textAppearance="?attr/textAppearanceTitleMedium"
         android:textColor="?attr/colorOnSurface"

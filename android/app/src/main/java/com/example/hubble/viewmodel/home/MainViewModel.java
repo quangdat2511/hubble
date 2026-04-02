@@ -207,6 +207,10 @@ public class MainViewModel extends ViewModel {
         _openDmState.setValue(null);
     }
 
+    public void consumeErrorMessage() {
+        _errorMessage.setValue(null);
+    }
+
     public void setServers(List<ServerItem> servers) {
         List<ServerItem> updated = servers != null ? new ArrayList<>(servers) : new ArrayList<>();
         _servers.setValue(updated);
@@ -317,6 +321,7 @@ public class MainViewModel extends ViewModel {
             baseItem.getChannelId(),
             baseItem.getFriendId(),
             baseItem.getDisplayName(),
+            baseItem.getAvatarUrl(),
             baseItem.getLastMessage(),
             baseItem.getTimeLabel(),
             baseItem.isOnline(),
@@ -372,6 +377,11 @@ public class MainViewModel extends ViewModel {
                 channelId,
                 friendId,
                 displayName,
+                coalesce(
+                        channel != null ? channel.getPeerAvatarUrl() : null,
+                        friend != null ? friend.getAvatarUrl() : null,
+                        null
+                ),
                 "",
                 "",
                 "ONLINE".equalsIgnoreCase(peerStatus),
@@ -587,6 +597,7 @@ public class MainViewModel extends ViewModel {
                     seededItem.getChannelId(),
                     seededItem.getFriendId(),
                     seededItem.getDisplayName(),
+                    seededItem.getAvatarUrl(),
                     previewText,
                     timeLabel,
                     seededItem.isOnline(),
@@ -614,6 +625,7 @@ public class MainViewModel extends ViewModel {
                 currentItem.getChannelId(),
                 currentItem.getFriendId(),
                 currentItem.getDisplayName(),
+                currentItem.getAvatarUrl(),
                 previewText,
                 timeLabel,
                 currentItem.isOnline(),
@@ -708,6 +720,7 @@ public class MainViewModel extends ViewModel {
                             item.getChannelId(),
                             item.getFriendId(),
                             item.getDisplayName(),
+                            item.getAvatarUrl(),
                             previewText,
                             timeLabel,
                             item.isOnline(),
@@ -777,6 +790,7 @@ public class MainViewModel extends ViewModel {
                         item.getChannelId(),
                         item.getFriendId(),
                         item.getDisplayName(),
+                        item.getAvatarUrl(),
                         item.getLastMessage(),
                         item.getTimeLabel(),
                         item.isOnline(),

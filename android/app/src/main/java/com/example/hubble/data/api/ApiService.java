@@ -22,6 +22,7 @@ import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.data.model.dm.UploadResponse;
+import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
@@ -207,6 +208,24 @@ public interface ApiService {
     Call<ApiResponse<MessageDto>> unsendMessage(
             @Header("Authorization") String token,
             @Path("messageId") String messageId
+    );
+
+    @Multipart
+    @POST("api/users/me/avatar")
+    Call<ApiResponse<UserResponse>> uploadMyAvatar(
+            @Header("Authorization") String token,
+            @Part MultipartBody.Part file
+    );
+
+    @GET("api/users/me/avatar")
+    Call<ApiResponse<AvatarResponse>> getMyAvatar(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/{userId}/avatar")
+    Call<ApiResponse<AvatarResponse>> getUserAvatar(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
     );
 
     @PUT("api/users/me")

@@ -20,7 +20,7 @@ import com.example.hubble.databinding.FragmentUserProfileBinding;
 
 import java.util.Locale;
 
-public class UserProfileFragment extends Fragment {
+public class UserProfileFragment extends Fragment implements AvatarFragment.AvatarListener {
 
     private FragmentUserProfileBinding binding;
     private UserRepository userRepository;
@@ -45,6 +45,7 @@ public class UserProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         userRepository = new UserRepository(requireContext());
+        setupAvatarFragment();
         setupStatusDropdown();
         setEditMode(false);
         setupActions();
@@ -77,10 +78,24 @@ public class UserProfileFragment extends Fragment {
         userRepository.getProfile(result -> handleProfileResult(result, true));
     }
 
+    private void setupAvatarFragment() {
+        if (getChildFragmentManager().findFragmentById(R.id.avatarFragmentContainer) == null) {
+            getChildFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.avatarFragmentContainer, new AvatarFragment())
+                    .commit();
+        }
+    }
+
     private void populateUserInfo(@Nullable UserResponse user) {
         if (user == null) return;
 
         currentProfile = user;
+        AvatarFragment avatarFragment = (AvatarFragment) getChildFragmentManager()
+                .findFragmentById(R.id.avatarFragmentContainer);
+        if (avatarFragment != null) {
+            avatarFragment.renderUser(user);
+        }
         binding.tvUsername.setText(safe(user.getUsername()));
         binding.etDisplayName.setText(safe(user.getDisplayName()));
         binding.etPhone.setText(safe(user.getPhone()));
@@ -179,6 +194,11 @@ public class UserProfileFragment extends Fragment {
         if (loadingProfile) {
             populateUserInfo(userRepository.getCachedUser());
         }
+    }
+
+    @Override
+    public void onAvatarUpdated(@NonNull UserResponse updatedUser) {
+        populateUserInfo(updatedUser);
     }
 
     @Override

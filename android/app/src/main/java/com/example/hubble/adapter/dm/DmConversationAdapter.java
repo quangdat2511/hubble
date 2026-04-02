@@ -8,9 +8,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
 import com.example.hubble.databinding.ItemDmSectionHeaderBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.google.android.material.color.MaterialColors;
 
 import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
@@ -168,6 +171,21 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
                     ? MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurface)
                     : MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant));
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            item.getDisplayName(),
+                            avatarSize
+                    );
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(toAbsoluteUrl(item.getAvatarUrl()))
+                    .placeholder(avatarFallback)
+                    .error(avatarFallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {
@@ -225,6 +243,27 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             }
 
             return raw;
+        }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            if (url == null || url.trim().isEmpty()) {
+                return null;
+            }
+
+            String trimmedUrl = url.trim();
+            if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+                return trimmedUrl.replace("localhost", "10.0.2.2");
+            }
+
+            String baseUrl = RetrofitClient.getBaseUrl();
+            if (baseUrl.endsWith("/") && trimmedUrl.startsWith("/")) {
+                return baseUrl.substring(0, baseUrl.length() - 1) + trimmedUrl;
+            }
+            if (!baseUrl.endsWith("/") && !trimmedUrl.startsWith("/")) {
+                return baseUrl + "/" + trimmedUrl;
+            }
+            return baseUrl + trimmedUrl;
         }
     }
 

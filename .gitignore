@@ -44,6 +44,7 @@ nb-configuration.xml
 !.mvn/wrapper/maven-wrapper.properties
 backend/.m2repo/
 backend/.m2/
+backend/uploads/
 android/.gradle-home/
 android/.android-home/
 android/_tmp_stomp_src/

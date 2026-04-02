@@ -80,6 +80,11 @@ public enum ErrorCode {
     FILE_UPLOAD_FAILED(6001, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_FILE_TYPE(6002, "Invalid file type. Only image files are accepted (jpeg, png, gif, webp, svg)", HttpStatus.BAD_REQUEST),
 
+    // Avatar upload
+    INVALID_FILE(7001, "Invalid file", HttpStatus.BAD_REQUEST),
+    UNSUPPORTED_FILE_TYPE(7002, "Unsupported file type", HttpStatus.BAD_REQUEST),
+    AVATAR_NOT_FOUND(7003, "Avatar not found", HttpStatus.NOT_FOUND),
+
     INVALID_THEME(8001, "Invalid theme", HttpStatus.FORBIDDEN);
 
     final int code;

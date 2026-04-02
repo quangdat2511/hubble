@@ -6,6 +6,7 @@ public class DmConversationItem {
     private final String channelId;
     private final String friendId;
     private final String displayName;
+    private final String avatarUrl;
     private final String lastMessage;
     private final String timeLabel;
     private final boolean online;
@@ -19,6 +20,7 @@ public class DmConversationItem {
             String channelId,
             String friendId,
             String displayName,
+            String avatarUrl,
             String lastMessage,
             String timeLabel,
             boolean online,
@@ -31,6 +33,7 @@ public class DmConversationItem {
         this.channelId = channelId;
         this.friendId = friendId;
         this.displayName = displayName;
+        this.avatarUrl = avatarUrl;
         this.lastMessage = lastMessage;
         this.timeLabel = timeLabel;
         this.online = online;
@@ -58,6 +61,10 @@ public class DmConversationItem {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public String getLastMessage() {
