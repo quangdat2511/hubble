@@ -106,7 +106,7 @@ public class LanguageFragment extends Fragment {
 
         if (TextUtils.isEmpty(authHeader)) {
             applyLanguageIfNeeded(newLanguage);
-            finishWithSuccess();
+            refreshScreenWithSuccess();
             return;
         }
 
@@ -121,7 +121,7 @@ public class LanguageFragment extends Fragment {
                     Toast.makeText(requireContext(), R.string.settings_saved, Toast.LENGTH_SHORT).show();
                 }
                 applyLanguageIfNeeded(newLanguage);
-                finishWithSuccess();
+                refreshScreenWithSuccess();
             }
  
             @Override
@@ -170,13 +170,13 @@ public class LanguageFragment extends Fragment {
         AppLanguageManager.applyAppLanguage(languageCode);
     }
 
-    private void finishWithSuccess() {
+    private void refreshScreenWithSuccess() {
         Activity activity = getActivity();
         if (activity == null) {
             return;
         }
 
         activity.setResult(Activity.RESULT_OK);
-        activity.finish();
+        activity.recreate();
     }
 }
