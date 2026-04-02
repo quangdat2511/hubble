@@ -217,4 +217,13 @@ public interface ApiService {
     Call<ApiResponse<String>> getTheme(
             @Header("Authorization") String token
     );
+
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
 }

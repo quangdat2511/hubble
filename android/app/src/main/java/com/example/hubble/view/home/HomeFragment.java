@@ -228,7 +228,11 @@ public class HomeFragment extends Fragment {
 
         conversationAdapter.setOnConversationClickListener(item -> {
             if (item.hasChannelId()) {
-                startActivity(DmChatActivity.createIntent(requireContext(), item.getChannelId(), item.getDisplayName()));
+                startActivity(DmChatActivity.createIntent(
+                        requireContext(),
+                        item.getChannelId(),
+                        item.getDisplayName()
+                ));
                 return;
             }
 

@@ -8,6 +8,7 @@ import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 // Chú ý: Dùng duy nhất đường dẫn AuthResult chuẩn này
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
@@ -194,6 +195,57 @@ public class DmRepository {
             @Override
             public void onFailure(Call<ChannelDto> call, Throwable t) {
                 callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void getMyQrToken(RepositoryCallback<String> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.getMyQrToken(token).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error(
+                        extractErrorMessage(response, "Khong tai duoc ma QR")
+                ));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Loi mang: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void scanQrProfile(String qrToken, RepositoryCallback<UserResponse> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.scanQrProfile(token, qrToken).enqueue(new Callback<ApiResponse<UserResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<UserResponse>> call,
+                                   Response<ApiResponse<UserResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error(
+                        extractErrorMessage(response, "Khong tai duoc ho so tu QR")
+                ));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Loi mang: " + t.getMessage()));
             }
         });
     }

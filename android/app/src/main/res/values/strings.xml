@@ -105,6 +105,7 @@
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
+    <string name="me_qr_section_title">QR</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
     <string name="me_outgoing_requests">Lời mời đã gửi</string>
     <string name="me_blocked_users">Người dùng đã chặn</string>
@@ -485,4 +486,30 @@
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
     <string name="role_detail_delete">Xóa Vai Trò</string>
+
+    <!--    QR-->
+    <string name="me_qr_title">Mã QR hồ sơ</string>
+    <string name="me_qr_hint">Người khác có thể quét mã này để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_view_full">Mở QR toàn màn hình</string>
+    <string name="me_qr_unavailable">Không tạo được mã QR lúc này.</string>
+    <string name="me_qr_toolbar_title">QR của bạn</string>
+    <string name="me_qr_opening_hint">Chia sẻ mã này để người khác quét và thêm bạn nhanh hơn.</string>
+    <string name="me_qr_scan_title">Hồ sơ được quét</string>
+    <string name="me_qr_add_friend">Gửi lời mời kết bạn</string>
+    <string name="me_qr_request_sent">Đã gửi lời mời kết bạn.</string>
+    <string name="me_qr_loading">Đang tải hồ sơ từ QR...</string>
+    <string name="me_qr_invalid">QR không hợp lệ hoặc đã hết hạn.</string>
+    <string name="me_qr_empty">Chưa nhận được dữ liệu QR.</string>
+    <string name="me_qr_you">Đây là bạn</string>
+    <string name="me_qr_save_png">Lưu QR thành PNG</string>
+    <string name="me_qr_saved">Đã lưu mã QR: %1$s</string>
+    <string name="me_qr_save_failed">Không lưu được mã QR.</string>
+    <string name="me_qr_save_unavailable">QR chưa tải xong để lưu.</string>
+    <string name="me_qr_scan_button">Quét QR</string>
+    <string name="me_qr_hub_title">QR</string>
+    <string name="me_qr_hub_subtitle">Chọn cách bạn muốn dùng QR.</string>
+    <string name="me_qr_get_button">QR của tôi</string>
+    <string name="me_qr_get_hint">Hiển thị mã QR của bạn để người khác quét.</string>
+    <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
 </resources>

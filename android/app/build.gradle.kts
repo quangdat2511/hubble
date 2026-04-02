@@ -67,6 +67,8 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
     implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
