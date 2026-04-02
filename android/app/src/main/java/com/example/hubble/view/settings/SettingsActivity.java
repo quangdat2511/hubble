@@ -8,27 +8,27 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
-import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
-import com.example.hubble.viewmodel.SettingsViewModel;
-import com.example.hubble.viewmodel.SettingsViewModelFactory;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
-    private SettingsViewModel viewModel;
-
     private AuthViewModel authViewModel;
 
     @Override
-    protected View getRootView() { return binding.getRoot(); }
+    protected View getRootView() {
+        return binding.getRoot();
+    }
 
     @Override
-    protected View getProgressBar() { return binding.getRoot(); }
+    protected View getProgressBar() {
+        return binding.getRoot();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,9 +37,9 @@ public class SettingsActivity extends BaseAuthActivity {
         setContentView(binding.getRoot());
         applyEdgeToEdge(binding.getRoot());
 
-        viewModel = new ViewModelProvider(this,
-                new SettingsViewModelFactory(new SettingsRepository(this)))
-                .get(SettingsViewModel.class);
+        authViewModel = new ViewModelProvider(this,
+                new AuthViewModelFactory(new AuthRepository(this)))
+                .get(AuthViewModel.class);
 
         setupToolbar();
         setupRows();
@@ -58,12 +58,10 @@ public class SettingsActivity extends BaseAuthActivity {
 
         binding.rowLanguage.setOnClickListener(comingSoon);
         binding.rowNotifications.setOnClickListener(comingSoon);
-        binding.rowAppearance.setOnClickListener(comingSoon);
-
-        // Mở màn hình quản lý thiết bị/phiên đăng nhập
+        binding.rowAppearance.setOnClickListener(v ->
+                startActivity(new Intent(SettingsActivity.this, ThemeActivity.class)));
         binding.rowAdvanced.setOnClickListener(v ->
                 startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
-
         binding.rowSupport.setOnClickListener(comingSoon);
         binding.rowChangelog.setOnClickListener(comingSoon);
     }

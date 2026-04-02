@@ -6,10 +6,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Switch;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -19,16 +20,19 @@ import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
 import com.example.hubble.viewmodel.SettingsViewModelFactory;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.snackbar.Snackbar;
 
 public class ThemeFragment extends Fragment {
 
     private static final String TAG = "ThemeFragment";
 
-    private Switch switchTheme;
+    private MaterialCardView lightOption;
+    private MaterialCardView darkOption;
+    private ImageView lightSelectedIcon;
+    private ImageView darkSelectedIcon;
     private SettingsViewModel settingsViewModel;
     private String authHeader;
-    private boolean isProgrammaticSwitchChange;
 
     @Nullable
     @Override
@@ -41,7 +45,10 @@ public class ThemeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        switchTheme = view.findViewById(R.id.switchTheme);
+        lightOption = view.findViewById(R.id.optionLight);
+        darkOption = view.findViewById(R.id.optionDark);
+        lightSelectedIcon = view.findViewById(R.id.iconLightSelected);
+        darkSelectedIcon = view.findViewById(R.id.iconDarkSelected);
         settingsViewModel = new ViewModelProvider(
                 requireActivity(),
                 new SettingsViewModelFactory(new SettingsRepository(requireContext()))
@@ -53,12 +60,12 @@ public class ThemeFragment extends Fragment {
 
         String initialTheme = ThemeManager.getSavedTheme(requireContext());
         settingsViewModel.setCachedTheme(initialTheme);
-        applySwitchTheme(initialTheme);
-        setSwitchEnabled(!settingsViewModel.isThemeUpdateInProgress());
+        applyThemeSelection(initialTheme);
+        setOptionsEnabled(!settingsViewModel.isThemeUpdateInProgress());
 
         observeThemeState();
         observeThemeUpdateState();
-        setupSwitchListener();
+        setupOptionListeners();
         showPendingThemeErrorIfNeeded(view);
 
         Log.d(TAG, "Raw token = " + token);
@@ -99,17 +106,17 @@ public class ThemeFragment extends Fragment {
             }
 
             if (result.isLoading()) {
-                setSwitchEnabled(false);
+                setOptionsEnabled(false);
                 return;
             }
 
-            setSwitchEnabled(true);
+            setOptionsEnabled(true);
 
             if (result.isSuccess()) {
                 String updatedTheme = ThemeManager.normalizeTheme(result.getData());
                 Log.d(TAG, "updateTheme() succeeded with theme = " + updatedTheme);
                 settingsViewModel.setCachedTheme(updatedTheme);
-                applySwitchTheme(updatedTheme);
+                applyThemeSelection(updatedTheme);
                 settingsViewModel.clearPendingPreviousTheme();
             } else {
                 String fallbackTheme = settingsViewModel.getPendingPreviousTheme();
@@ -127,49 +134,66 @@ public class ThemeFragment extends Fragment {
         });
     }
 
-    private void setupSwitchListener() {
-        switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isProgrammaticSwitchChange) {
-                return;
-            }
+    private void setupOptionListeners() {
+        lightOption.setOnClickListener(v -> handleThemeSelection(ThemeManager.THEME_LIGHT));
+        darkOption.setOnClickListener(v -> handleThemeSelection(ThemeManager.THEME_DARK));
+    }
 
-            String previousTheme = settingsViewModel.getCachedTheme();
-            String newTheme = isChecked ? ThemeManager.THEME_DARK : ThemeManager.THEME_LIGHT;
-            if (newTheme.equals(previousTheme)) {
-                return;
-            }
+    private void handleThemeSelection(String newTheme) {
+        String previousTheme = settingsViewModel.getCachedTheme();
+        if (newTheme.equals(previousTheme)) {
+            return;
+        }
 
-            Log.d(TAG, "User toggled theme to " + newTheme);
-            settingsViewModel.markLocalOverride();
+        Log.d(TAG, "User selected theme " + newTheme);
+        settingsViewModel.markLocalOverride();
 
-            if (TextUtils.isEmpty(authHeader)) {
-                applyThemeLocally(newTheme);
-                return;
-            }
-
-            setSwitchEnabled(false);
-            settingsViewModel.updateTheme(authHeader, newTheme, previousTheme);
+        if (TextUtils.isEmpty(authHeader)) {
             applyThemeLocally(newTheme);
-        });
+            return;
+        }
+
+        setOptionsEnabled(false);
+        settingsViewModel.updateTheme(authHeader, newTheme, previousTheme);
+        applyThemeLocally(newTheme);
     }
 
     private void applyThemeLocally(String theme) {
         String normalizedTheme = ThemeManager.normalizeTheme(theme);
         settingsViewModel.setCachedTheme(normalizedTheme);
         ThemeManager.saveTheme(requireContext(), normalizedTheme);
-        applySwitchTheme(normalizedTheme);
+        applyThemeSelection(normalizedTheme);
     }
 
-    private void applySwitchTheme(String theme) {
-        boolean isDark = ThemeManager.THEME_DARK.equals(ThemeManager.normalizeTheme(theme));
-        isProgrammaticSwitchChange = true;
-        switchTheme.setChecked(isDark);
-        isProgrammaticSwitchChange = false;
+    private void applyThemeSelection(String theme) {
+        boolean isLight = ThemeManager.THEME_LIGHT.equals(ThemeManager.normalizeTheme(theme));
+        updateOptionAppearance(lightOption, lightSelectedIcon, isLight);
+        updateOptionAppearance(darkOption, darkSelectedIcon, !isLight);
     }
 
-    private void setSwitchEnabled(boolean isEnabled) {
-        switchTheme.setEnabled(isEnabled);
-        switchTheme.setAlpha(isEnabled ? 1f : 0.6f);
+    private void updateOptionAppearance(MaterialCardView option, ImageView selectedIcon, boolean isSelected) {
+        int strokeColor = ContextCompat.getColor(
+                requireContext(),
+                isSelected ? R.color.color_primary : R.color.color_divider
+        );
+        option.setStrokeColor(strokeColor);
+        option.setStrokeWidth(dpToPx(isSelected ? 2 : 1));
+        selectedIcon.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    private void setOptionsEnabled(boolean isEnabled) {
+        setOptionEnabled(lightOption, isEnabled);
+        setOptionEnabled(darkOption, isEnabled);
+    }
+
+    private void setOptionEnabled(MaterialCardView option, boolean isEnabled) {
+        option.setEnabled(isEnabled);
+        option.setClickable(isEnabled);
+        option.setAlpha(isEnabled ? 1f : 0.6f);
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private void showPendingThemeErrorIfNeeded(View view) {

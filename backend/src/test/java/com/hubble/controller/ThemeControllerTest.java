@@ -3,6 +3,7 @@ package com.hubble.controller;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.service.ThemeService;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class ThemeControllerTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private UserSessionRepository userSessionRepository;
+
     @Test
     void getTheme_Authenticated_ReturnsTheme() throws Exception {
         UUID userId = UUID.randomUUID();
@@ -79,10 +83,10 @@ class ThemeControllerTest {
         when(themeService.updateTheme(eq(userId), eq("system")))
                 .thenThrow(new AppException(ErrorCode.INVALID_THEME));
 
-        mockMvc.perform(put("/api/settings/theme")
+                mockMvc.perform(put("/api/settings/theme")
                         .principal(authentication)
                         .queryParam("theme", "system"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_THEME.getCode()));
     }
 }

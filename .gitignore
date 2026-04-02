@@ -5,6 +5,7 @@ target/
 *.war
 *.ear
 *.nar
+!android/gradle/wrapper/gradle-wrapper.jar
 
 # ==================== SPRING BOOT ====================
 spring-shell.log
@@ -41,7 +42,9 @@ nb-configuration.xml
 .mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
 backend/.m2repo/
+backend/.m2/
 android/.gradle-home/
+android/.android-home/
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm
