@@ -1,5 +1,6 @@
 package com.example.hubble.view.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -28,5 +29,14 @@ public class LanguageSettingsActivity extends BaseAuthActivity {
         applyEdgeToEdge(binding.getRoot());
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+    }
+
+    public void relaunchForLocaleChange() {
+        Intent intent = new Intent(this, LanguageSettingsActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+        intent.putExtras(getIntent());
+        startActivity(intent);
+        finish();
+        overridePendingTransition(0, 0);
     }
 }

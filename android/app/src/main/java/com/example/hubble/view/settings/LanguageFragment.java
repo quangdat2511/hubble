@@ -177,6 +177,11 @@ public class LanguageFragment extends Fragment {
         }
 
         activity.setResult(Activity.RESULT_OK);
+        if (activity instanceof LanguageSettingsActivity) {
+            ((LanguageSettingsActivity) activity).relaunchForLocaleChange();
+            return;
+        }
+
         activity.recreate();
     }
 }
