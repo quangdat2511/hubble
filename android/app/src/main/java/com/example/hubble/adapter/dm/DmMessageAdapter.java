@@ -27,7 +27,6 @@ import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
-import com.example.hubble.databinding.ItemDmMessageMeBinding;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
 
 import java.io.IOException;
@@ -39,8 +38,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
-    private static final int TYPE_ME = 1;
     private static final int TYPE_OTHER = 2;
+    private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
     private final List<DmMessageItem> items = new ArrayList<>();
 
@@ -179,9 +178,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == TYPE_ME) {
-            return new MeHolder(ItemDmMessageMeBinding.inflate(inflater, parent, false), onMessageLongClickListener);
-        }
         return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false), onMessageLongClickListener);
     }
 
@@ -189,16 +185,26 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         DmMessageItem item = items.get(position);
         DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
-        boolean sameSenderAsPrevious = previous != null
-                && previous.isMine() == item.isMine()
-                && safeEquals(previous.getSenderName(), item.getSenderName());
+        boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
 
-        if (holder instanceof MeHolder) {
-            ((MeHolder) holder).bind(item);
-        } else {
-            String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
-            ((OtherHolder) holder).bind(item, !sameSenderAsPrevious, avatarUrl);
-        }
+        String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
+        ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
+    }
+
+    private boolean shouldGroupWithPrevious(@Nullable DmMessageItem current, @Nullable DmMessageItem previous) {
+        if (current == null || previous == null) return false;
+        if (!isGroupableUserMessage(current) || !isGroupableUserMessage(previous)) return false;
+        if (current.isMine() != previous.isMine()) return false;
+        if (!safeEquals(current.getSenderName(), previous.getSenderName())) return false;
+
+        long currentTime = current.getCreatedAtMillis();
+        long previousTime = previous.getCreatedAtMillis();
+        if (currentTime < 0 || previousTime < 0 || currentTime < previousTime) return false;
+        return currentTime - previousTime <= GROUPING_TIME_THRESHOLD_MILLIS;
+    }
+
+    private boolean isGroupableUserMessage(@Nullable DmMessageItem item) {
+        return item != null && !item.isDeleted() && !item.isSystemMessage();
     }
 
     private static boolean safeEquals(@Nullable String a, @Nullable String b) {
@@ -436,73 +442,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             e.printStackTrace();
             String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);
             Toast.makeText(context, context.getString(R.string.dm_download_error, message), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    static class MeHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageMeBinding b;
-        @Nullable
-        private final OnMessageLongClickListener onMessageLongClickListener;
-
-        MeHolder(ItemDmMessageMeBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
-            super(binding.getRoot());
-            this.b = binding;
-            this.onMessageLongClickListener = onMessageLongClickListener;
-        }
-
-        void bind(DmMessageItem item) {
-            b.tvTime.setText(item.getTimestamp());
-            String content = item.getContent();
-
-            if (item.hasReply()) {
-                b.replyQuoteContainer.setVisibility(View.VISIBLE);
-                b.tvReplyQuoteSender.setText(item.getReplyToSenderName());
-                String replyContent = item.getReplyToContent();
-                if (isMedia(replyContent)) {
-                    String title = extractMediaTitle(replyContent);
-                    b.tvReplyQuoteContent.setText(title != null ? title : b.getRoot().getContext().getString(R.string.dm_reply_media));
-                } else {
-                    b.tvReplyQuoteContent.setText(replyContent);
-                }
-            } else {
-                b.replyQuoteContainer.setVisibility(View.GONE);
-            }
-
-            if (isMedia(content)) {
-                b.cardMine.setVisibility(View.GONE);
-                b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
-                Glide.with(b.ivMedia.getContext())
-                        .asGif()
-                        .load(url)
-                        .into(b.ivMedia);
-            } else {
-                b.cardMine.setVisibility(View.VISIBLE);
-                b.ivMedia.setVisibility(View.GONE);
-                Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
-                if (item.isDeleted()) {
-                    b.tvMessage.setText(R.string.dm_deleted_message);
-                    b.tvEdited.setVisibility(View.GONE);
-                } else {
-                    if (content != null && !content.isEmpty()) {
-                        b.tvMessage.setVisibility(View.VISIBLE);
-                        b.tvMessage.setText(content);
-                    } else {
-                        b.tvMessage.setVisibility(View.GONE);
-                    }
-                    b.tvEdited.setVisibility(item.isEdited() ? View.VISIBLE : View.GONE);
-                }
-            }
-
-            loadAttachments(b.llAttachments, item.getAttachments());
-
-            b.getRoot().setOnLongClickListener(v -> {
-                if (onMessageLongClickListener != null) {
-                    onMessageLongClickListener.onMessageLongClick(item, v);
-                    return true;
-                }
-                return false;
-            });
         }
     }
 

@@ -57,6 +57,7 @@ public class RetrofitClient {
             retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .client(okHttpClient)
+                    .addConverterFactory(new NullOnEmptyConverterFactory())
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
@@ -69,6 +70,18 @@ public class RetrofitClient {
 
     public static ServerService getServerService(Context context) {
         return getRetrofit(context).create(ServerService.class);
+    }
+
+    public static ServerMemberService getServerMemberService(Context context) {
+        return getRetrofit(context).create(ServerMemberService.class);
+    }
+
+    public static ServerInviteService getServerInviteService(Context context) {
+        return getRetrofit(context).create(ServerInviteService.class);
+    }
+
+    public static RoleApiService getRoleApiService(Context context) {
+        return getRetrofit(context).create(RoleApiService.class);
     }
 
     private static Dns createDnsWithRailwayFallback() {

@@ -1,5 +1,6 @@
 package com.example.hubble.view.settings;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -12,24 +13,17 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.os.ConfigurationCompat;
-import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.repository.SettingsRepository;
+import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
 import com.example.hubble.viewmodel.SettingsViewModelFactory;
 
-import java.util.Locale;
-
 public class LanguageFragment extends Fragment {
-
-    private static final String LANGUAGE_ENGLISH = "en";
-    private static final String LANGUAGE_VIETNAMESE = "vi";
 
     private RadioGroup languageGroup;
     private RadioButton radioEnglish;
@@ -37,7 +31,7 @@ public class LanguageFragment extends Fragment {
     private TextView tvLanguageStatus;
     private SettingsViewModel settingsViewModel;
     private String authHeader;
-    private String selectedLanguage = LANGUAGE_VIETNAMESE;
+    private String selectedLanguage = AppLanguageManager.DEFAULT_LANGUAGE;
     private String pendingLanguageChange;
     private boolean isBinding = false;
 
@@ -63,7 +57,7 @@ public class LanguageFragment extends Fragment {
             authHeader = "Bearer " + token;
         }
 
-        bindLanguage(getCurrentLanguageCode(), false);
+        bindLanguage(AppLanguageManager.getCurrentLanguage(requireContext()), false);
         languageGroup.setOnCheckedChangeListener(this::onLanguageChecked);
 
         if (!TextUtils.isEmpty(authHeader)) {
@@ -72,7 +66,7 @@ public class LanguageFragment extends Fragment {
                     return;
                 }
 
-                String normalizedLanguage = normalizeLanguage(language);
+                String normalizedLanguage = AppLanguageManager.normalize(language);
                 if (!TextUtils.isEmpty(pendingLanguageChange)) {
                     if (pendingLanguageChange.equals(normalizedLanguage)) {
                         pendingLanguageChange = null;
@@ -95,8 +89,8 @@ public class LanguageFragment extends Fragment {
         }
 
         String newLanguage = checkedId == R.id.radioEnglish
-                ? LANGUAGE_ENGLISH
-                : LANGUAGE_VIETNAMESE;
+                ? AppLanguageManager.LANGUAGE_ENGLISH
+                : AppLanguageManager.LANGUAGE_VIETNAMESE;
 
         if (newLanguage.equals(selectedLanguage)) {
             return;
@@ -107,6 +101,7 @@ public class LanguageFragment extends Fragment {
 
         if (TextUtils.isEmpty(authHeader)) {
             applyLanguageIfNeeded(newLanguage);
+            finishWithSuccess();
             return;
         }
 
@@ -117,10 +112,11 @@ public class LanguageFragment extends Fragment {
             public void onSuccess() {
                 pendingLanguageChange = null;
                 setLanguageSelectionEnabled(true);
-                applyLanguageIfNeeded(newLanguage);
                 if (isAdded()) {
                     Toast.makeText(requireContext(), R.string.settings_saved, Toast.LENGTH_SHORT).show();
                 }
+                applyLanguageIfNeeded(newLanguage);
+                finishWithSuccess();
             }
  
             @Override
@@ -136,11 +132,11 @@ public class LanguageFragment extends Fragment {
     }
 
     private void bindLanguage(String languageCode, boolean applyLocale) {
-        selectedLanguage = normalizeLanguage(languageCode);
+        selectedLanguage = AppLanguageManager.normalize(languageCode);
 
         isBinding = true;
-        radioEnglish.setChecked(LANGUAGE_ENGLISH.equals(selectedLanguage));
-        radioVietnamese.setChecked(LANGUAGE_VIETNAMESE.equals(selectedLanguage));
+        radioEnglish.setChecked(AppLanguageManager.LANGUAGE_ENGLISH.equals(selectedLanguage));
+        radioVietnamese.setChecked(AppLanguageManager.LANGUAGE_VIETNAMESE.equals(selectedLanguage));
         updateLanguageLabel(selectedLanguage);
         isBinding = false;
 
@@ -150,7 +146,7 @@ public class LanguageFragment extends Fragment {
     }
 
     private void updateLanguageLabel(String languageCode) {
-        tvLanguageStatus.setText(LANGUAGE_VIETNAMESE.equals(languageCode)
+        tvLanguageStatus.setText(AppLanguageManager.LANGUAGE_VIETNAMESE.equals(languageCode)
                 ? getString(R.string.language_current_vi)
                 : getString(R.string.language_current_en));
     }
@@ -161,33 +157,21 @@ public class LanguageFragment extends Fragment {
     }
 
     private void applyLanguageIfNeeded(String languageCode) {
-        String currentLanguage = getCurrentLanguageCode();
+        String currentLanguage = AppLanguageManager.getCurrentLanguage(requireContext());
         if (languageCode.equals(currentLanguage)) {
             return;
         }
 
-        LocaleListCompat appLocale = LocaleListCompat.forLanguageTags(languageCode);
-        AppCompatDelegate.setApplicationLocales(appLocale);
+        AppLanguageManager.applyAppLanguage(languageCode);
     }
 
-    private String getCurrentLanguageCode() {
-        LocaleListCompat appLocales = AppCompatDelegate.getApplicationLocales();
-        if (!appLocales.isEmpty() && appLocales.get(0) != null) {
-            return normalizeLanguage(appLocales.get(0).getLanguage());
+    private void finishWithSuccess() {
+        Activity activity = getActivity();
+        if (activity == null) {
+            return;
         }
 
-        Locale currentLocale = ConfigurationCompat.getLocales(getResources().getConfiguration()).get(0);
-        return currentLocale != null
-                ? normalizeLanguage(currentLocale.getLanguage())
-                : LANGUAGE_VIETNAMESE;
-    }
-
-    private String normalizeLanguage(String languageCode) {
-        if (languageCode == null) {
-            return LANGUAGE_VIETNAMESE;
-        }
-
-        String normalized = languageCode.trim().toLowerCase(Locale.ROOT);
-        return LANGUAGE_ENGLISH.equals(normalized) ? LANGUAGE_ENGLISH : LANGUAGE_VIETNAMESE;
+        activity.setResult(Activity.RESULT_OK);
+        activity.finish();
     }
 }

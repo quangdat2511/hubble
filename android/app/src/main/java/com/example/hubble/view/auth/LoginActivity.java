@@ -55,6 +55,7 @@ public class LoginActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         authViewModel = new ViewModelProvider(this,
                 new AuthViewModelFactory(new AuthRepository(this)))

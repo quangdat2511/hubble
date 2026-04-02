@@ -2,7 +2,6 @@ package com.example.hubble.view.home;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,17 +21,17 @@ import com.example.hubble.adapter.dm.DmConversationAdapter;
 import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
-import com.example.hubble.data.model.dm.DmConversationItem;
-import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
-import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
-//import com.example.hubble.view.dm.DmChatActivity;
+import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
+import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
+import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -74,8 +73,8 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(
-            requireActivity(),
-            new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
+                requireActivity(),
+                new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
         ).get(MainViewModel.class);
 
         setupServerSidebar(viewModel);
@@ -84,6 +83,15 @@ public class HomeFragment extends Fragment {
         setupConversations(viewModel);
         setupActions(view);
         viewModel.refreshDirectMessages();
+
+        viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
+            if (serverName != null) {
+                Snackbar.make(requireView(),
+                        "Báº¡n Ä‘Ã£ bá»‹ xÃ³a khá»i \"" + serverName + "\"",
+                        Snackbar.LENGTH_LONG).show();
+                viewModel.consumeKickedFromServer();
+            }
+        });
     }
 
     @Override
@@ -124,12 +132,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateDmButtonState(boolean isActive) {
+        binding.viewDmActiveIndicator.setVisibility(isActive ? View.VISIBLE : View.GONE);
+
+        int color = isActive
+                ? ContextCompat.getColor(requireContext(), R.color.color_primary)
+                : ContextCompat.getColor(requireContext(), R.color.color_text_secondary);
+        binding.btnDmView.setIconTint(ColorStateList.valueOf(color));
+
         if (isActive) {
-            int color = ContextCompat.getColor(requireContext(), R.color.color_primary);
-            binding.btnDmView.setIconTint(ColorStateList.valueOf(color));
             serverAdapter.setSelectedPosition(-1);
-        } else {
-            binding.btnDmView.setIconTint(ColorStateList.valueOf(Color.GRAY));
         }
     }
 
@@ -149,17 +160,16 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-            channel -> {
-                // TODO: Open channel chat activity
-                showMessage(getString(R.string.home_open_channel, channel.getName()));
-            },
-            categoryId -> viewModel.toggleCategoryCollapse(categoryId)
+                channel -> {
+                    // TODO: Open channel chat activity
+                    showMessage(getString(R.string.home_open_channel, channel.getName()));
+                },
+                viewModel::toggleCategoryCollapse
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvServerChannels.setAdapter(serverChannelAdapter);
 
-        // Panel switching based on selected server
         viewModel.selectedServer.observe(getViewLifecycleOwner(), server -> {
             if (server != null) {
                 binding.layoutDmPanel.setVisibility(View.GONE);
@@ -172,12 +182,16 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Update channel list
-        viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
-            if (result == null || result.getStatus() == AuthResult.Status.LOADING) {
-                return;
+        binding.layoutServerHeader.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                ServerProfileBottomSheet sheet = ServerProfileBottomSheet.newInstance(server, 0, 0);
+                sheet.show(getParentFragmentManager(), "ServerProfile");
             }
+        });
 
+        viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 serverChannelAdapter.submitChannels(result.getData(), viewModel.getCollapsedCategories());
                 return;
@@ -215,10 +229,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        conversationAdapter.setOnConversationClickListener(item -> {
-            openConversation(item);
-        });
-
+        conversationAdapter.setOnConversationClickListener(this::openConversation);
         conversationAdapter.setOnConversationLongClickListener(this::showConversationActionsSheet);
 
         viewModel.openDmState.observe(getViewLifecycleOwner(), result -> {

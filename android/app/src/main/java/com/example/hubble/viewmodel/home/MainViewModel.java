@@ -18,6 +18,11 @@ import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.google.gson.Gson;
+import com.example.hubble.data.ws.ServerEventWebSocketManager;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -89,10 +95,16 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> _errorMessage = new MutableLiveData<>();
     public final LiveData<String> errorMessage = _errorMessage;
 
+    private final MutableLiveData<String> _kickedFromServer = new MutableLiveData<>();
+    public final LiveData<String> kickedFromServer = _kickedFromServer;
+
     private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
     public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
 
     private final Set<String> collapsedCategories = new HashSet<>();
+    private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
+    private final CompositeDisposable wsDisposables = new CompositeDisposable();
+    private volatile String activeServerId;
 
     public MainViewModel(Context appContext, DmRepository dmRepository, ServerRepository serverRepository) {
         this.appContext = appContext.getApplicationContext();
@@ -101,21 +113,79 @@ public class MainViewModel extends ViewModel {
         this.currentUserId = dmRepository.getCurrentUserId();
         _servers.setValue(new ArrayList<>());
         _selectedServer.setValue(null);
+        observeServerEvents();
         refreshServers();
         refreshDirectMessages();
     }
+
+    private void observeServerEvents() {
+        wsDisposables.add(
+            ServerEventWebSocketManager.getInstance().getEvents()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    switch (event.getType() != null ? event.getType() : "") {
+                        case "KICKED":
+                            removeServerById(event.getServerId());
+                            _kickedFromServer.setValue(event.getServerName());
+                            break;
+                        case "SERVER_ADDED":
+                        case "SERVER_JOINED":
+                        case "SERVER_UPDATED":
+                            refreshServers();
+                            break;
+                        case "SERVER_DELETED":
+                            removeServerById(event.getServerId());
+                            break;
+                        default:
+                            break;
+                    }
+                }, throwable -> {})
+        );
+    }
+
+    public void removeServerById(String serverId) {
+        List<ServerItem> current = _servers.getValue();
+        if (current == null || serverId == null) return;
+        List<ServerItem> updated = new ArrayList<>();
+        for (ServerItem item : current) {
+            if (!serverId.equals(item.getId())) updated.add(item);
+        }
+        setServers(updated);
+    }
+
+    public void consumeKickedFromServer() {
+        _kickedFromServer.setValue(null);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
 
     public void refreshServers() {
         serverRepository.getMyServers(result -> {
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 setServers(result.getData());
+                prefetchAllServerChannels(result.getData());
                 return;
             }
-
             if (result.getStatus() == AuthResult.Status.ERROR) {
                 _errorMessage.postValue(result.getMessage());
             }
         });
+    }
+
+    private void prefetchAllServerChannels(List<ServerItem> servers) {
+        for (ServerItem server : servers) {
+            String serverId = server.getId();
+            if (serverId == null) continue;
+            serverRepository.getServerChannels(serverId, result -> {
+                if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                    channelCache.put(serverId, result.getData());
+                    if (serverId.equals(activeServerId)) {
+                        _serverChannels.postValue(AuthResult.success(result.getData()));
+                    }
+                }
+            });
+        }
     }
 
     public void openOrCreateDirectChannel(String friendId) {
@@ -147,16 +217,21 @@ public class MainViewModel extends ViewModel {
         }
 
         ServerItem current = _selectedServer.getValue();
-        if (current != null) {
-            for (ServerItem item : updated) {
-                if (item.getId() != null && item.getId().equals(current.getId())) {
-                    selectServer(item);
-                    return;
-                }
+        if (current == null) {
+            // User is on the DM panel; preserve that choice — do not auto-select any server.
+            return;
+        }
+
+        // Re-select the same server with fresh data if it still exists.
+        for (ServerItem item : updated) {
+            if (item.getId() != null && item.getId().equals(current.getId())) {
+                selectServer(item);
+                return;
             }
         }
 
-        selectServer(updated.get(0));
+        // Previously-selected server was removed; fall back to the DM panel.
+        _selectedServer.setValue(null);
     }
 
     public void selectServer(ServerItem server) {
@@ -842,24 +917,30 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        _serverChannels.postValue(AuthResult.loading());
+        activeServerId = serverId;
+
+        List<ChannelDto> cached = channelCache.get(serverId);
+        if (cached != null) {
+            _serverChannels.postValue(AuthResult.success(cached));
+        }
+
         serverRepository.getServerChannels(serverId, result -> {
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                _serverChannels.postValue(AuthResult.success(result.getData()));
+                channelCache.put(serverId, result.getData());
+                if (serverId.equals(activeServerId)) {
+                    _serverChannels.postValue(AuthResult.success(result.getData()));
+                }
                 return;
             }
-
-            if (result.getStatus() == AuthResult.Status.ERROR) {
+            if (result.getStatus() == AuthResult.Status.ERROR && cached == null
+                    && serverId.equals(activeServerId)) {
                 _serverChannels.postValue(AuthResult.error(result.getMessage()));
             }
         });
     }
 
     public void toggleCategoryCollapse(String categoryId) {
-        if (categoryId == null) {
-            return;
-        }
-
+        if (categoryId == null) return;
         if (collapsedCategories.contains(categoryId)) {
             collapsedCategories.remove(categoryId);
         } else {

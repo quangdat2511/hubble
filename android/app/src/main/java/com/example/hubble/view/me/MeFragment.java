@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -22,6 +24,12 @@ import com.google.android.material.snackbar.Snackbar;
 public class MeFragment extends Fragment {
 
     private FragmentMeBinding binding;
+    private final ActivityResultLauncher<Intent> settingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == android.app.Activity.RESULT_OK && isAdded()) {
+                    requireActivity().recreate();
+                }
+            });
 
     @Nullable
     @Override
@@ -37,7 +45,7 @@ public class MeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         binding.btnSettings.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), SettingsActivity.class)));
+                settingsLauncher.launch(new Intent(requireContext(), SettingsActivity.class)));
 
         binding.btnLogout.setOnClickListener(v -> logout());
 

@@ -25,6 +25,7 @@ public class LanguageSettingsActivity extends BaseAuthActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityLanguageSettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        applyEdgeToEdge(binding.getRoot());
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
     }
