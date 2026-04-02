@@ -228,11 +228,7 @@ public class HomeFragment extends Fragment {
 
         conversationAdapter.setOnConversationClickListener(item -> {
             if (item.hasChannelId()) {
-                startActivity(DmChatActivity.createIntent(
-                        requireContext(),
-                        item.getChannelId(),
-                        item.getDisplayName()
-                ));
+                openDmChat(item.getChannelId(), item.getDisplayName());
                 return;
             }
 
@@ -253,11 +249,10 @@ public class HomeFragment extends Fragment {
             }
 
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                startActivity(DmChatActivity.createIntent(
-                        requireContext(),
+                openDmChat(
                         result.getData().getId(),
                         pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user)
-                ));
+                );
                 pendingDmDisplayName = null;
                 viewModel.consumeOpenDmState();
                 return;
@@ -347,6 +342,20 @@ public class HomeFragment extends Fragment {
             return;
         }
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void openDmChat(@Nullable String channelId, @Nullable String displayName) {
+        if (channelId == null || channelId.trim().isEmpty()) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        String safeDisplayName = displayName;
+        if (safeDisplayName == null || safeDisplayName.trim().isEmpty()) {
+            safeDisplayName = getString(R.string.dm_default_user);
+        }
+
+        startActivity(DmChatActivity.createIntent(requireContext(), channelId, safeDisplayName));
     }
 
     @Override

@@ -45,6 +45,8 @@ backend/.m2repo/
 backend/.m2/
 android/.gradle-home/
 android/.android-home/
+android/_tmp_stomp_src/
+_tmp_access_token.txt
 
 # ==================== SECRETS & CONFIG ====================
 # Không commit file chứa thông tin nhạy cảm

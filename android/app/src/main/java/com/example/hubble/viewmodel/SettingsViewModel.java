@@ -5,14 +5,28 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
-
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.PushConfigResponse;
+import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
 
 public class SettingsViewModel extends ViewModel {
 
-    private final SettingsRepository repository;
+    private final AuthRepository authRepository;
+    private final SettingsRepository settingsRepository;
+    private final PushConfigRepository pushConfigRepository;
+
+    private final MutableLiveData<AuthResult<PushConfigResponse>> pushConfigStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<PushConfigResponse>> pushConfigState = pushConfigStateMutable;
+
+    private final MutableLiveData<AuthResult<PushConfigResponse>> pushConfigSaveStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<PushConfigResponse>> pushConfigSaveState = pushConfigSaveStateMutable;
+
+    private final MutableLiveData<PushConfigResponse> currentPushConfigMutable = new MutableLiveData<>();
+    public final LiveData<PushConfigResponse> currentPushConfig = currentPushConfigMutable;
+
     private final MutableLiveData<AuthResult<String>> themeState = new MutableLiveData<>();
     private final MutableLiveData<AuthResult<String>> themeUpdateState = new MutableLiveData<>();
 
@@ -26,14 +40,22 @@ public class SettingsViewModel extends ViewModel {
     private String pendingThemeErrorMessage;
     private boolean localOverrideSinceFetch;
 
-    public SettingsViewModel(SettingsRepository repository) {
-        this.repository = repository;
+    public SettingsViewModel(AuthRepository authRepository,
+                             SettingsRepository settingsRepository,
+                             PushConfigRepository pushConfigRepository) {
+        this.authRepository = authRepository;
+        this.settingsRepository = settingsRepository;
+        this.pushConfigRepository = pushConfigRepository;
+    }
+
+    public void logout() {
+        authRepository.logout();
     }
 
     public LiveData<AuthResult<String>> getTheme(String authHeader) {
         detachThemeSource();
         localOverrideSinceFetch = false;
-        themeSource = repository.getTheme(authHeader);
+        themeSource = settingsRepository.getTheme(authHeader);
         themeObserver = result -> {
             themeState.postValue(result);
             if (result != null && !result.isLoading()) {
@@ -50,7 +72,7 @@ public class SettingsViewModel extends ViewModel {
         cachedTheme = ThemeManager.normalizeTheme(theme);
         localOverrideSinceFetch = true;
 
-        themeUpdateSource = repository.updateTheme(authHeader, theme);
+        themeUpdateSource = settingsRepository.updateTheme(authHeader, theme);
         themeUpdateObserver = result -> {
             themeUpdateState.postValue(result);
             if (result != null && !result.isLoading()) {
@@ -114,6 +136,36 @@ public class SettingsViewModel extends ViewModel {
 
     public void clearThemeUpdateState() {
         themeUpdateState.setValue(null);
+    }
+
+    public void loadPushConfig() {
+        pushConfigRepository.getPushConfig(result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentPushConfigMutable.setValue(result.getData());
+            }
+            pushConfigStateMutable.setValue(result);
+        });
+    }
+
+    public void updatePushConfig(boolean notificationEnabled, boolean notificationSound) {
+        pushConfigRepository.updatePushConfig(notificationEnabled, notificationSound, result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentPushConfigMutable.setValue(result.getData());
+            }
+            pushConfigSaveStateMutable.setValue(result);
+        });
+    }
+
+    public PushConfigResponse getCurrentPushConfigValue() {
+        return currentPushConfigMutable.getValue();
+    }
+
+    public void resetPushConfigState() {
+        pushConfigStateMutable.setValue(null);
+    }
+
+    public void resetPushConfigSaveState() {
+        pushConfigSaveStateMutable.setValue(null);
     }
 
     @Override

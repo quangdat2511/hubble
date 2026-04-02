@@ -8,18 +8,23 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentMeBinding;
 import com.example.hubble.view.friend.BlockedUsersActivity;
 import com.example.hubble.view.friend.OutgoingRequestsActivity;
 import com.example.hubble.view.settings.SettingsActivity;
+import com.example.hubble.viewmodel.AuthViewModel;
+import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.android.material.snackbar.Snackbar;
-import androidx.fragment.app.Fragment;
 
 public class MeFragment extends Fragment {
 
     private FragmentMeBinding binding;
+    private AuthViewModel authViewModel;
 
     @Nullable
     @Override
@@ -33,6 +38,10 @@ public class MeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        authViewModel = new ViewModelProvider(requireActivity(),
+                new AuthViewModelFactory(new AuthRepository(requireContext())))
+                .get(AuthViewModel.class);
 
         binding.btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), SettingsActivity.class)));

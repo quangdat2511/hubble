@@ -27,17 +27,50 @@ public class UserSettings {
     @Column(name = "user_id")
     private UUID userId;
 
+    @Column(name = "theme")
     private String theme;
+
+    @Column(name = "locale")
     private String locale;
+
+    @Column(name = "app_lock_pin")
     private String appLockPin;
 
+    @Column(name = "notification_enabled")
     private Boolean notificationEnabled;
+
+    @Column(name = "notification_sound")
     private Boolean notificationSound;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
+    protected void onCreate() {
+        normalizeTheme();
+        if (theme == null) {
+            theme = "DARK";
+        }
+        if (locale == null) {
+            locale = "vi";
+        }
+        if (notificationEnabled == null) {
+            notificationEnabled = true;
+        }
+        if (notificationSound == null) {
+            notificationSound = true;
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+    }
+
     @PreUpdate
+    protected void onUpdate() {
+        normalizeTheme();
+        updatedAt = LocalDateTime.now();
+    }
+
     void normalizeTheme() {
         if (theme != null) {
             theme = theme.trim().toUpperCase(Locale.ROOT);

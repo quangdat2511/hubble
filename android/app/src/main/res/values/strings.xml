@@ -250,6 +250,16 @@
     <string name="save">Lưu</string>
     <string name="cancel">Hủy</string>
 
+    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
+    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
+    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
+    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
+    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
+    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
+    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
+    <string name="settings_notifications_status_off">Thông báo đang tắt</string>
+    <string name="settings_notifications_status_on_silent">Đang bật, không âm thanh</string>
+    <string name="settings_notifications_status_on_sound">Đang bật, có âm thanh</string>
     <!-- Server Settings -->
     <string name="server_settings_title">Cài đặt máy chủ</string>
     <string name="server_settings_section_overview">TỔNG QUAN</string>

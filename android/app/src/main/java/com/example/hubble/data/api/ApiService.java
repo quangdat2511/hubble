@@ -1,6 +1,5 @@
 package com.example.hubble.data.api;
 
-import okhttp3.MultipartBody;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
@@ -21,13 +20,13 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
-import com.example.hubble.data.model.dm.UploadResponse;
-
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.PushConfigRequest;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 
-import java.util.List;
-
+import okhttp3.MultipartBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -143,10 +142,24 @@ public interface ApiService {
     );
 
     @POST("/api/friends/requests/{userId}")
-    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(@Header("Authorization") String token, @Path("userId") String userId);
+    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
+
+    @GET("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> getPushConfig(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> updatePushConfig(
+            @Header("Authorization") String token,
+            @Body PushConfigRequest request
+    );
 
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
@@ -206,7 +219,6 @@ public interface ApiService {
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
     );
-
     @PUT("api/settings/theme")
     Call<ApiResponse<String>> updateTheme(
             @Header("Authorization") String token,

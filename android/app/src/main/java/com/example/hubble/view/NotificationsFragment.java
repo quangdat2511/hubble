@@ -13,12 +13,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
 import com.example.hubble.adapter.server.PendingInviteAdapter;
-import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerInviteRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.FragmentNotificationsBinding;
+import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.viewmodel.server.ServerInviteViewModel;
@@ -59,8 +59,7 @@ public class NotificationsFragment extends Fragment {
 
         // More options button (existing)
         binding.btnNotificationsMore.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
+                startActivity(SettingsActivity.createIntent(requireContext(), true)));
 
         // Pending invites RecyclerView
         adapter = new PendingInviteAdapter(new PendingInviteAdapter.OnInviteActionListener() {
