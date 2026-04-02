@@ -17,7 +17,6 @@ import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.auth.LoginActivity;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.google.android.material.shape.ShapeAppearanceModel;
-import com.google.android.material.snackbar.Snackbar;
 
 public class QrScanResultActivity extends BaseAuthActivity {
 
@@ -57,7 +56,6 @@ public class QrScanResultActivity extends BaseAuthActivity {
 
         dmRepository = new DmRepository(this);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.btnAddFriend.setOnClickListener(v -> sendFriendRequest());
 
         String qrToken = extractQrToken(getIntent());
         if (qrToken == null || qrToken.trim().isEmpty()) {
@@ -120,25 +118,6 @@ public class QrScanResultActivity extends BaseAuthActivity {
         binding.tvHint.setText(message);
         binding.btnAddFriend.setEnabled(false);
         binding.btnAddFriend.setText(R.string.me_qr_add_friend);
-    }
-
-    private void sendFriendRequest() {
-        if (scannedUser == null || scannedUser.getId() == null) {
-            showError(getString(R.string.me_qr_invalid));
-            return;
-        }
-
-        binding.btnAddFriend.setEnabled(false);
-        dmRepository.sendFriendRequest(scannedUser.getId(), result -> runOnUiThread(() -> {
-            if (result.isSuccess()) {
-                binding.btnAddFriend.setText(R.string.me_qr_request_sent);
-                Snackbar.make(binding.getRoot(), R.string.me_qr_request_sent, Snackbar.LENGTH_LONG).show();
-                return;
-            }
-
-            binding.btnAddFriend.setEnabled(true);
-            showError(result.getMessage());
-        }));
     }
 
     private String extractQrToken(Intent intent) {

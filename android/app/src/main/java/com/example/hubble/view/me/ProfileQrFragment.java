@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,10 +20,11 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
-import com.example.hubble.databinding.FragmentProfileQrBinding;
 import com.example.hubble.utils.QrBitmapHelper;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -28,7 +32,15 @@ public class ProfileQrFragment extends Fragment {
 
     private static final String ARG_EMBEDDED = "arg_embedded";
 
-    private FragmentProfileQrBinding binding;
+    private View rootView;
+    private MaterialToolbar toolbar;
+    private ShapeableImageView ivAvatar;
+    private TextView tvAvatarInitials;
+    private TextView tvDisplayName;
+    private TextView tvUsername;
+    private ImageView ivQrCode;
+    private ProgressBar progressQr;
+    private TextView tvHint;
     private DmRepository dmRepository;
     private Bitmap currentQrBitmap;
 
@@ -53,8 +65,9 @@ public class ProfileQrFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        binding = FragmentProfileQrBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+        rootView = inflater.inflate(R.layout.fragment_profile_qr, container, false);
+        bindViews(rootView);
+        return rootView;
     }
 
     @Override
@@ -74,14 +87,12 @@ public class ProfileQrFragment extends Fragment {
 
     private void configureToolbar(boolean embedded) {
         if (embedded) {
-            binding.toolbar.setNavigationIcon(null);
-            binding.toolbar.setTitle(R.string.me_qr_title);
+            toolbar.setNavigationIcon(null);
+            toolbar.setTitle(R.string.me_qr_title);
             return;
         }
 
-        binding.toolbar.setNavigationOnClickListener(v -> requireActivity()
-                .getSupportFragmentManager()
-                .popBackStack());
+        toolbar.setNavigationOnClickListener(v -> requireActivity().finish());
     }
 
     private void bindCurrentUser(@Nullable UserResponse user) {
@@ -94,36 +105,36 @@ public class ProfileQrFragment extends Fragment {
         String initials = displayName.isEmpty() ? "U"
                 : String.valueOf(displayName.charAt(0)).toUpperCase();
 
-        binding.tvDisplayName.setText(displayName);
-        binding.tvUsername.setText(username);
-        binding.tvHint.setText(R.string.me_qr_opening_hint);
+        tvDisplayName.setText(displayName);
+        tvUsername.setText(username);
+        tvHint.setText(R.string.me_qr_opening_hint);
 
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
-        binding.ivAvatar.setBackground(bg);
-        binding.ivAvatar.setShapeAppearanceModel(
+        ivAvatar.setBackground(bg);
+        ivAvatar.setShapeAppearanceModel(
                 ShapeAppearanceModel.builder().setAllCornerSizes(999f).build());
-        binding.tvAvatarInitials.setText(initials);
+        tvAvatarInitials.setText(initials);
     }
 
     private void loadQrCode() {
-        binding.progressQr.setVisibility(View.VISIBLE);
-        binding.ivQrCode.setImageDrawable(null);
-        binding.tvHint.setText(R.string.me_qr_loading);
+        progressQr.setVisibility(View.VISIBLE);
+        ivQrCode.setImageDrawable(null);
+        tvHint.setText(R.string.me_qr_loading);
         currentQrBitmap = null;
 
         dmRepository.getMyQrToken(result -> {
-            if (!isAdded() || binding == null) {
+            if (!isAdded() || rootView == null) {
                 return;
             }
 
-            binding.progressQr.setVisibility(View.GONE);
+            progressQr.setVisibility(View.GONE);
             if (!result.isSuccess() || result.getData() == null) {
-                Snackbar.make(binding.getRoot(),
+                Snackbar.make(rootView,
                         result.getMessage() != null ? result.getMessage() : getString(R.string.me_qr_unavailable),
                         Snackbar.LENGTH_LONG).show();
-                binding.tvHint.setText(R.string.me_qr_unavailable);
+                tvHint.setText(R.string.me_qr_unavailable);
                 return;
             }
 
@@ -133,14 +144,25 @@ public class ProfileQrFragment extends Fragment {
                     640
             );
             if (bitmap == null) {
-                binding.tvHint.setText(R.string.me_qr_unavailable);
+                tvHint.setText(R.string.me_qr_unavailable);
                 return;
             }
 
             currentQrBitmap = bitmap;
-            binding.ivQrCode.setImageBitmap(bitmap);
-            binding.tvHint.setText(R.string.me_qr_opening_hint);
+            ivQrCode.setImageBitmap(bitmap);
+            tvHint.setText(R.string.me_qr_opening_hint);
         });
+    }
+
+    private void bindViews(@NonNull View view) {
+        toolbar = view.findViewById(R.id.toolbar);
+        ivAvatar = view.findViewById(R.id.ivAvatar);
+        tvAvatarInitials = view.findViewById(R.id.tvAvatarInitials);
+        tvDisplayName = view.findViewById(R.id.tvDisplayName);
+        tvUsername = view.findViewById(R.id.tvUsername);
+        ivQrCode = view.findViewById(R.id.ivQrCode);
+        progressQr = view.findViewById(R.id.progressQr);
+        tvHint = view.findViewById(R.id.tvHint);
     }
 
     @Nullable
@@ -156,6 +178,14 @@ public class ProfileQrFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null;
+        rootView = null;
+        toolbar = null;
+        ivAvatar = null;
+        tvAvatarInitials = null;
+        tvDisplayName = null;
+        tvUsername = null;
+        ivQrCode = null;
+        progressQr = null;
+        tvHint = null;
     }
 }

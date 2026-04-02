@@ -105,6 +105,7 @@
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
+    <string name="me_qr_section_title">QR</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
     <string name="me_outgoing_requests">Lời mời đã gửi</string>
     <string name="me_blocked_users">Người dùng đã chặn</string>
@@ -505,6 +506,10 @@
     <string name="me_qr_save_failed">Không lưu được mã QR.</string>
     <string name="me_qr_save_unavailable">QR chưa tải xong để lưu.</string>
     <string name="me_qr_scan_button">Quét QR</string>
+    <string name="me_qr_hub_title">QR</string>
+    <string name="me_qr_hub_subtitle">Chọn cách bạn muốn dùng QR.</string>
+    <string name="me_qr_get_button">QR của tôi</string>
+    <string name="me_qr_get_hint">Hiển thị mã QR của bạn để người khác quét.</string>
     <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
     <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
 </resources>

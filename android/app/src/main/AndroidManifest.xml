@@ -92,6 +92,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.me.QrHubActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.me.MyQrActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.me.ScanQrActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
