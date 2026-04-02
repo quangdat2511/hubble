@@ -37,6 +37,7 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(1015, "Refresh token is invalid or expired", HttpStatus.UNAUTHORIZED),
     PASSWORDS_NOT_MATCH(1016, "Passwords do not match", HttpStatus.BAD_REQUEST),
     QR_TOKEN_INVALID(1018, "QR token is invalid or expired", HttpStatus.BAD_REQUEST),
+    LOCALE_INVALID(1019, "Locale is invalid", HttpStatus.BAD_REQUEST),
 
     // Friends
     FRIEND_REQUEST_EXISTED(2001, "Friend request already exists", HttpStatus.BAD_REQUEST),

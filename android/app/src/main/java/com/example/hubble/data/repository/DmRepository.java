@@ -3,6 +3,7 @@ package com.example.hubble.data.repository;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.example.hubble.R;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
@@ -135,20 +136,20 @@ public class DmRepository {
                             return;
                         }
                         callback.onResult(AuthResult.error(
-                                extractErrorMessage(response, "Không tải được danh sách bạn bè")
+                                extractErrorMessage(response, appContext.getString(R.string.dm_friends_load_error))
                         ));
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<List<FriendUserDto>>> call, Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                        callback.onResult(AuthResult.error(buildNetworkError(t)));
                     }
                 });
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<FriendUserDto>>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -166,12 +167,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không tải được danh sách DM"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_list_load_error)));
             }
 
             @Override
             public void onFailure(Call<List<ChannelDto>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -189,12 +190,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không tạo được kênh DM"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_channel_create_error)));
             }
 
             @Override
             public void onFailure(Call<ChannelDto> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -264,12 +265,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không tải được tin nhắn"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_messages_load_error)));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<MessageDto>>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -293,12 +294,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không gửi được tin nhắn"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_send_error)));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -326,12 +327,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không chỉnh sửa được tin nhắn"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_edit_error)));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -349,12 +350,12 @@ public class DmRepository {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không thu hồi được tin nhắn"));
+                callback.onResult(AuthResult.error(appContext.getString(R.string.dm_unsend_error)));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                callback.onResult(AuthResult.error(buildNetworkError(t)));
             }
         });
     }
@@ -415,10 +416,18 @@ public class DmRepository {
     private <T> String requireAuthToken(RepositoryCallback<T> callback) {
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return null;
         }
         return "Bearer " + accessToken;
+    }
+
+    private String buildNetworkError(Throwable throwable) {
+        String message = throwable != null ? throwable.getMessage() : null;
+        if (message == null || message.trim().isEmpty()) {
+            message = appContext.getString(R.string.error_network_unknown);
+        }
+        return appContext.getString(R.string.error_network, message);
     }
 
     private <T> String extractErrorMessage(Response<T> response, String fallback) {
@@ -443,7 +452,7 @@ public class DmRepository {
         }
 
         if (httpCode == 401 || httpCode == 403) {
-            return "Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.";
+            return appContext.getString(R.string.auth_session_expired);
         }
         return fallback + " (HTTP " + httpCode + ")";
     }

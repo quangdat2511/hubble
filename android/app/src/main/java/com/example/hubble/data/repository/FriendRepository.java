@@ -2,6 +2,7 @@ package com.example.hubble.data.repository;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import com.example.hubble.R;
 import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
@@ -19,10 +20,12 @@ public class FriendRepository {
     private final ApiService apiService;
     private final TokenManager tokenManager;
     private final Gson gson;
+    private final Context appContext;
 
     public FriendRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.apiService = RetrofitClient.getApiService(context);
-        this.tokenManager = new TokenManager(context.getApplicationContext());
+        this.tokenManager = new TokenManager(appContext);
         this.gson = new Gson();
     }
 
@@ -34,7 +37,7 @@ public class FriendRepository {
     public void searchUsers(String query, RepositoryCallback<List<FriendUserDto>> callback) {
         String token = getToken();
         if (token == null) {
-            callback.onResult(AuthResult.error("Unauthorized"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_unauthorized)));
             return;
         }
         apiService.searchUsers(token, query).enqueue(new Callback<ApiResponse<List<FriendUserDto>>>() {
@@ -43,7 +46,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi tìm kiếm"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_search_error)));
                 }
             }
             @Override
@@ -62,7 +65,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Không thể gửi lời mời"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_request_send_error)));
                 }
             }
             @Override
@@ -81,7 +84,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi tải danh sách"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_list_load_error)));
                 }
             }
             @Override
@@ -100,7 +103,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi chấp nhận"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_accept_error)));
                 }
             }
             @Override
@@ -119,7 +122,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Không thể thực hiện thao tác này"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_action_error)));
                 }
             }
             @Override
@@ -138,7 +141,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi tải danh sách"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_list_load_error)));
                 }
             }
             @Override
@@ -157,7 +160,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Không thể gửi lời mời"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_request_send_error)));
                 }
             }
             @Override
@@ -176,7 +179,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi tải danh sách"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_list_load_error)));
                 }
             }
             @Override
@@ -195,7 +198,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi chặn người dùng"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_block_error)));
                 }
             }
             @Override
@@ -214,7 +217,7 @@ public class FriendRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi bỏ chặn"));
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_unblock_error)));
                 }
             }
             @Override

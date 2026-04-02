@@ -1,10 +1,13 @@
 package com.example.hubble.view.settings;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -28,6 +31,13 @@ public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
     private SettingsViewModel viewModel;
+    private final ActivityResultLauncher<Intent> languageSettingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    setResult(Activity.RESULT_OK);
+                    recreate();
+                }
+            });
 
     @Override
     protected View getRootView() {
@@ -80,13 +90,14 @@ public class SettingsActivity extends BaseAuthActivity {
                         getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show();
 
-        binding.rowLanguage.setOnClickListener(comingSoon);
+        binding.rowLanguage.setOnClickListener(v ->
+                languageSettingsLauncher.launch(new Intent(this, LanguageSettingsActivity.class)));
         binding.rowNotifications.setOnClickListener(v ->
                 navigateTo(new PushConfigFragment(), true));
         binding.rowAppearance.setOnClickListener(v ->
-                startActivity(new Intent(SettingsActivity.this, ThemeActivity.class)));
+                startActivity(new Intent(this, ThemeActivity.class)));
         binding.rowAdvanced.setOnClickListener(v ->
-                startActivity(new Intent(SettingsActivity.this, SessionManagementActivity.class)));
+                startActivity(new Intent(this, SessionManagementActivity.class)));
         binding.rowSupport.setOnClickListener(comingSoon);
         binding.rowChangelog.setOnClickListener(comingSoon);
     }

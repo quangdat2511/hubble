@@ -14,6 +14,11 @@ import com.example.hubble.utils.ThemeManager;
 
 public class SettingsViewModel extends ViewModel {
 
+    public interface SettingsUpdateCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+
     private final AuthRepository authRepository;
     private final SettingsRepository settingsRepository;
     private final PushConfigRepository pushConfigRepository;
@@ -136,6 +141,18 @@ public class SettingsViewModel extends ViewModel {
 
     public void clearThemeUpdateState() {
         themeUpdateState.setValue(null);
+    }
+
+    public LiveData<String> getLanguage(String authHeader) {
+        return settingsRepository.getLanguage(authHeader);
+    }
+
+    public void updateLanguage(String authHeader, String locale) {
+        settingsRepository.updateLanguage(authHeader, locale, null);
+    }
+
+    public void updateLanguage(String authHeader, String locale, SettingsUpdateCallback callback) {
+        settingsRepository.updateLanguage(authHeader, locale, callback);
     }
 
     public void loadPushConfig() {

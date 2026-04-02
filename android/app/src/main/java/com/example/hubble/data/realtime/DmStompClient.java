@@ -1,5 +1,8 @@
 package com.example.hubble.data.realtime;
 
+import android.content.Context;
+
+import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.utils.TokenManager;
@@ -22,12 +25,14 @@ public class DmStompClient {
 
     private final TokenManager tokenManager;
     private final Gson gson;
+    private final Context appContext;
 
     private StompClient stompClient;
     private Disposable topicDisposable;
 
-    public DmStompClient(TokenManager tokenManager) {
-        this.tokenManager = tokenManager;
+    public DmStompClient(Context context) {
+        this.appContext = context.getApplicationContext();
+        this.tokenManager = new TokenManager(appContext);
         this.gson = new Gson();
     }
 
@@ -36,7 +41,7 @@ public class DmStompClient {
 
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            listener.onError("Bạn chưa đăng nhập");
+            listener.onError(appContext.getString(R.string.realtime_not_logged_in));
             return;
         }
 
@@ -63,9 +68,12 @@ public class DmStompClient {
                             listener.onMessage(payload.message);
                         }
                     } catch (Exception e) {
-                        listener.onError("Không parse được sự kiện realtime");
+                        listener.onError(appContext.getString(R.string.realtime_parse_error));
                     }
-                }, throwable -> listener.onError("Realtime bị ngắt: " + throwable.getMessage()));
+                }, throwable -> listener.onError(appContext.getString(
+                        R.string.realtime_disconnected,
+                        throwable.getMessage()
+                )));
     }
 
     public void disconnect() {

@@ -22,11 +22,11 @@ android {
     val localPropsFile = rootProject.file("local.properties")
     if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
     val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
-    val giphyApiKey  = localProps.getProperty("GIPHY_API_KEY", "")
+    val giphyApiKey = localProps.getProperty("GIPHY_API_KEY", "")
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL",     "\"$localBaseUrl\"")
+            buildConfigField("String", "BASE_URL", "\"$localBaseUrl\"")
             buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
         release {
@@ -35,7 +35,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL",     "\"https://hubble-production.up.railway.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
             buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
         }
     }
@@ -69,9 +69,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.0.0")
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-
     implementation("com.github.bumptech.glide:glide:4.16.0")
-
 
     implementation(libs.appcompat)
     implementation(libs.material)
@@ -80,8 +78,6 @@ dependencies {
     implementation("androidx.fragment:fragment:1.8.6")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
-    // Glide for GIF loading
-    implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
     testImplementation(libs.junit)

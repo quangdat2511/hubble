@@ -238,4 +238,15 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Query("token") String qrToken
     );
+
+    @PUT("api/settings/language")
+    Call<ApiResponse<String>> updateLanguage(
+            @Header("Authorization") String token,
+            @Query("locale") String language
+    );
+
+    @GET("api/settings/language")
+    Call<ApiResponse<String>> getLanguage(
+            @Header("Authorization") String token
+    );
 }

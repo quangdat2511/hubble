@@ -77,7 +77,7 @@ public class MainActivity extends BaseAuthActivity {
 
         // Pre-create MainViewModel so HomeFragment can share it
         new ViewModelProvider(this,
-            new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+            new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
             .get(MainViewModel.class);
 
         setupBottomNavigation();
@@ -118,14 +118,13 @@ public class MainActivity extends BaseAuthActivity {
                 .replace(R.id.fragmentContainer, fragment);
         tx.commit();
     }
-
     @Override
     protected void onResume() {
         super.onResume();
         // Refresh server list when returning from ServerSettingsActivity
         // (e.g. after icon update/delete) — MainViewModel is scoped to this activity
         MainViewModel mainViewModel = new ViewModelProvider(this,
-                new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+                new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
                 .get(MainViewModel.class);
         mainViewModel.refreshServers();
     }

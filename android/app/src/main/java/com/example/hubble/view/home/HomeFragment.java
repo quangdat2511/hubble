@@ -21,14 +21,13 @@ import com.example.hubble.adapter.dm.DmConversationAdapter;
 import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
-import com.example.hubble.data.model.dm.DmConversationItem;
-import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
-import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
-//import com.example.hubble.view.dm.DmChatActivity;
+import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
+import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
@@ -74,8 +73,8 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(
-            requireActivity(),
-            new MainViewModelFactory(new DmRepository(requireContext()), new ServerRepository(requireContext()))
+                requireActivity(),
+                new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
         ).get(MainViewModel.class);
 
         setupServerSidebar(viewModel);
@@ -88,7 +87,7 @@ public class HomeFragment extends Fragment {
         viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
             if (serverName != null) {
                 Snackbar.make(requireView(),
-                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
+                        "Báº¡n Ä‘Ã£ bá»‹ xÃ³a khá»i \"" + serverName + "\"",
                         Snackbar.LENGTH_LONG).show();
                 viewModel.consumeKickedFromServer();
             }
@@ -161,8 +160,11 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-            channel -> showMessage("Mở kênh: " + channel.getName()),
-            viewModel::toggleCategoryCollapse
+                channel -> {
+                    // TODO: Open channel chat activity
+                    showMessage(getString(R.string.home_open_channel, channel.getName()));
+                },
+                viewModel::toggleCategoryCollapse
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -207,6 +209,7 @@ public class HomeFragment extends Fragment {
         binding.rvStories.setLayoutManager(
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rvStories.setAdapter(storyAdapter);
+        storyAdapter.setOnStoryClickListener(this::openConversation);
 
         viewModel.dmStories.observe(getViewLifecycleOwner(), stories -> {
             if (stories != null) {
@@ -226,21 +229,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        conversationAdapter.setOnConversationClickListener(item -> {
-            if (item.hasChannelId()) {
-                openDmChat(item.getChannelId(), item.getDisplayName());
-                return;
-            }
-
-            String friendId = item.getFriendId();
-            if (friendId == null || friendId.trim().isEmpty()) {
-                showMessage(getString(R.string.error_generic));
-                return;
-            }
-            pendingDmDisplayName = item.getDisplayName();
-            viewModel.openOrCreateDirectChannel(friendId);
-        });
-
+        conversationAdapter.setOnConversationClickListener(this::openConversation);
         conversationAdapter.setOnConversationLongClickListener(this::showConversationActionsSheet);
 
         viewModel.openDmState.observe(getViewLifecycleOwner(), result -> {
@@ -269,6 +258,35 @@ public class HomeFragment extends Fragment {
                 showMessage(message);
             }
         });
+    }
+
+    private void openConversation(@Nullable DmConversationItem item) {
+        if (item == null) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        String displayName = item.getDisplayName() != null && !item.getDisplayName().trim().isEmpty()
+                ? item.getDisplayName()
+                : getString(R.string.dm_default_user);
+
+        if (item.hasChannelId()) {
+            startActivity(DmChatActivity.createIntent(
+                    requireContext(),
+                    item.getChannelId(),
+                    displayName
+            ));
+            return;
+        }
+
+        String friendId = item.getFriendId();
+        if (friendId == null || friendId.trim().isEmpty()) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        pendingDmDisplayName = displayName;
+        viewModel.openOrCreateDirectChannel(friendId);
     }
 
     private void showConversationActionsSheet(DmConversationItem item) {
@@ -364,6 +382,3 @@ public class HomeFragment extends Fragment {
         binding = null;
     }
 }
-
-
-

@@ -263,7 +263,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
                 ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
-                String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
+                Context context = container.getContext();
+                String fileName = att.getFilename() != null
+                        ? att.getFilename()
+                        : context.getString(R.string.dm_untitled_file);
 
                 String safeFileName = fileName;
                 if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -276,31 +279,31 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String lowerName = fileName.toLowerCase();
 
                 if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
-                    tvFileType.setText("Tài liệu PDF");
+                    tvFileType.setText(R.string.dm_file_type_pdf);
                     ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
                 }
                 else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
-                    tvFileType.setText("Tài liệu Word");
+                    tvFileType.setText(R.string.dm_file_type_word);
                     ivFileIcon.setImageResource(R.drawable.ic_file_docx);
                 }
                 else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
-                    tvFileType.setText("Bảng tính Excel");
+                    tvFileType.setText(R.string.dm_file_type_excel);
                     ivFileIcon.setImageResource(R.drawable.ic_file_excel);
                 }
                 else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
-                    tvFileType.setText("Bài thuyết trình");
+                    tvFileType.setText(R.string.dm_file_type_presentation);
                     ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
                 }
                 else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
-                    tvFileType.setText("Tệp nén");
+                    tvFileType.setText(R.string.dm_file_type_archive);
                     ivFileIcon.setImageResource(R.drawable.ic_file_zip);
                 }
                 else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
-                    tvFileType.setText("Tệp văn bản");
+                    tvFileType.setText(R.string.dm_file_type_text);
                     ivFileIcon.setImageResource(R.drawable.ic_file_text);
                 }
                 else {
-                    tvFileType.setText("Tệp đính kèm");
+                    tvFileType.setText(R.string.attachment_file);
                     ivFileIcon.setImageResource(R.drawable.ic_file_generic);
                 }
 
@@ -399,7 +402,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(browserIntent);
             } catch (Exception ex) {
-                Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, R.string.dm_open_file_error, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -420,7 +423,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
             request.setTitle(safeFileName);
-            request.setDescription("Đang tải tệp đính kèm...");
+            request.setDescription(context.getString(R.string.dm_download_description));
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
@@ -433,14 +436,14 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
                 downloadManager.enqueue(request);
-                Toast.makeText(context, "Bắt đầu tải " + safeFileName + "...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, context.getString(R.string.dm_download_started, safeFileName), Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);
+            Toast.makeText(context, context.getString(R.string.dm_download_error, message), Toast.LENGTH_SHORT).show();
         }
     }
-
 
     static class OtherHolder extends RecyclerView.ViewHolder {
         private final ItemDmMessageOtherBinding b;
@@ -495,7 +498,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String replyContent = item.getReplyToContent();
                 if (isMedia(replyContent)) {
                     String title = extractMediaTitle(replyContent);
-                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                    b.tvReplyQuoteContent.setText(title != null ? title : b.getRoot().getContext().getString(R.string.dm_reply_media));
                 } else {
                     b.tvReplyQuoteContent.setText(replyContent);
                 }
@@ -516,7 +519,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 b.ivMedia.setVisibility(View.GONE);
                 Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
                 if (item.isDeleted()) {
-                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvMessage.setText(R.string.dm_deleted_message);
                     b.tvEdited.setVisibility(View.GONE);
                 } else {
                     if (content != null && !content.isEmpty()) {

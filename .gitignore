@@ -2,6 +2,7 @@
 target/
 *.class
 *.jar
+!android/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 *.nar
@@ -79,3 +80,6 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.orig
+
+# ==================== LOCAL BUILD CACHE ====================
+backend/.m2/

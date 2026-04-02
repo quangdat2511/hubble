@@ -53,6 +53,7 @@ public class NotificationsFragment extends Fragment {
         // MainViewModel scoped to the activity — used to refresh the server list
         MainViewModel mainViewModel = new ViewModelProvider(requireActivity(),
                 new MainViewModelFactory(
+                        requireContext(),
                         new DmRepository(requireContext()),
                         new ServerRepository(requireContext())))
                 .get(MainViewModel.class);
