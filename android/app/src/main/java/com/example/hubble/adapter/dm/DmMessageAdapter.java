@@ -16,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,6 +27,7 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
+import com.example.hubble.utils.InAppMessageUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -402,7 +402,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(browserIntent);
             } catch (Exception ex) {
-                Toast.makeText(context, R.string.dm_open_file_error, Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_open_file_error));
             }
         }
     }
@@ -436,12 +436,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
                 downloadManager.enqueue(request);
-                Toast.makeText(context, context.getString(R.string.dm_download_started, safeFileName), Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_download_started, safeFileName));
             }
         } catch (Exception e) {
             e.printStackTrace();
             String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);
-            Toast.makeText(context, context.getString(R.string.dm_download_error, message), Toast.LENGTH_SHORT).show();
+            InAppMessageUtils.show(context, context.getString(R.string.dm_download_error, message));
         }
     }
 

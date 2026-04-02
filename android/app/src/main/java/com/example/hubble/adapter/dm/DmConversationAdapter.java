@@ -180,12 +180,21 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
                             item.getDisplayName(),
                             avatarSize
                     );
-            Glide.with(binding.ivAvatar.getContext())
-                    .load(toAbsoluteUrl(item.getAvatarUrl()))
-                    .placeholder(avatarFallback)
-                    .error(avatarFallback)
-                    .circleCrop()
-                    .into(binding.ivAvatar);
+            String avatarUrl = toAbsoluteUrl(item.getAvatarUrl());
+            boolean hasAvatar = avatarUrl != null && !avatarUrl.trim().isEmpty();
+
+            Glide.with(binding.ivAvatar.getContext()).clear(binding.ivAvatar);
+            if (!hasAvatar) {
+                binding.ivAvatar.setImageDrawable(avatarFallback);
+            } else {
+                binding.ivAvatar.setImageDrawable(null);
+                Glide.with(binding.ivAvatar.getContext())
+                        .load(avatarUrl)
+                        .error(avatarFallback)
+                        .fallback(avatarFallback)
+                        .circleCrop()
+                        .into(binding.ivAvatar);
+            }
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {
@@ -287,5 +296,4 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
         }
     }
 }
-
 

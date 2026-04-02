@@ -6,7 +6,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,6 +16,7 @@ import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.repository.UserRepository;
 import com.example.hubble.databinding.FragmentUserProfileBinding;
+import com.example.hubble.utils.InAppMessageUtils;
 
 import java.util.Locale;
 
@@ -179,7 +179,7 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
             populateUserInfo(result.getData());
             if (!loadingProfile) {
                 setEditMode(false);
-                Toast.makeText(getContext(), getString(R.string.profile_updated), Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(binding.getRoot(), getString(R.string.profile_updated));
             }
             return;
         }
@@ -189,7 +189,7 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
         }
 
         String message = result.getMessage();
-        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+        InAppMessageUtils.showLong(binding.getRoot(), message);
 
         if (loadingProfile) {
             populateUserInfo(userRepository.getCachedUser());

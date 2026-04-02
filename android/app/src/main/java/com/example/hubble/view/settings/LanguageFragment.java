@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
+import com.example.hubble.utils.InAppMessageUtils;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.TokenManager;
@@ -117,9 +117,6 @@ public class LanguageFragment extends Fragment {
             public void onSuccess() {
                 pendingLanguageChange = null;
                 setLanguageSelectionEnabled(true);
-                if (isAdded()) {
-                    Toast.makeText(requireContext(), R.string.settings_saved, Toast.LENGTH_SHORT).show();
-                }
                 applyLanguageIfNeeded(newLanguage);
                 refreshScreenWithSuccess();
             }
@@ -129,9 +126,7 @@ public class LanguageFragment extends Fragment {
                 pendingLanguageChange = null;
                 setLanguageSelectionEnabled(true);
                 bindLanguage(previousLanguage, false);
-                if (isAdded()) {
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                }
+                InAppMessageUtils.show(LanguageFragment.this, message);
             }
         });
     }
@@ -178,7 +173,7 @@ public class LanguageFragment extends Fragment {
 
         activity.setResult(Activity.RESULT_OK);
         if (activity instanceof LanguageSettingsActivity) {
-            ((LanguageSettingsActivity) activity).relaunchForLocaleChange();
+            ((LanguageSettingsActivity) activity).relaunchForLocaleChange(true);
             return;
         }
 

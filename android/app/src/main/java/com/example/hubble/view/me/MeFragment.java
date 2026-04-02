@@ -51,11 +51,6 @@ public class MeFragment extends Fragment {
         binding.btnBlockedUsers.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), BlockedUsersActivity.class)));
 
-        binding.btnAddStatus.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(),
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
-
         binding.cardFriends.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(),
                         getString(R.string.main_coming_soon),

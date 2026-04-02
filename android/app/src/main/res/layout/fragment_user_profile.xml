@@ -3,22 +3,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingTop="@dimen/spacing_sm">
 
     <FrameLayout
         android:id="@+id/avatarFragmentContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="@dimen/spacing_md" />
+        android:layout_marginBottom="@dimen/spacing_sm" />
 
     <TextView
         android:id="@+id/tvUsername"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="@dimen/spacing_md"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="@dimen/spacing_lg"
+        android:gravity="center"
+        android:textAlignment="center"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
         android:textColor="?attr/colorOnSurface"
         android:textStyle="bold" />
 
@@ -26,7 +29,7 @@
         style="@style/Widget.Material3.CardView.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/spacing_sm"
+        android:layout_marginBottom="@dimen/spacing_md"
         app:cardCornerRadius="16dp">
 
         <LinearLayout
@@ -87,7 +90,7 @@
                     android:id="@+id/etBio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="top|start"
+                    android:gravity="center_vertical|start"
                     android:imeOptions="actionNext"
                     android:inputType="textMultiLine"
                     android:maxLines="4"

@@ -25,11 +25,11 @@ public class ThemeActivity extends AppCompatActivity {
             Insets bars = windowInsets.getInsets(
                     WindowInsetsCompat.Type.systemBars()
                             | WindowInsetsCompat.Type.displayCutout());
-            binding.headerContainer.setPadding(0, bars.top, 0, 0);
+            binding.toolbar.setPadding(0, bars.top, 0, 0);
             binding.themeFragmentContainer.setPadding(0, 0, 0, bars.bottom);
             return WindowInsetsCompat.CONSUMED;
         });
 
-        binding.buttonBack.setOnClickListener(v -> finish());
+        binding.toolbar.setNavigationOnClickListener(v -> finish());
     }
 }

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -29,6 +28,7 @@ import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.databinding.FragmentAvatarBinding;
+import com.example.hubble.utils.InAppMessageUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
@@ -78,7 +78,7 @@ public class AvatarFragment extends Fragment {
                 } else if (result.getData() != null) {
                     Throwable error = UCrop.getError(result.getData());
                     if (error != null && isAdded()) {
-                        Toast.makeText(requireContext(), error.getMessage(), Toast.LENGTH_LONG).show();
+                        InAppMessageUtils.showLong(binding != null ? binding.getRoot() : null, error.getMessage());
                     }
                 }
             }
@@ -235,7 +235,8 @@ public class AvatarFragment extends Fragment {
     private void uploadAvatar(@NonNull Uri uri) {
         if (token == null || token.trim().isEmpty()) {
             if (isAdded()) {
-                Toast.makeText(requireContext(), R.string.me_avatar_error_upload, Toast.LENGTH_LONG).show();
+                InAppMessageUtils.showLong(binding != null ? binding.getRoot() : null,
+                        getString(R.string.me_avatar_error_upload));
             }
             return;
         }
@@ -244,7 +245,7 @@ public class AvatarFragment extends Fragment {
         try (InputStream inputStream = requireContext().getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
                 setAvatarLoading(false);
-                Toast.makeText(requireContext(), R.string.me_avatar_error_read, Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(binding.getRoot(), getString(R.string.me_avatar_error_read));
                 return;
             }
 
@@ -274,10 +275,11 @@ public class AvatarFragment extends Fragment {
                                     avatarListener.onAvatarUpdated(updatedUser);
                                 }
 
-                                Toast.makeText(requireContext(), R.string.me_avatar_updated, Toast.LENGTH_SHORT).show();
+                                InAppMessageUtils.show(binding.getRoot(), getString(R.string.me_avatar_updated));
                             } else {
                                 setAvatarLoading(false);
-                                Toast.makeText(requireContext(), R.string.me_avatar_error_upload, Toast.LENGTH_LONG).show();
+                                InAppMessageUtils.showLong(binding.getRoot(),
+                                        getString(R.string.me_avatar_error_upload));
                             }
                         }
 
@@ -291,13 +293,14 @@ public class AvatarFragment extends Fragment {
                             String message = t.getMessage() != null
                                     ? t.getMessage()
                                     : getString(R.string.me_avatar_error_upload);
-                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                            InAppMessageUtils.showLong(binding != null ? binding.getRoot() : null, message);
                         }
                     });
         } catch (Exception e) {
             setAvatarLoading(false);
             if (isAdded()) {
-                Toast.makeText(requireContext(), R.string.me_avatar_error_read, Toast.LENGTH_LONG).show();
+                InAppMessageUtils.showLong(binding != null ? binding.getRoot() : null,
+                        getString(R.string.me_avatar_error_read));
             }
         }
     }

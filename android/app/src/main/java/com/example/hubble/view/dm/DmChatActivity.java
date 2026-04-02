@@ -188,7 +188,9 @@ public class DmChatActivity extends AppCompatActivity {
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        loadPeerProfile();
+        if (shouldLoadPeerProfile()) {
+            loadPeerProfile();
+        }
         loadMessageHistory();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -255,6 +257,10 @@ public class DmChatActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private boolean shouldLoadPeerProfile() {
+        return TextUtils.isEmpty(peerAvatarUrl);
     }
 
     private void applyPeerProfile(ChannelDto channel) {

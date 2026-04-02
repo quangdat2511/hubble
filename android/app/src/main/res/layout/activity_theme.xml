@@ -2,39 +2,23 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
-    <FrameLayout
-        android:id="@+id/headerContainer"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.Material3.Toolbar.Surface"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?android:attr/colorBackground">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            style="@style/Widget.Material3.Toolbar.Surface"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="?android:attr/colorBackground"
-            app:title="@string/theme_title"
-            app:titleCentered="true" />
-
-        <ImageButton
-            android:id="@+id/buttonBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="start|center_vertical"
-            android:layout_marginStart="12dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_settings_back"
-            android:padding="8dp"
-            android:src="@drawable/ic_arrow_back"
-            android:tint="?attr/colorOnSurface" />
-
-    </FrameLayout>
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:minHeight="?attr/actionBarSize"
+        app:navigationContentDescription="@string/cd_settings_back"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:title="@string/theme_title"
+        app:titleCentered="true" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/themeFragmentContainer"
