@@ -22,6 +22,7 @@ import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.activity.OnBackPressedCallback;
@@ -130,7 +131,9 @@ public class DmChatActivity extends AppCompatActivity {
     private MediaRecorder mediaRecorder;
     private File audioFile;
     private boolean isRecording = false;
-    private int recordSeconds = 0;
+    private int recordTicks = 0;
+    private android.media.MediaPlayer previewPlayer ;
+
     private Handler recordHandler = new Handler(Looper.getMainLooper());
     private Runnable recordRunnable;
 
@@ -405,19 +408,183 @@ public class DmChatActivity extends AppCompatActivity {
         binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-        binding.btnVoice.setOnClickListener(v -> {
-            if (!isRecording) {
-                startRecording();
-                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
-                binding.btnSend.setEnabled(false);
-                binding.btnAttach.setEnabled(false);
-            } else {
-                stopRecording();
-                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
-                binding.btnSend.setEnabled(true);
-                binding.btnAttach.setEnabled(true);
+//        binding.btnVoice.setOnClickListener(v -> {
+//            if (!isRecording) {
+//                startRecording();
+//                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
+//                binding.btnSend.setEnabled(false);
+//                binding.btnAttach.setEnabled(false);
+//            } else {
+//                stopRecording();
+//                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
+//                binding.btnSend.setEnabled(true);
+//                binding.btnAttach.setEnabled(true);
+//            }
+//        });
+        // Khi bấm nút Mic, mở BottomSheet
+        binding.btnVoice.setOnClickListener(v -> showVoiceRecordSheet());
+    }
+
+    private void showVoiceRecordSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_record, null);
+        dialog.setContentView(sheetView);
+
+        TextView tvStatusHint = sheetView.findViewById(R.id.tvStatusHint);
+        View llWaveform = sheetView.findViewById(R.id.llWaveform);
+        TextView tvTimer = sheetView.findViewById(R.id.tvTimer);
+        View btnDelete = sheetView.findViewById(R.id.btnDelete);
+        View btnListen = sheetView.findViewById(R.id.btnListen);
+        ImageView ivListenIcon = sheetView.findViewById(R.id.ivListenIcon);
+        com.google.android.material.floatingactionbutton.FloatingActionButton btnMainAction = sheetView.findViewById(R.id.btnMainAction);
+        // Khai báo ánh xạ View sóng âm
+        com.example.hubble.view.custom.AudioWaveformView audioWaveform = sheetView.findViewById(R.id.audioWaveform);
+
+        // State: 0 = IDLE (Chờ), 1 = RECORDING (Đang ghi), 2 = PREVIEW (Xem trước)
+        final int[] state = {0};
+
+        Runnable updateUI = () -> {
+            if (state[0] == 0) {
+                tvStatusHint.setVisibility(View.VISIBLE);
+                llWaveform.setVisibility(View.INVISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnListen.setVisibility(View.INVISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_btn_speak_now);
+                tvTimer.setText("00:00");
+            } else if (state[0] == 1) {
+                tvStatusHint.setVisibility(View.INVISIBLE);
+                llWaveform.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnListen.setVisibility(View.INVISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_media_pause); // Icon Dừng
+            } else if (state[0] == 2) {
+                tvStatusHint.setVisibility(View.INVISIBLE);
+                llWaveform.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.VISIBLE);
+                btnListen.setVisibility(View.VISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_menu_send); // Icon Gửi
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+            }
+        };
+
+        btnMainAction.setOnClickListener(v -> {
+            if (state[0] == 0) {
+                // KIỂM TRA QUYỀN VÀ BẮT ĐẦU GHI ÂM
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+                    dialog.dismiss();
+                    return;
+                }
+                internalStartRecord(tvTimer, audioWaveform);
+                state[0] = 1;
+                updateUI.run();
+
+            } else if (state[0] == 1) {
+                // DỪNG GHI ÂM VÀ CHUYỂN SANG PREVIEW
+                internalStopRecord();
+                if (recordTicks < 10) {
+                    Snackbar.make(binding.getRoot(), "Ghi âm quá ngắn!", Snackbar.LENGTH_SHORT).show();
+                    state[0] = 0;
+                } else {
+                    state[0] = 2;
+                }
+                updateUI.run();
+
+            } else if (state[0] == 2) {
+                // BẤM GỬI FILE GHI ÂM
+                if (audioFile != null && audioFile.exists()) {
+                    uploadVoiceAndSend(audioFile);
+                }
+                state[0] = 0; // Reset state để dismiss không xóa mất file
+                dialog.dismiss();
             }
         });
+
+        btnDelete.setOnClickListener(v -> {
+            if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
+            if (audioFile != null && audioFile.exists()) audioFile.delete();
+            state[0] = 0;
+            updateUI.run();
+        });
+
+        btnListen.setOnClickListener(v -> {
+            if (previewPlayer == null) {
+                previewPlayer = new android.media.MediaPlayer();
+                try {
+                    previewPlayer.setDataSource(audioFile.getAbsolutePath());
+                    previewPlayer.prepare();
+                    previewPlayer.setOnCompletionListener(mp -> ivListenIcon.setImageResource(android.R.drawable.ic_media_play));
+                } catch (IOException e) { e.printStackTrace(); }
+            }
+            if (previewPlayer.isPlaying()) {
+                previewPlayer.pause();
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+            } else {
+                previewPlayer.start();
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_pause);
+            }
+        });
+
+        dialog.setOnDismissListener(d -> {
+            if (state[0] == 1) internalStopRecord(); // Nếu đang thu mà tắt ngang
+            if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
+            if (state[0] != 0 && audioFile != null && audioFile.exists()) audioFile.delete(); // Xóa file nháp
+            recordHandler.removeCallbacks(recordRunnable);
+        });
+
+        updateUI.run();
+        dialog.show();
+    }
+
+    private void internalStartRecord(android.widget.TextView tvTimer, com.example.hubble.view.custom.AudioWaveformView audioWaveform) {
+        audioFile = new File(getExternalCacheDir(), "voice_" + System.currentTimeMillis() + ".m4a");
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setOutputFile(audioFile.getAbsolutePath());
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+            recordTicks = 0; // Reset bộ đếm tick
+
+            recordRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    recordTicks++; // Mỗi 100ms tăng lên 1
+                    int currentSeconds = recordTicks / 10; // Chia 10 để ra số giây chuẩn
+
+                    // Cập nhật text đồng hồ
+                    tvTimer.setText(String.format("%02d:%02d", currentSeconds / 60, currentSeconds % 60));
+
+                    // Lấy âm lượng và truyền cho View vẽ sóng
+                    if (mediaRecorder != null) {
+                        int amplitude = mediaRecorder.getMaxAmplitude();
+                        audioWaveform.addAmplitude((float) amplitude);
+                    }
+
+                    // Chạy lại hàm này sau mỗi 100ms
+                    recordHandler.postDelayed(this, 100);
+                }
+            };
+            recordHandler.post(recordRunnable);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void internalStopRecord() {
+        if (mediaRecorder != null && isRecording) {
+            try { mediaRecorder.stop(); } catch (RuntimeException e) {}
+            finally {
+                mediaRecorder.release();
+                mediaRecorder = null;
+                isRecording = false;
+            }
+            recordHandler.removeCallbacks(recordRunnable);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -532,12 +699,12 @@ public class DmChatActivity extends AppCompatActivity {
             mediaRecorder.prepare();
             mediaRecorder.start();
             isRecording = true;
-            recordSeconds = 0;
+            recordTicks = 0;
             recordRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", recordSeconds / 60, recordSeconds % 60));
-                    recordSeconds++;
+                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", recordTicks / 60, recordTicks % 60));
+                    recordTicks++;
                     recordHandler.postDelayed(this, 1000);
                 }
             };
@@ -562,7 +729,7 @@ public class DmChatActivity extends AppCompatActivity {
             recordHandler.removeCallbacks(recordRunnable);
             binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
 
-            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordSeconds >= 1) {
+            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordTicks >= 1) {
                 uploadVoiceAndSend(audioFile);
             } else {
                 if (audioFile != null && audioFile.exists()) audioFile.delete();
