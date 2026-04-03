@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,6 +34,10 @@ public class ThemeFragment extends Fragment {
     private MaterialCardView darkOption;
     private ImageView lightSelectedIcon;
     private ImageView darkSelectedIcon;
+    private View previewLight;
+    private View previewDark;
+    private TextView textLightTitle;
+    private TextView textDarkTitle;
     private SettingsViewModel settingsViewModel;
     private String authHeader;
 
@@ -51,6 +56,10 @@ public class ThemeFragment extends Fragment {
         darkOption = view.findViewById(R.id.optionDark);
         lightSelectedIcon = view.findViewById(R.id.iconLightSelected);
         darkSelectedIcon = view.findViewById(R.id.iconDarkSelected);
+        previewLight = view.findViewById(R.id.previewLight);
+        previewDark = view.findViewById(R.id.previewDark);
+        textLightTitle = view.findViewById(R.id.textLightTitle);
+        textDarkTitle = view.findViewById(R.id.textDarkTitle);
         settingsViewModel = new ViewModelProvider(
                 requireActivity(),
                 new SettingsViewModelFactory(
@@ -174,6 +183,12 @@ public class ThemeFragment extends Fragment {
         boolean isLight = ThemeManager.THEME_LIGHT.equals(ThemeManager.normalizeTheme(theme));
         updateOptionAppearance(lightOption, lightSelectedIcon, isLight);
         updateOptionAppearance(darkOption, darkSelectedIcon, !isLight);
+        previewLight.setVisibility(isLight ? View.VISIBLE : View.GONE);
+        previewDark.setVisibility(isLight ? View.GONE : View.VISIBLE);
+        textLightTitle.setTextColor(ContextCompat.getColor(requireContext(),
+                isLight ? R.color.color_primary : R.color.color_text_secondary));
+        textDarkTitle.setTextColor(ContextCompat.getColor(requireContext(),
+                isLight ? R.color.color_text_secondary : R.color.color_primary));
     }
 
     private void updateOptionAppearance(MaterialCardView option, ImageView selectedIcon, boolean isSelected) {
@@ -183,7 +198,8 @@ public class ThemeFragment extends Fragment {
         );
         option.setStrokeColor(strokeColor);
         option.setStrokeWidth(dpToPx(isSelected ? 2 : 1));
-        selectedIcon.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
+        selectedIcon.setImageResource(
+                isSelected ? R.drawable.ic_selection_checked : R.drawable.ic_selection_unchecked);
     }
 
     private void setOptionsEnabled(boolean isEnabled) {

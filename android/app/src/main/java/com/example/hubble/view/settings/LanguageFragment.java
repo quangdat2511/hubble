@@ -6,8 +6,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,18 +17,21 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
-import com.example.hubble.utils.InAppMessageUtils;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.AppLanguageManager;
+import com.example.hubble.utils.InAppMessageUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
 import com.example.hubble.viewmodel.SettingsViewModelFactory;
 
 public class LanguageFragment extends Fragment {
 
-    private RadioGroup languageGroup;
-    private RadioButton radioEnglish;
-    private RadioButton radioVietnamese;
+    private View rowEnglish;
+    private View rowVietnamese;
+    private TextView textEnglishLabel;
+    private TextView textVietnameseLabel;
+    private ImageView iconEnglishSelected;
+    private ImageView iconVietnameseSelected;
     private TextView tvLanguageStatus;
     private SettingsViewModel settingsViewModel;
     private String authHeader;
@@ -43,9 +45,12 @@ public class LanguageFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_language, container, false);
 
-        languageGroup = view.findViewById(R.id.languageGroup);
-        radioEnglish = view.findViewById(R.id.radioEnglish);
-        radioVietnamese = view.findViewById(R.id.radioVietnamese);
+        rowEnglish = view.findViewById(R.id.rowEnglish);
+        rowVietnamese = view.findViewById(R.id.rowVietnamese);
+        textEnglishLabel = view.findViewById(R.id.textEnglishLabel);
+        textVietnameseLabel = view.findViewById(R.id.textVietnameseLabel);
+        iconEnglishSelected = view.findViewById(R.id.iconEnglishSelected);
+        iconVietnameseSelected = view.findViewById(R.id.iconVietnameseSelected);
         tvLanguageStatus = view.findViewById(R.id.tvLanguageStatus);
 
         settingsViewModel = new ViewModelProvider(
@@ -56,48 +61,49 @@ public class LanguageFragment extends Fragment {
                         new PushConfigRepository(requireContext()))
         ).get(SettingsViewModel.class);
 
-        TokenManager tokenManager = new TokenManager(requireContext().getApplicationContext());
-        String token = tokenManager.getAccessToken();
+        String token = new TokenManager(requireContext().getApplicationContext()).getAccessToken();
         if (!TextUtils.isEmpty(token)) {
             authHeader = "Bearer " + token;
         }
 
         bindLanguage(AppLanguageManager.getCurrentLanguage(requireContext()), false);
-        languageGroup.setOnCheckedChangeListener(this::onLanguageChecked);
-
-        if (!TextUtils.isEmpty(authHeader)) {
-            settingsViewModel.getLanguage(authHeader).observe(getViewLifecycleOwner(), language -> {
-                if (TextUtils.isEmpty(language)) {
-                    return;
-                }
-
-                String normalizedLanguage = AppLanguageManager.normalize(language);
-                if (!TextUtils.isEmpty(pendingLanguageChange)) {
-                    if (pendingLanguageChange.equals(normalizedLanguage)) {
-                        pendingLanguageChange = null;
-                    }
-                    return;
-                }
-
-                if (!normalizedLanguage.equals(selectedLanguage)) {
-                    bindLanguage(normalizedLanguage, false);
-                }
-            });
-        }
+        setupRowActions();
+        observeRemoteLanguage();
 
         return view;
     }
 
-    private void onLanguageChecked(RadioGroup group, int checkedId) {
-        if (isBinding) {
+    private void setupRowActions() {
+        rowEnglish.setOnClickListener(v -> onLanguageChosen(AppLanguageManager.LANGUAGE_ENGLISH));
+        rowVietnamese.setOnClickListener(v -> onLanguageChosen(AppLanguageManager.LANGUAGE_VIETNAMESE));
+    }
+
+    private void observeRemoteLanguage() {
+        if (TextUtils.isEmpty(authHeader)) {
             return;
         }
 
-        String newLanguage = checkedId == R.id.radioEnglish
-                ? AppLanguageManager.LANGUAGE_ENGLISH
-                : AppLanguageManager.LANGUAGE_VIETNAMESE;
+        settingsViewModel.getLanguage(authHeader).observe(getViewLifecycleOwner(), language -> {
+            if (TextUtils.isEmpty(language)) {
+                return;
+            }
 
-        if (newLanguage.equals(selectedLanguage)) {
+            String normalizedLanguage = AppLanguageManager.normalize(language);
+            if (!TextUtils.isEmpty(pendingLanguageChange)) {
+                if (pendingLanguageChange.equals(normalizedLanguage)) {
+                    pendingLanguageChange = null;
+                }
+                return;
+            }
+
+            if (!normalizedLanguage.equals(selectedLanguage)) {
+                bindLanguage(normalizedLanguage, false);
+            }
+        });
+    }
+
+    private void onLanguageChosen(String newLanguage) {
+        if (isBinding || newLanguage.equals(selectedLanguage)) {
             return;
         }
 
@@ -120,7 +126,7 @@ public class LanguageFragment extends Fragment {
                 applyLanguageIfNeeded(newLanguage);
                 refreshScreenWithSuccess();
             }
- 
+
             @Override
             public void onError(String message) {
                 pendingLanguageChange = null;
@@ -133,16 +139,26 @@ public class LanguageFragment extends Fragment {
 
     private void bindLanguage(String languageCode, boolean applyLocale) {
         selectedLanguage = AppLanguageManager.normalize(languageCode);
-
         isBinding = true;
-        radioEnglish.setChecked(AppLanguageManager.LANGUAGE_ENGLISH.equals(selectedLanguage));
-        radioVietnamese.setChecked(AppLanguageManager.LANGUAGE_VIETNAMESE.equals(selectedLanguage));
+        updateSelectionState();
         updateLanguageLabel(selectedLanguage);
         isBinding = false;
 
         if (applyLocale) {
             applyLanguageIfNeeded(selectedLanguage);
         }
+    }
+
+    private void updateSelectionState() {
+        boolean englishSelected = AppLanguageManager.LANGUAGE_ENGLISH.equals(selectedLanguage);
+
+        iconEnglishSelected.setImageResource(
+                englishSelected ? R.drawable.ic_selection_checked : R.drawable.ic_selection_unchecked);
+        iconVietnameseSelected.setImageResource(
+                englishSelected ? R.drawable.ic_selection_unchecked : R.drawable.ic_selection_checked);
+
+        textEnglishLabel.setAlpha(englishSelected ? 1f : 0.8f);
+        textVietnameseLabel.setAlpha(englishSelected ? 0.8f : 1f);
     }
 
     private void updateLanguageLabel(String languageCode) {
@@ -152,8 +168,10 @@ public class LanguageFragment extends Fragment {
     }
 
     private void setLanguageSelectionEnabled(boolean enabled) {
-        radioEnglish.setEnabled(enabled);
-        radioVietnamese.setEnabled(enabled);
+        rowEnglish.setEnabled(enabled);
+        rowVietnamese.setEnabled(enabled);
+        rowEnglish.setAlpha(enabled ? 1f : 0.6f);
+        rowVietnamese.setAlpha(enabled ? 1f : 0.6f);
     }
 
     private void applyLanguageIfNeeded(String languageCode) {

@@ -56,9 +56,6 @@ public class MeFragment extends Fragment {
                         getString(R.string.main_coming_soon),
                         Snackbar.LENGTH_SHORT).show());
 
-        binding.cardQr.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), QrHubActivity.class)));
-
         binding.cardNotes.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(),
                         getString(R.string.main_coming_soon),

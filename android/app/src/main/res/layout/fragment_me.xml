@@ -45,7 +45,7 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingTop="@dimen/spacing_xl"
+        android:paddingTop="@dimen/spacing_lg"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -53,9 +53,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingStart="@dimen/spacing_md"
-            android:paddingTop="@dimen/spacing_sm"
+            android:paddingTop="@dimen/spacing_md"
             android:paddingEnd="@dimen/spacing_md"
-            android:paddingBottom="@dimen/spacing_lg">
+            android:paddingBottom="@dimen/spacing_xl">
 
             <FrameLayout
                 android:id="@+id/profileFragmentContainer"
@@ -64,21 +64,29 @@
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardFriends"
-                style="@style/Widget.Material3.CardView.Filled"
+                style="@style/Widget.Hubble.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_md"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="12dp">
+                app:cardCornerRadius="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="56dp"
+                    android:minHeight="68dp"
                     android:orientation="horizontal"
                     android:padding="@dimen/spacing_md">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginEnd="@dimen/spacing_md"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_friends"
+                        app:tint="?attr/colorOnSurfaceVariant" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -86,69 +94,45 @@
                         android:layout_weight="1"
                         android:text="@string/me_friends"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:textColor="?attr/colorOnSurface"
+                        android:textStyle="bold" />
 
                     <ImageView
                         android:layout_width="@dimen/channel_icon_size"
                         android:layout_height="@dimen/channel_icon_size"
                         android:importantForAccessibility="no"
+                        android:rotation="-90"
                         android:src="@drawable/ic_expand_more"
                         app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardQr"
-                style="@style/Widget.Material3.CardView.Filled"
+                android:id="@+id/cardNotes"
+                style="@style/Widget.Hubble.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="12dp">
+                app:cardCornerRadius="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
-                    android:minHeight="56dp"
+                    android:minHeight="68dp"
                     android:orientation="horizontal"
                     android:padding="@dimen/spacing_md">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_qr_section_title"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
 
                     <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginEnd="@dimen/spacing_md"
                         android:importantForAccessibility="no"
-                        android:src="@drawable/ic_camera"
+                        android:src="@drawable/ic_edit"
                         app:tint="?attr/colorOnSurfaceVariant" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardNotes"
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="56dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
 
                     <TextView
                         android:layout_width="0dp"
@@ -156,85 +140,114 @@
                         android:layout_weight="1"
                         android:text="@string/me_notes"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_edit"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btnOutgoingRequests"
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="56dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_outgoing_requests"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="?attr/colorOnSurface" />
 
                     <ImageView
                         android:layout_width="@dimen/channel_icon_size"
                         android:layout_height="@dimen/channel_icon_size"
                         android:importantForAccessibility="no"
-                        android:src="@drawable/ic_send"
+                        android:rotation="-90"
+                        android:src="@drawable/ic_expand_more"
                         app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btnBlockedUsers"
-                style="@style/Widget.Material3.CardView.Filled"
+                style="@style/Widget.Hubble.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="12dp">
+                app:cardCornerRadius="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="56dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
+                    android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:id="@+id/btnOutgoingRequests"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_blocked_users"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="68dp"
+                        android:orientation="horizontal"
+                        android:padding="@dimen/spacing_md">
 
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_close"
-                        app:tint="?attr/colorOnSurfaceVariant" />
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginEnd="@dimen/spacing_md"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_send"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/me_outgoing_requests"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:layout_width="@dimen/channel_icon_size"
+                            android:layout_height="@dimen/channel_icon_size"
+                            android:importantForAccessibility="no"
+                            android:rotation="-90"
+                            android:src="@drawable/ic_expand_more"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="52dp"
+                        android:background="?attr/colorOutline" />
+
+                    <LinearLayout
+                        android:id="@+id/btnBlockedUsers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="68dp"
+                        android:orientation="horizontal"
+                        android:padding="@dimen/spacing_md">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginEnd="@dimen/spacing_md"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_close"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/me_blocked_users"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:layout_width="@dimen/channel_icon_size"
+                            android:layout_height="@dimen/channel_icon_size"
+                            android:importantForAccessibility="no"
+                            android:rotation="-90"
+                            android:src="@drawable/ic_expand_more"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>

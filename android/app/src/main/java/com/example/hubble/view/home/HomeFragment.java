@@ -247,7 +247,7 @@ public class HomeFragment extends Fragment {
                 openDmChat(
                         result.getData().getId(),
                         pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user),
-                        firstNonBlank(result.getData().getPeerAvatarUrl(), pendingDmAvatarUrl)
+                        firstNonBlank(pendingDmAvatarUrl, result.getData().getPeerAvatarUrl())
                 );
                 pendingDmDisplayName = null;
                 pendingDmAvatarUrl = null;

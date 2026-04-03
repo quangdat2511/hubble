@@ -2,10 +2,14 @@ package com.example.hubble.adapter.friend;
 
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.databinding.ItemFriendRequestBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,11 +61,17 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
         }
 
         void bind(FriendRequestResponse request) {
+            String displayName = "";
             if (request.getUser() != null) {
-                String displayName = (request.getUser().getDisplayName() != null && !request.getUser().getDisplayName().isEmpty())
+                displayName = (request.getUser().getDisplayName() != null && !request.getUser().getDisplayName().isEmpty())
                         ? request.getUser().getDisplayName() : request.getUser().getUsername();
                 binding.tvDisplayName.setText(displayName);
                 binding.tvUsername.setText(request.getUser().getUsername());
+                bindAvatar(request, displayName);
+            } else {
+                binding.tvDisplayName.setText("");
+                binding.tvUsername.setText("");
+                bindAvatar(null, "");
             }
 
             binding.btnAccept.setOnClickListener(v -> {
@@ -70,6 +80,51 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
             binding.btnDecline.setOnClickListener(v -> {
                 if (listener != null) listener.onDecline(request);
             });
+        }
+
+        private void bindAvatar(@Nullable FriendRequestResponse request, String displayName) {
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String avatarUrl = request != null && request.getUser() != null
+                    ? toAbsoluteUrl(request.getUser().getAvatarUrl())
+                    : null;
+
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(avatarUrl)
+                    .placeholder(avatarFallback)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
+        }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            if (url == null || url.trim().isEmpty()) {
+                return null;
+            }
+
+            String trimmedUrl = url.trim();
+            if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+                return trimmedUrl.replace("localhost", "10.0.2.2");
+            }
+
+            String baseUrl = RetrofitClient.getBaseUrl();
+            if (baseUrl.endsWith("/") && trimmedUrl.startsWith("/")) {
+                return baseUrl.substring(0, baseUrl.length() - 1) + trimmedUrl;
+            }
+            if (!baseUrl.endsWith("/") && !trimmedUrl.startsWith("/")) {
+                return baseUrl + "/" + trimmedUrl;
+            }
+            return baseUrl + trimmedUrl;
         }
     }
 }

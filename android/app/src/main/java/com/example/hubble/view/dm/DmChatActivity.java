@@ -179,7 +179,7 @@ public class DmChatActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(peerDisplayName)) {
             peerDisplayName = getString(R.string.dm_default_user);
         }
-        peerUsername = peerDisplayName;
+        peerUsername = null;
         peerAvatarUrl = toAbsoluteAvatarUrl(getIntent().getStringExtra(EXTRA_AVATAR_URL));
 
         setupToolbar();
@@ -260,7 +260,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private boolean shouldLoadPeerProfile() {
-        return TextUtils.isEmpty(peerAvatarUrl);
+        return TextUtils.isEmpty(peerAvatarUrl) || TextUtils.isEmpty(peerUsername);
     }
 
     private void applyPeerProfile(ChannelDto channel) {

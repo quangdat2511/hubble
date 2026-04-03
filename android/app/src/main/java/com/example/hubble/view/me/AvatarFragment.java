@@ -56,6 +56,7 @@ public class AvatarFragment extends Fragment {
     private AuthViewModel authViewModel;
     private String token;
     private AvatarListener avatarListener;
+    private boolean editingEnabled;
 
     private final ActivityResultLauncher<String> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
@@ -119,7 +120,17 @@ public class AvatarFragment extends Fragment {
         renderUser(authViewModel.getCurrentUser());
         loadMyAvatar();
 
-        binding.fabEditAvatar.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        binding.fabEditAvatar.setOnClickListener(v -> {
+            if (editingEnabled) {
+                pickImageLauncher.launch("image/*");
+            }
+        });
+        applyEditingState(false);
+    }
+
+    public void setEditingEnabled(boolean enabled) {
+        editingEnabled = enabled;
+        applyEditingState(false);
     }
 
     public void renderUser(@Nullable UserResponse user) {
@@ -139,7 +150,7 @@ public class AvatarFragment extends Fragment {
 
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
+        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
         binding.ivAvatar.setBackground(bg);
 
         updateStatusDot(user.getStatus());
@@ -364,10 +375,20 @@ public class AvatarFragment extends Fragment {
         }
 
         binding.progressAvatar.setVisibility(loading ? View.VISIBLE : View.GONE);
-        binding.fabEditAvatar.setEnabled(!loading);
+        applyEditingState(loading);
         binding.tvAvatarHint.setText(loading
                 ? getString(R.string.me_avatar_uploading)
                 : getString(R.string.me_avatar_hint));
+    }
+
+    private void applyEditingState(boolean loading) {
+        if (binding == null) {
+            return;
+        }
+
+        binding.fabEditAvatar.setVisibility(editingEnabled ? View.VISIBLE : View.GONE);
+        binding.fabEditAvatar.setEnabled(editingEnabled && !loading);
+        binding.tvAvatarHint.setVisibility(editingEnabled ? View.VISIBLE : View.GONE);
     }
 
     private String toAbsoluteAvatarUrl(@NonNull String avatarUrl) {

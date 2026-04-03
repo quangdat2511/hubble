@@ -19,7 +19,10 @@ import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
+import com.example.hubble.utils.AppLanguageManager;
+import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.view.base.BaseAuthActivity;
+import com.example.hubble.view.me.QrHubActivity;
 import com.example.hubble.viewmodel.SettingsViewModel;
 import com.example.hubble.viewmodel.SettingsViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -66,6 +69,7 @@ public class SettingsActivity extends BaseAuthActivity {
         setupToolbar();
         getSupportFragmentManager().addOnBackStackChangedListener(this::syncVisibleContent);
         setupRows();
+        renderStaticSummaries();
         setupPushConfigSummary();
         setupLogout();
         if (savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_OPEN_PUSH_CONFIG, false)) {
@@ -92,6 +96,8 @@ public class SettingsActivity extends BaseAuthActivity {
 
         binding.rowLanguage.setOnClickListener(v ->
                 languageSettingsLauncher.launch(new Intent(this, LanguageSettingsActivity.class)));
+        binding.rowQr.setOnClickListener(v ->
+                startActivity(new Intent(this, QrHubActivity.class)));
         binding.rowNotifications.setOnClickListener(v ->
                 navigateTo(new PushConfigFragment(), true));
         binding.rowAppearance.setOnClickListener(v ->
@@ -164,6 +170,28 @@ public class SettingsActivity extends BaseAuthActivity {
             }
         }
         binding.textNotificationsSummary.setText(summaryRes);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        renderStaticSummaries();
+    }
+
+    private void renderStaticSummaries() {
+        String languageCode = AppLanguageManager.getCurrentLanguage(this);
+        binding.textLanguageSummary.setText(
+                AppLanguageManager.LANGUAGE_ENGLISH.equals(languageCode)
+                        ? R.string.language_option_en
+                        : R.string.language_option_vi
+        );
+
+        String savedTheme = ThemeManager.getSavedTheme(this);
+        binding.textAppearanceSummary.setText(
+                ThemeManager.THEME_LIGHT.equals(savedTheme)
+                        ? R.string.theme_light
+                        : R.string.theme_dark
+        );
     }
 
     public static Intent createIntent(Context context) {

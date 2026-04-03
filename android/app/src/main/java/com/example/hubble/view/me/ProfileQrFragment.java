@@ -1,7 +1,6 @@
 package com.example.hubble.view.me;
 
 import android.graphics.Bitmap;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,7 +11,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -24,8 +22,6 @@ import com.example.hubble.utils.QrBitmapHelper;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.imageview.ShapeableImageView;
-import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.snackbar.Snackbar;
 
 public class ProfileQrFragment extends Fragment {
@@ -34,8 +30,6 @@ public class ProfileQrFragment extends Fragment {
 
     private View rootView;
     private MaterialToolbar toolbar;
-    private ShapeableImageView ivAvatar;
-    private TextView tvAvatarInitials;
     private TextView tvDisplayName;
     private TextView tvUsername;
     private ImageView ivQrCode;
@@ -80,6 +74,7 @@ public class ProfileQrFragment extends Fragment {
                 .get(AuthViewModel.class);
 
         boolean embedded = isEmbeddedMode();
+        setupAvatarFragment();
         bindCurrentUser(authViewModel.getCurrentUser());
         configureToolbar(embedded);
         loadQrCode();
@@ -95,6 +90,20 @@ public class ProfileQrFragment extends Fragment {
         toolbar.setNavigationOnClickListener(v -> requireActivity().finish());
     }
 
+    private void setupAvatarFragment() {
+        if (getChildFragmentManager().findFragmentById(R.id.avatarFragmentContainer) == null) {
+            getChildFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.avatarFragmentContainer, new AvatarFragment())
+                    .commitNow();
+        }
+
+        AvatarFragment avatarFragment = getAvatarFragment();
+        if (avatarFragment != null) {
+            avatarFragment.setEditingEnabled(false);
+        }
+    }
+
     private void bindCurrentUser(@Nullable UserResponse user) {
         String displayName = user != null && user.getDisplayName() != null
                 ? user.getDisplayName()
@@ -102,20 +111,15 @@ public class ProfileQrFragment extends Fragment {
         String username = user != null && user.getUsername() != null && !user.getUsername().trim().isEmpty()
                 ? "@" + user.getUsername()
                 : "";
-        String initials = displayName.isEmpty() ? "U"
-                : String.valueOf(displayName.charAt(0)).toUpperCase();
 
         tvDisplayName.setText(displayName);
         tvUsername.setText(username);
         tvHint.setText(R.string.me_qr_opening_hint);
 
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(ContextCompat.getColor(requireContext(), R.color.color_primary));
-        ivAvatar.setBackground(bg);
-        ivAvatar.setShapeAppearanceModel(
-                ShapeAppearanceModel.builder().setAllCornerSizes(999f).build());
-        tvAvatarInitials.setText(initials);
+        AvatarFragment avatarFragment = getAvatarFragment();
+        if (avatarFragment != null && user != null) {
+            avatarFragment.renderUser(user);
+        }
     }
 
     private void loadQrCode() {
@@ -156,8 +160,6 @@ public class ProfileQrFragment extends Fragment {
 
     private void bindViews(@NonNull View view) {
         toolbar = view.findViewById(R.id.toolbar);
-        ivAvatar = view.findViewById(R.id.ivAvatar);
-        tvAvatarInitials = view.findViewById(R.id.tvAvatarInitials);
         tvDisplayName = view.findViewById(R.id.tvDisplayName);
         tvUsername = view.findViewById(R.id.tvUsername);
         ivQrCode = view.findViewById(R.id.ivQrCode);
@@ -175,13 +177,17 @@ public class ProfileQrFragment extends Fragment {
         return args != null && args.getBoolean(ARG_EMBEDDED, false);
     }
 
+    @Nullable
+    private AvatarFragment getAvatarFragment() {
+        Fragment child = getChildFragmentManager().findFragmentById(R.id.avatarFragmentContainer);
+        return child instanceof AvatarFragment ? (AvatarFragment) child : null;
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         rootView = null;
         toolbar = null;
-        ivAvatar = null;
-        tvAvatarInitials = null;
         tvDisplayName = null;
         tvUsername = null;
         ivQrCode = null;

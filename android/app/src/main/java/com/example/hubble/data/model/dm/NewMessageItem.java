@@ -28,13 +28,15 @@ public abstract class NewMessageItem {
         private final String id;
         private final String displayName;
         private final String username;
+        private final String avatarUrl;
         private final String badge;
         private final boolean online;
 
-        public Friend(String id, String displayName, String username, String badge, boolean online) {
+        public Friend(String id, String displayName, String username, String avatarUrl, String badge, boolean online) {
             this.id = id;
             this.displayName = displayName;
             this.username = username;
+            this.avatarUrl = avatarUrl;
             this.badge = badge;
             this.online = online;
         }
@@ -54,6 +56,10 @@ public abstract class NewMessageItem {
 
         public String getUsername() {
             return username;
+        }
+
+        public String getAvatarUrl() {
+            return avatarUrl;
         }
 
         public String getBadge() {

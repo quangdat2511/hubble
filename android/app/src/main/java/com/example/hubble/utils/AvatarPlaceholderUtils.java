@@ -12,17 +12,17 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+
+import com.example.hubble.R;
 
 import java.util.Locale;
-import java.util.Random;
 
 public final class AvatarPlaceholderUtils {
 
     private static final String FALLBACK_LETTER = "?";
-    private static final float MIN_SATURATION = 0.55f;
-    private static final float MAX_SATURATION = 0.85f;
-    private static final float MIN_VALUE = 0.55f;
-    private static final float MAX_VALUE = 0.80f;
     private static final int DEFAULT_SIZE_DP = 40;
 
     private AvatarPlaceholderUtils() {
@@ -34,19 +34,13 @@ public final class AvatarPlaceholderUtils {
             @Nullable String displayName,
             int requestedSizePx
     ) {
-        int sizePx = requestedSizePx > 0
-                ? requestedSizePx
-                : Math.round(TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                DEFAULT_SIZE_DP,
-                context.getResources().getDisplayMetrics()
-        ));
+        int sizePx = resolveSizePx(context, requestedSizePx);
 
         Bitmap bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
         Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        circlePaint.setColor(resolveBackgroundColor(displayName));
+        circlePaint.setColor(resolveBackgroundColor(context));
         canvas.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, circlePaint);
 
         String letter = resolveLetter(displayName);
@@ -60,6 +54,30 @@ public final class AvatarPlaceholderUtils {
         float textBaseline = sizePx / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2f;
         canvas.drawText(letter, sizePx / 2f, textBaseline, textPaint);
 
+        return new BitmapDrawable(context.getResources(), bitmap);
+    }
+
+    @NonNull
+    public static Drawable createDefaultAvatarDrawable(@NonNull Context context, int requestedSizePx) {
+        int sizePx = resolveSizePx(context, requestedSizePx);
+
+        Bitmap bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        circlePaint.setColor(resolveBackgroundColor(context));
+        canvas.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, circlePaint);
+
+        Drawable icon = AppCompatResources.getDrawable(context, R.drawable.ic_person);
+        if (icon == null) {
+            return new BitmapDrawable(context.getResources(), bitmap);
+        }
+
+        Drawable wrappedIcon = DrawableCompat.wrap(icon.mutate());
+        DrawableCompat.setTint(wrappedIcon, Color.WHITE);
+        int iconInset = Math.round(sizePx * 0.24f);
+        wrappedIcon.setBounds(iconInset, iconInset, sizePx - iconInset, sizePx - iconInset);
+        wrappedIcon.draw(canvas);
         return new BitmapDrawable(context.getResources(), bitmap);
     }
 
@@ -78,16 +96,17 @@ public final class AvatarPlaceholderUtils {
         return new String(Character.toChars(firstCodePoint)).toUpperCase(Locale.getDefault());
     }
 
-    private static int resolveBackgroundColor(@Nullable String seedSource) {
-        String seed = seedSource == null ? FALLBACK_LETTER : seedSource.trim();
-        if (seed.isEmpty()) {
-            seed = FALLBACK_LETTER;
-        }
+    private static int resolveBackgroundColor(@NonNull Context context) {
+        return ContextCompat.getColor(context, R.color.color_success);
+    }
 
-        Random random = new Random(seed.hashCode());
-        float hue = random.nextInt(360);
-        float saturation = MIN_SATURATION + (MAX_SATURATION - MIN_SATURATION) * random.nextFloat();
-        float value = MIN_VALUE + (MAX_VALUE - MIN_VALUE) * random.nextFloat();
-        return Color.HSVToColor(new float[]{hue, saturation, value});
+    private static int resolveSizePx(@NonNull Context context, int requestedSizePx) {
+        return requestedSizePx > 0
+                ? requestedSizePx
+                : Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                DEFAULT_SIZE_DP,
+                context.getResources().getDisplayMetrics()
+        ));
     }
 }

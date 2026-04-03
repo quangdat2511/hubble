@@ -1,31 +1,37 @@
 package com.example.hubble.view.me;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
 import com.example.hubble.R;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
-import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.repository.UserRepository;
 import com.example.hubble.databinding.FragmentUserProfileBinding;
+import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.InAppMessageUtils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
-public class UserProfileFragment extends Fragment implements AvatarFragment.AvatarListener {
+public class UserProfileFragment extends Fragment
+        implements AvatarFragment.AvatarListener, ProfileEditBottomSheet.ProfileEditListener {
+
+    private static final String VALUE_PLACEHOLDER = "-";
+    private static final String EDIT_PROFILE_TAG = "edit_profile_sheet";
 
     private FragmentUserProfileBinding binding;
     private UserRepository userRepository;
     private UserResponse currentProfile;
-    private boolean isEditMode = false;
 
     public UserProfileFragment() {
         super(R.layout.fragment_user_profile);
@@ -46,36 +52,8 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
 
         userRepository = new UserRepository(requireContext());
         setupAvatarFragment();
-        setupStatusDropdown();
-        setEditMode(false);
         setupActions();
         loadProfile();
-    }
-
-    private void setupStatusDropdown() {
-        String[] statuses = getResources().getStringArray(R.array.status_options);
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_list_item_1,
-                statuses
-        );
-
-        binding.etStatus.setAdapter(adapter);
-    }
-
-    private void setupActions() {
-        binding.btnSaveProfile.setOnClickListener(v -> {
-            if (!isEditMode) {
-                setEditMode(true);
-            } else {
-                saveProfile();
-            }
-        });
-    }
-
-    private void loadProfile() {
-        userRepository.getProfile(result -> handleProfileResult(result, true));
     }
 
     private void setupAvatarFragment() {
@@ -83,91 +61,21 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
             getChildFragmentManager()
                     .beginTransaction()
                     .replace(R.id.avatarFragmentContainer, new AvatarFragment())
-                    .commit();
+                    .commitNow();
         }
-    }
 
-    private void populateUserInfo(@Nullable UserResponse user) {
-        if (user == null) return;
-
-        currentProfile = user;
-        AvatarFragment avatarFragment = (AvatarFragment) getChildFragmentManager()
-                .findFragmentById(R.id.avatarFragmentContainer);
+        AvatarFragment avatarFragment = getAvatarFragment();
         if (avatarFragment != null) {
-            avatarFragment.renderUser(user);
-        }
-        binding.tvUsername.setText(safe(user.getUsername()));
-        binding.etDisplayName.setText(safe(user.getDisplayName()));
-        binding.etPhone.setText(safe(user.getPhone()));
-        binding.etBio.setText(safe(user.getBio()));
-
-        String status = safe(user.getStatus());
-        if (status.isEmpty()) {
-            binding.etStatus.setText("ONLINE", false);
-        } else {
-            binding.etStatus.setText(status, false);
+            avatarFragment.setEditingEnabled(false);
         }
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value;
+    private void setupActions() {
+        binding.btnSaveProfile.setOnClickListener(v -> openEditProfileSheet());
     }
 
-    private void setEditMode(boolean enabled) {
-        isEditMode = enabled;
-
-        setFieldEditable(binding.etDisplayName, enabled);
-        setFieldEditable(binding.etPhone, enabled);
-        setFieldEditable(binding.etBio, enabled);
-        setStatusEditable(enabled);
-
-        binding.btnSaveProfile.setText(
-                enabled ? getString(R.string.me_save_profile)
-                        : getString(R.string.me_edit_profile)
-        );
-    }
-
-    private void setFieldEditable(EditText editText, boolean enabled) {
-        editText.setEnabled(enabled);
-        editText.setFocusable(enabled);
-        editText.setFocusableInTouchMode(enabled);
-        editText.setClickable(enabled);
-        editText.setLongClickable(enabled);
-        editText.setCursorVisible(enabled);
-    }
-
-    private void setStatusEditable(boolean enabled) {
-        binding.etStatus.setEnabled(enabled);
-        binding.etStatus.setClickable(enabled);
-        binding.etStatus.setFocusable(enabled);
-        binding.etStatus.setFocusableInTouchMode(enabled);
-    }
-
-    private void saveProfile() {
-        String selectedStatus = resolveStatusForSave();
-
-        UpdateProfileRequest request = new UpdateProfileRequest(
-                binding.etBio.getText().toString().trim(),
-                binding.etDisplayName.getText().toString().trim(),
-                selectedStatus,
-                binding.etPhone.getText().toString().trim()
-        );
-
-        userRepository.updateProfile(request, result -> handleProfileResult(result, false));
-    }
-
-    private String resolveStatusForSave() {
-        String selectedStatus = binding.etStatus.getText() != null
-                ? binding.etStatus.getText().toString().trim()
-                : "";
-
-        if (selectedStatus.isEmpty() && currentProfile != null) {
-            selectedStatus = safe(currentProfile.getStatus()).trim();
-        }
-        if (selectedStatus.isEmpty()) {
-            selectedStatus = "ONLINE";
-        }
-        return selectedStatus.toUpperCase(Locale.ROOT);
+    private void loadProfile() {
+        userRepository.getProfile(result -> handleProfileResult(result, true));
     }
 
     private void handleProfileResult(AuthResult<UserResponse> result, boolean loadingProfile) {
@@ -177,10 +85,6 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
 
         if (result.isSuccess() && result.getData() != null) {
             populateUserInfo(result.getData());
-            if (!loadingProfile) {
-                setEditMode(false);
-                InAppMessageUtils.show(binding.getRoot(), getString(R.string.profile_updated));
-            }
             return;
         }
 
@@ -188,17 +92,118 @@ public class UserProfileFragment extends Fragment implements AvatarFragment.Avat
             return;
         }
 
-        String message = result.getMessage();
-        InAppMessageUtils.showLong(binding.getRoot(), message);
-
+        InAppMessageUtils.showLong(binding.getRoot(), result.getMessage());
         if (loadingProfile) {
             populateUserInfo(userRepository.getCachedUser());
         }
     }
 
+    private void populateUserInfo(@Nullable UserResponse user) {
+        if (user == null || binding == null) {
+            return;
+        }
+
+        currentProfile = user;
+        AvatarFragment avatarFragment = getAvatarFragment();
+        if (avatarFragment != null) {
+            avatarFragment.renderUser(user);
+        }
+
+        String username = safe(user.getUsername());
+        String displayName = resolveDisplayName(user);
+        String status = resolveStatusLabel(safe(user.getStatus()));
+
+        binding.tvDisplayName.setText(displayName);
+        binding.tvUsername.setText(username.isEmpty() ? VALUE_PLACEHOLDER : "@" + username);
+        binding.tvStatusBadge.setText(status);
+        binding.tvJoinedSinceValue.setText(formatJoinedSince(user.getCreatedAt()));
+
+    }
+
+    private void openEditProfileSheet() {
+        if (!isAdded()) {
+            return;
+        }
+
+        Fragment existing = getChildFragmentManager().findFragmentByTag(EDIT_PROFILE_TAG);
+        if (existing != null) {
+            return;
+        }
+
+        ProfileEditBottomSheet.newInstance(currentProfile)
+                .show(getChildFragmentManager(), EDIT_PROFILE_TAG);
+    }
+
+    private AvatarFragment getAvatarFragment() {
+        Fragment child = getChildFragmentManager().findFragmentById(R.id.avatarFragmentContainer);
+        return child instanceof AvatarFragment ? (AvatarFragment) child : null;
+    }
+
+    private String resolveDisplayName(@NonNull UserResponse user) {
+        String displayName = safe(user.getDisplayName());
+        if (displayName.isEmpty()) {
+            displayName = safe(user.getUsername());
+        }
+        return displayName.isEmpty() ? VALUE_PLACEHOLDER : displayName;
+    }
+
+    private String resolveStatusLabel(String status) {
+        return TextUtils.isEmpty(status) ? "ONLINE" : status.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String formatJoinedSince(@Nullable String createdAt) {
+        if (TextUtils.isEmpty(createdAt)) {
+            return VALUE_PLACEHOLDER;
+        }
+
+        String[] patterns = new String[] {
+                "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+                "yyyy-MM-dd'T'HH:mm:ssX",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd"
+        };
+
+        for (String pattern : patterns) {
+            try {
+                SimpleDateFormat parser = new SimpleDateFormat(pattern, Locale.US);
+                Date parsedDate = parser.parse(createdAt);
+                if (parsedDate != null) {
+                    return formatJoinedDateForCurrentLanguage(parsedDate);
+                }
+            } catch (ParseException ignored) {
+                // Try the next known backend date shape.
+            }
+        }
+
+        return createdAt;
+    }
+
+    private String formatJoinedDateForCurrentLanguage(@NonNull Date joinedDate) {
+        boolean isVietnamese = AppLanguageManager.LANGUAGE_VIETNAMESE.equals(
+                AppLanguageManager.getCurrentLanguage(requireContext())
+        );
+
+        SimpleDateFormat formatter = isVietnamese
+                ? new SimpleDateFormat("d 'thg' M, yyyy", new Locale("vi"))
+                : new SimpleDateFormat("MMM d, yyyy", Locale.ENGLISH);
+        return formatter.format(joinedDate);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
     @Override
     public void onAvatarUpdated(@NonNull UserResponse updatedUser) {
         populateUserInfo(updatedUser);
+    }
+
+    @Override
+    public void onProfileEdited(@NonNull UserResponse updatedUser) {
+        populateUserInfo(updatedUser);
+        if (binding != null) {
+            InAppMessageUtils.show(binding.getRoot(), getString(R.string.profile_updated));
+        }
     }
 
     @Override

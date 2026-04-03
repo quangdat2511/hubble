@@ -378,8 +378,8 @@ public class MainViewModel extends ViewModel {
                 friendId,
                 displayName,
                 coalesce(
-                        channel != null ? channel.getPeerAvatarUrl() : null,
                         friend != null ? friend.getAvatarUrl() : null,
+                        channel != null ? channel.getPeerAvatarUrl() : null,
                         null
                 ),
                 "",
