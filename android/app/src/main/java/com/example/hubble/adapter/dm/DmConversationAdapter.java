@@ -1,5 +1,6 @@
 package com.example.hubble.adapter.dm;
 
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -164,9 +165,28 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             int strokeColor = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOutline);
             binding.containerRow.setCardBackgroundColor(cardColor);
             binding.containerRow.setStrokeColor(strokeColor);
-            binding.tvName.setTextColor(item.isSelected()
-                    ? MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurface)
-                    : MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant));
+            int onSurface = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurface);
+            int onSurfaceVariant = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant);
+
+            boolean unread = item.hasUnread();
+            binding.viewUnreadDot.setVisibility(unread ? View.VISIBLE : View.GONE);
+
+            if (item.isSelected()) {
+                binding.tvName.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
+                binding.tvPreview.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
+                binding.tvName.setTextColor(onSurface);
+                binding.tvPreview.setTextColor(unread ? onSurface : onSurfaceVariant);
+            } else if (unread) {
+                binding.tvName.setTypeface(null, Typeface.BOLD);
+                binding.tvPreview.setTypeface(null, Typeface.BOLD);
+                binding.tvName.setTextColor(onSurface);
+                binding.tvPreview.setTextColor(onSurface);
+            } else {
+                binding.tvName.setTypeface(null, Typeface.NORMAL);
+                binding.tvPreview.setTypeface(null, Typeface.NORMAL);
+                binding.tvName.setTextColor(onSurfaceVariant);
+                binding.tvPreview.setTextColor(onSurfaceVariant);
+            }
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
 
             binding.getRoot().setOnClickListener(v -> {

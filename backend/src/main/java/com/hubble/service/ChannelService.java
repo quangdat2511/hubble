@@ -10,6 +10,7 @@ import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ChannelMapper;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.MessageRepository;
 import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ChannelService {
     UserRepository userRepository;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    MessageRepository messageRepository;
     MessageService messageService;
 
     @Transactional
@@ -133,6 +135,7 @@ public class ChannelService {
 
         private ChannelResponse buildDirectChannelResponse(Channel channel, UUID currentUserId) {
                 ChannelResponse response = channelMapper.toChannelResponse(channel);
+                fillUnreadCount(response, channel.getId(), currentUserId);
 
                 Optional<ChannelMember> peerMember = channelMemberRepository.findAllByChannelId(channel.getId())
                                 .stream()
@@ -145,6 +148,25 @@ public class ChannelService {
 
                 userRepository.findById(peerMember.get().getUserId()).ifPresent(peerUser -> fillPeer(response, peerUser));
                 return response;
+        }
+
+        private void fillUnreadCount(ChannelResponse response, UUID channelId, UUID currentUserId) {
+                channelMemberRepository.findByChannelIdAndUserId(channelId, currentUserId)
+                                .ifPresentOrElse(
+                                                member -> {
+                                                        long c;
+                                                        if (member.getLastReadAt() == null) {
+                                                                c = messageRepository.countIncomingMessagesFromOthers(
+                                                                                channelId, currentUserId);
+                                                        } else {
+                                                                c = messageRepository.countIncomingMessagesAfterRead(
+                                                                                channelId, currentUserId,
+                                                                                member.getLastReadAt());
+                                                        }
+                                                        response.setUnreadCount((int) Math.min(c, 999));
+                                                },
+                                                () -> response.setUnreadCount(0)
+                                );
         }
 
         private void fillPeer(ChannelResponse response, User peerUser) {

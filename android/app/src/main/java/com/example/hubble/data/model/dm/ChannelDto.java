@@ -15,6 +15,7 @@ public class ChannelDto {
     private String peerDisplayName;
     private String peerAvatarUrl;
     private String peerStatus;
+    private Integer unreadCount;
 
     public String getId() {
         return id;
@@ -70,6 +71,14 @@ public class ChannelDto {
 
     public String getPeerStatus() {
         return peerStatus;
+    }
+
+    public Integer getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(Integer unreadCount) {
+        this.unreadCount = unreadCount;
     }
 }
 
