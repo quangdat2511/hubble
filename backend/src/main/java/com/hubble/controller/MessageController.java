@@ -4,6 +4,8 @@ import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
+import com.hubble.dto.response.SharedContentPageResponse;
+import com.hubble.enums.SharedContentType;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.MessageService;
 import lombok.AccessLevel;
@@ -24,12 +26,26 @@ public class MessageController {
 
     @GetMapping("/{channelId}")
     public ApiResponse<List<MessageResponse>> getMessages(
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable String channelId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
         return ApiResponse.<List<MessageResponse>>builder()
-                .result(messageService.getMessages(channelId, page, size))
+                .result(messageService.getMessages(principal.getId().toString(), channelId, page, size))
+                .build();
+    }
+
+    @GetMapping("/{channelId}/shared-content")
+    public ApiResponse<SharedContentPageResponse> getSharedContent(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @RequestParam(defaultValue = "MEDIA") SharedContentType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size
+    ) {
+        return ApiResponse.<SharedContentPageResponse>builder()
+                .result(messageService.getSharedContent(principal.getId().toString(), channelId, type, page, size))
                 .build();
     }
 

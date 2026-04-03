@@ -58,6 +58,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.dm.DmDetailsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.dm.NewMessageActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

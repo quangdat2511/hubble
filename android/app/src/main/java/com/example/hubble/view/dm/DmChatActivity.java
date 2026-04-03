@@ -113,6 +113,7 @@ public class DmChatActivity extends AppCompatActivity {
     private String currentUserId;
     private String currentUserName;
     private String currentUserAvatarUrl;
+    private String peerUserId;
     private String peerDisplayName;
     private String peerUsername;
     private String peerAvatarUrl;
@@ -224,6 +225,8 @@ public class DmChatActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.headerInfo.setOnClickListener(v -> openConversationDetails());
+        binding.ivHeaderChevron.setOnClickListener(v -> openConversationDetails());
         refreshPeerUi();
     }
 
@@ -249,10 +252,25 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void applyPeerProfile(ChannelDto channel) {
+        peerUserId = firstNonBlank(channel.getPeerUserId(), peerUserId);
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
         peerAvatarUrl = firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl);
         refreshPeerUi();
+    }
+
+    private void openConversationDetails() {
+        if (TextUtils.isEmpty(channelId)) {
+            Snackbar.make(binding.getRoot(), R.string.dm_gallery_error_generic, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        startActivity(DmDetailsActivity.createIntent(
+                this,
+                channelId,
+                peerDisplayName,
+                peerUsername,
+                peerAvatarUrl
+        ));
     }
 
     private void refreshPeerUi() {

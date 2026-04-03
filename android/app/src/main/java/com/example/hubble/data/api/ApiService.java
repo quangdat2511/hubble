@@ -21,6 +21,7 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.UploadResponse;
 
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
@@ -173,6 +174,15 @@ public interface ApiService {
     Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
             @Path("channelId") String channelId,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/messages/{channelId}/shared-content")
+    Call<ApiResponse<SharedContentPageResponse>> getSharedContent(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("type") String type,
             @Query("page") int page,
             @Query("size") int size
     );

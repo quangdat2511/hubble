@@ -12,6 +12,7 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
@@ -220,6 +221,34 @@ public class DmRepository {
                 callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
+    }
+
+    public void getSharedContent(String channelId, String type, int page, int size,
+                                 RepositoryCallback<SharedContentPageResponse> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.getSharedContent(token, channelId, type, page, size)
+                .enqueue(new Callback<ApiResponse<SharedContentPageResponse>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<SharedContentPageResponse>> call,
+                                           Response<ApiResponse<SharedContentPageResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(
+                                extractErrorMessage(response, "Khong tai duoc noi dung da chia se")
+                        ));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<SharedContentPageResponse>> call, Throwable t) {
+                        callback.onResult(AuthResult.error("Loi mang: " + t.getMessage()));
+                    }
+                });
     }
 
     // Gộp tất cả SendMessage cũ thành 1 hàm duy nhất nhận đủ tham số
