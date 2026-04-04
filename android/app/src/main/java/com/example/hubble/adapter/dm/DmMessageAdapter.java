@@ -514,7 +514,19 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         .error(android.R.drawable.ic_menu_report_image)
                         .into(ivMedia);
 
-                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+//                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+                mediaView.setOnClickListener(v -> {
+                    if (mimeType.startsWith("image/")) {
+                        // Nếu là ảnh -> Mở giao diện xem ảnh đen thui siêu xịn
+                        Intent intent = new Intent(container.getContext(), com.example.hubble.view.dm.ImageViewerActivity.class);
+                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_IMAGE_URL, url);
+                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_FILE_NAME, att.getFilename());
+                        container.getContext().startActivity(intent);
+                    } else {
+                        // Nếu là video -> Vẫn dùng trình duyệt ngoài như cũ
+                        openAttachment(container.getContext(), url, mimeType);
+                    }
+                });
                 container.addView(mediaView);
 
             } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {

@@ -66,6 +66,10 @@ logging:
   level:
     com.hubble: DEBUG
 
+groq:
+  endpoint: https://api.groq.com/openai/v1/chat/completions
+  api-key: ${GROQ_API_KEY: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}
+
 app:
   storage:
     provider: supabase
