@@ -4,6 +4,7 @@ import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.AttachmentResponse;
 import com.hubble.dto.response.MessageResponse;
+import com.hubble.dto.response.SmartReplyResponse;
 import com.hubble.entity.Attachment;
 import com.hubble.entity.Message;
 import com.hubble.exception.AppException;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +38,7 @@ public class MessageService {
     MessageMapper messageMapper;
     ChannelRepository channelRepository;
     SimpMessagingTemplate messagingTemplate;
+    SmartReplyService smartReplyService;
 
     @Transactional(readOnly = true)
     public List<MessageResponse> getMessages(String channelId, int page, int size) {
@@ -108,6 +111,19 @@ public class MessageService {
                 "/topic/channels/" + request.getChannelId(),
                 response
         );
+
+        if ("TEXT".equalsIgnoreCase(request.getType())) {
+            CompletableFuture.runAsync(() -> {
+                List<String> suggestions = smartReplyService.generateSuggestions(saved.getContent());
+
+                if (!suggestions.isEmpty()) {
+                    messagingTemplate.convertAndSend(
+                            "/topic/channels/" + request.getChannelId() + "/suggestions",
+                            new SmartReplyResponse(suggestions, authorId)
+                    );
+                }
+            });
+        }
 
         return response;
     }
