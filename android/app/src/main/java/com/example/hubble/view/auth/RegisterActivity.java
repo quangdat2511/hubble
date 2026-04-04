@@ -13,11 +13,15 @@ import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 
+import java.util.regex.Pattern;
+
 public class RegisterActivity extends BaseAuthActivity {
 
     private ActivityRegisterBinding binding;
     private AuthViewModel authViewModel;
     private String currentEmail = "";
+
+    private static final String PASSWORD_PATTERN = "^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).+$";
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -75,10 +79,17 @@ public class RegisterActivity extends BaseAuthActivity {
             binding.tilPassword.setError(getString(R.string.error_empty_password));
             return;
         }
+
         if (password.length() < 6) {
             binding.tilPassword.setError(getString(R.string.error_password_too_short));
             return;
         }
+
+        if (!Pattern.compile(PASSWORD_PATTERN).matcher(password).matches()) {
+            binding.tilPassword.setError(getString(R.string.error_password_weak));
+            return;
+        }
+
         if (!password.equals(confirmPassword)) {
             binding.tilConfirmPassword.setError(getString(R.string.error_password_mismatch));
             return;

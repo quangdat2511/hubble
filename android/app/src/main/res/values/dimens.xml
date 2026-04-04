@@ -13,6 +13,7 @@
     <dimen name="server_icon_size">48dp</dimen>
     <dimen name="server_active_indicator_width">4dp</dimen>
     <dimen name="server_active_indicator_height">40dp</dimen>
+    <dimen name="server_unread_indicator_height">24dp</dimen>
     <dimen name="bottom_nav_height">56dp</dimen>
     <dimen name="channel_icon_size">24dp</dimen>
     <dimen name="toolbar_height">56dp</dimen>

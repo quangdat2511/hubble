@@ -63,6 +63,13 @@ public class ReplySwipeCallback extends ItemTouchHelper.SimpleCallback {
     }
 
     @Override
+    public int getSwipeDirs(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+        if (viewHolder instanceof DmMessageAdapter.DateSeparatorHolder) return 0;
+        if (viewHolder instanceof DmMessageAdapter.IntroHolder) return 0;
+        return super.getSwipeDirs(recyclerView, viewHolder);
+    }
+
+    @Override
     public boolean onMove(@NonNull RecyclerView rv,
                           @NonNull RecyclerView.ViewHolder vh,
                           @NonNull RecyclerView.ViewHolder target) {

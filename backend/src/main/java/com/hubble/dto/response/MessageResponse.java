@@ -26,4 +26,6 @@ public class MessageResponse {
     String createdAt;
 
     List<AttachmentResponse> attachments;
+
+    List<ReactionResponse> reactions;
 }

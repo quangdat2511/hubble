@@ -8,7 +8,13 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.Typeface;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
+
 import com.example.hubble.R;
+import com.example.hubble.adapter.friend.NotificationActivityAdapter;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.databinding.ItemPendingInviteBinding;
 
@@ -68,34 +74,33 @@ public class PendingInviteAdapter extends ListAdapter<ServerInviteResponse, Pend
         }
 
         void bind(ServerInviteResponse invite, OnInviteActionListener listener) {
-            // Server name
-            binding.tvServerName.setText(
-                    invite.getServerName() != null ? invite.getServerName() : "");
-
-            // Server icon initials
-            String serverName = invite.getServerName();
-            String initials = (serverName != null && !serverName.isEmpty())
-                    ? serverName.substring(0, 1).toUpperCase() : "?";
+            // Server initials for icon
+            String serverName = invite.getServerName() != null ? invite.getServerName() : "";
+            String initials = serverName.isEmpty() ? "?" : serverName.substring(0, 1).toUpperCase();
             binding.tvServerInitials.setText(initials);
 
-            // Inviter info
+            // Notification text: "[Inviter] đã mời bạn tham gia [ServerName]."
             String inviterDisplay = invite.getInviterDisplayName();
             String inviterUsername = invite.getInviterUsername();
-            String inviterLabel = inviterDisplay != null && !inviterDisplay.isEmpty()
-                    ? inviterDisplay : inviterUsername;
-            binding.tvInviterInfo.setText(
-                    binding.getRoot().getContext()
-                            .getString(R.string.invite_from_inviter, inviterLabel != null ? inviterLabel : ""));
+            String inviterName = (inviterDisplay != null && !inviterDisplay.isEmpty())
+                    ? inviterDisplay : (inviterUsername != null ? inviterUsername : "");
 
-            // Created at
-            String createdAt = invite.getCreatedAt();
-            if (createdAt != null && createdAt.length() >= 10) {
-                binding.tvCreatedAt.setText(
-                        binding.getRoot().getContext()
-                                .getString(R.string.invite_created_at, createdAt.substring(0, 10)));
-            } else {
-                binding.tvCreatedAt.setText("");
+            String fullText = binding.getRoot().getContext()
+                    .getString(R.string.notification_server_invite_text, inviterName, serverName);
+            SpannableString spannable = new SpannableString(fullText);
+            if (!inviterName.isEmpty()) {
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), 0, inviterName.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+            int serverStart = fullText.indexOf(serverName);
+            if (serverStart >= 0 && !serverName.isEmpty()) {
+                spannable.setSpan(new StyleSpan(Typeface.BOLD), serverStart,
+                        serverStart + serverName.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            binding.tvMessage.setText(spannable);
+
+            // Relative time
+            binding.tvTime.setText(NotificationActivityAdapter.formatRelativeTime(invite.getCreatedAt()));
 
             // Action buttons
             binding.btnAccept.setOnClickListener(v -> listener.onAccept(invite));

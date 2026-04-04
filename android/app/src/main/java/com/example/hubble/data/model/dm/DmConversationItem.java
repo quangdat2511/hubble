@@ -12,6 +12,7 @@ public class DmConversationItem {
     private final boolean verified;
     private final boolean selected;
     private final boolean favorite;
+    private final int unreadCount;
     private final long lastMessageAtMillis;
 
     public DmConversationItem(
@@ -25,6 +26,7 @@ public class DmConversationItem {
             boolean verified,
             boolean selected,
             boolean favorite,
+            int unreadCount,
             long lastMessageAtMillis
     ) {
         this.id = id;
@@ -37,6 +39,7 @@ public class DmConversationItem {
         this.verified = verified;
         this.selected = selected;
         this.favorite = favorite;
+        this.unreadCount = unreadCount;
         this.lastMessageAtMillis = lastMessageAtMillis;
     }
 
@@ -84,8 +87,15 @@ public class DmConversationItem {
         return favorite;
     }
 
+    public int getUnreadCount() {
+        return unreadCount;
+    }
+
+    public boolean hasUnread() {
+        return unreadCount > 0;
+    }
+
     public long getLastMessageAtMillis() {
         return lastMessageAtMillis;
     }
 }
-

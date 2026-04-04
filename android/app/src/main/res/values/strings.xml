@@ -64,6 +64,8 @@
     <string name="error_empty_name">Vui lòng nhập tên hiển thị</string>
     <string name="error_empty_otp">Vui lòng nhập đầy đủ mã OTP</string>
     <string name="error_generic">Có lỗi xảy ra. Vui lòng thử lại.</string>
+    <string name="error_invalid_otp">Mã OTP không hợp lệ</string>
+    <string name="error_password_weak">Mật khẩu phải chứa ít nhất 1 chữ cái, 1 chữ số và 1 ký tự đặc biệt</string>
 
     <!-- Main / Home -->
     <string name="nav_home">Trang chủ</string>
@@ -86,6 +88,13 @@
     <string name="notifications_title">Các Thông Báo</string>
     <string name="notifications_empty">Không có thông báo mới</string>
     <string name="cd_notifications_more">Thêm tùy chọn thông báo</string>
+    <string name="friend_requests_section_label">LỜI MỜI KẾT BẠN</string>
+    <string name="friend_request_respond_success">Đã phản hồi lời mời kết bạn</string>
+    <string name="notification_ignore">Bỏ qua</string>
+    <string name="notification_recent_activity">Hoạt động gần đây</string>
+    <string name="notification_friend_request_text">%1$s đã gửi cho bạn lời mời kết bạn.</string>
+    <string name="notification_server_invite_text">%1$s đã mời bạn tham gia %2$s.</string>
+    <string name="notification_friend_accepted_text">%1$s đã chấp nhận lời mời kết bạn của bạn.</string>
 
     <!-- Me / Profile screen -->
     <string name="me_title">Bạn</string>
@@ -186,7 +195,8 @@
     <string name="dm_me">Bạn</string>
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
-    <string name="dm_message_hint">Nhắn tin cho %1$s</string>
+    <string name="typing_indicator">%1$s đang nhập…</string>
+    <string name="dm_message_hint">Nhắn tin @%1$s</string>
     <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>
     <string name="dm_send_demo_hint">MVP UI: đã nhận thao tác gửi tin nhắn</string>
@@ -230,6 +240,8 @@
     <string name="no">Không</string>
     <string name="empty_message_error">Vui lòng nhập nội dung tin nhắn</string>
     <string name="pin_message">Ghim tin nhắn</string>
+    <string name="mark_unread">Đánh dấu chưa đọc</string>
+    <string name="reactions">Reactions</string>
     <string name="reply_to">Trả lời %1$s</string>
     <string name="reply_cancel">Hủy trả lời</string>
     <string name="cd_reply_cancel">Hủy trả lời tin nhắn</string>
@@ -240,6 +252,10 @@
     <string name="copied_message_text">Đã sao chép nội dung tin nhắn</string>
     <string name="forward_sent_count">Đã chuyển tiếp %1$d cuộc trò chuyện</string>
     <string name="forward_no_target">Hãy chọn ít nhất một nơi nhận</string>
+    <string name="msg_status_sending">⏱ Đang gửi…</string>
+    <string name="msg_status_sent">✓ Đã gửi</string>
+    <string name="msg_status_delivered">✓✓ Đã nhận</string>
+    <string name="msg_status_read">✓✓ Đã xem</string>
     <string name="message_edited">đã chỉnh sửa</string>
     <string name="message_edited_suffix"> (%1$s)</string>
     <string name="editing_message">Đang chỉnh sửa tin nhắn</string>

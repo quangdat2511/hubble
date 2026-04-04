@@ -13,7 +13,10 @@ import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ChannelMapper;
 import com.hubble.mapper.ServerMapper;
+import com.hubble.entity.ChannelMember;
+import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.MessageRepository;
 import com.hubble.repository.RoleRepository;
 import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
@@ -30,6 +33,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,6 +52,8 @@ public class ServerService {
     private final ServerRepository serverRepository;
     private final ServerMemberRepository serverMemberRepository;
     private final ChannelRepository channelRepository;
+    private final ChannelMemberRepository channelMemberRepository;
+    private final MessageRepository messageRepository;
     private final RoleRepository roleRepository;
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
@@ -59,6 +65,8 @@ public class ServerService {
             ServerRepository serverRepository,
             ServerMemberRepository serverMemberRepository,
             ChannelRepository channelRepository,
+            ChannelMemberRepository channelMemberRepository,
+            MessageRepository messageRepository,
             RoleRepository roleRepository,
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
@@ -68,6 +76,8 @@ public class ServerService {
         this.serverRepository = serverRepository;
         this.serverMemberRepository = serverMemberRepository;
         this.channelRepository = channelRepository;
+        this.channelMemberRepository = channelMemberRepository;
+        this.messageRepository = messageRepository;
         this.roleRepository = roleRepository;
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
@@ -81,12 +91,27 @@ public class ServerService {
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND)));
     }
 
-    public List<ChannelResponse> getServerChannels(UUID serverId) {
+    public List<ChannelResponse> getServerChannels(UUID serverId, UUID currentUserId) {
         serverRepository.findById(serverId)
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
         return channelRepository.findByServerId(serverId)
                 .stream()
-                .map(channelMapper::toChannelResponse)
+                .map(channel -> {
+                    ChannelResponse r = channelMapper.toChannelResponse(channel);
+                    Optional<ChannelMember> mem = channelMemberRepository.findByChannelIdAndUserId(
+                            channel.getId(), currentUserId);
+                    if (mem.isPresent()) {
+                        var m = mem.get();
+                        long c = m.getLastReadAt() == null
+                                ? messageRepository.countIncomingMessagesFromOthers(channel.getId(), currentUserId)
+                                : messageRepository.countIncomingMessagesAfterRead(
+                                        channel.getId(), currentUserId, m.getLastReadAt());
+                        r.setUnreadCount((int) Math.min(c, 999));
+                    } else {
+                        r.setUnreadCount(0);
+                    }
+                    return r;
+                })
                 .toList();
     }
 
