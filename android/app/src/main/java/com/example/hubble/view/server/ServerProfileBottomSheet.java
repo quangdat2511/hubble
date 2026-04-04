@@ -116,7 +116,10 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                 dismiss();
                 startActivity(CreateChannelActivity.createIntent(requireContext(), serverId));
             });
-            binding.rowCreateCategory.setOnClickListener(v -> showComingSoon());
+            binding.rowCreateCategory.setOnClickListener(v -> {
+                dismiss();
+                startActivity(CreateCategoryActivity.createIntent(requireContext(), serverId));
+            });
             binding.rowEditServerProfile.setOnClickListener(v -> showComingSoon());
             binding.rowHideMuted.setOnClickListener(v ->
                     binding.switchHideMuted.setChecked(!binding.switchHideMuted.isChecked()));

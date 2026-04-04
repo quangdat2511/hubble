@@ -525,4 +525,11 @@
     <string name="create_channel_section_roles">Vai trò</string>
     <string name="create_channel_section_members">Thành viên</string>
     <string name="create_channel_success">Tạo kênh thành công!</string>
+
+    <!-- Create Category -->
+    <string name="create_category_title">Tạo Danh Mục</string>
+    <string name="create_category_name_label">Tên Danh Mục</string>
+    <string name="create_category_default_name">Danh Mục Mới</string>
+    <string name="create_category_private">Danh Mục Riêng</string>
+    <string name="create_category_private_note">Nếu đặt danh mục ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể xem danh mục này. Các kênh đã liên kết trong danh mục này cũng sẽ tự động được chuyển sang trạng thái riêng tư.</string>
 </resources>

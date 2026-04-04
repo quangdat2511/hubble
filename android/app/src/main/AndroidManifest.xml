@@ -97,6 +97,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.server.CreateCategoryActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".view.friend.AddFriendActivity"
             android:exported="false" />
 
