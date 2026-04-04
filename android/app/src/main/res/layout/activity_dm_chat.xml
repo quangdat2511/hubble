@@ -300,7 +300,7 @@
         android:paddingTop="6dp"
         android:paddingBottom="6dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/attachmentPreviewBar"
+        app:layout_constraintBottom_toTopOf="@id/suggestionBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -344,6 +344,28 @@
             app:icon="@drawable/ic_close"
             app:iconTint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/suggestionBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/spacing_sm"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/attachmentPreviewBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/cgSuggestions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleLine="true" />
+    </HorizontalScrollView>
 
     <HorizontalScrollView
         android:id="@+id/attachmentPreviewBar"

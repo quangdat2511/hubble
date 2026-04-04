@@ -400,6 +400,17 @@ public class DmChatActivity extends AppCompatActivity {
             return false;
         });
 
+        binding.etComposer.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Nếu người dùng bắt đầu gõ, tự động ẩn gợi ý đi
+                if (s.length() > 0 && binding.suggestionBar.getVisibility() == View.VISIBLE) {
+                    binding.suggestionBar.setVisibility(View.GONE);
+                }
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
         binding.etComposer.setOnClickListener(v -> { if (isEmojiPanelVisible) hideEmojiPanel(true); });
         binding.etComposer.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus && isEmojiPanelVisible) hideEmojiPanel(true); });
 
@@ -1181,6 +1192,20 @@ public class DmChatActivity extends AppCompatActivity {
                     if (dto == null) return;
                     runOnUiThread(() -> appendOrUpdateMessage(dto));
                 }, throwable -> {}));
+
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/suggestions")
+                .subscribeOn(io.reactivex.schedulers.Schedulers.io())
+                .observeOn(io.reactivex.android.schedulers.AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    com.example.hubble.data.model.dm.SmartReplyResponse response =
+                            gson.fromJson(stompMessage.getPayload(), com.example.hubble.data.model.dm.SmartReplyResponse.class);
+
+                    // CHỈ HIỆN NẾU TIN NHẮN KHÔNG PHẢI DO MÌNH GỬI
+                    if (response != null && !currentUserId.equals(response.getMessageAuthorId())) {
+                        runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                    }
+                }, throwable -> {}));
     }
 
     private void disconnectStomp() {
@@ -1255,6 +1280,37 @@ public class DmChatActivity extends AppCompatActivity {
             mapped.add(item);
         }
         return mapped;
+    }
+
+    private void showSmartReplies(List<String> suggestions) {
+        if (suggestions == null || suggestions.isEmpty()) {
+            binding.suggestionBar.setVisibility(View.GONE);
+            return;
+        }
+
+        binding.cgSuggestions.removeAllViews();
+        for (String text : suggestions) {
+            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
+            chip.setText(text);
+
+            chip.setChipBackgroundColorResource(R.color.color_surface_elevated);
+
+            chip.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_primary));
+
+            chip.setChipStrokeColorResource(R.color.color_divider);
+            chip.setChipStrokeWidth(1f);
+            chip.setOnClickListener(v -> {
+                binding.etComposer.setText(text);
+                attemptSendMessage();
+                binding.suggestionBar.setVisibility(View.GONE);
+            });
+
+            binding.cgSuggestions.addView(chip);
+        }
+
+        binding.suggestionBar.setVisibility(View.VISIBLE);
+        binding.suggestionBar.setAlpha(0f);
+        binding.suggestionBar.animate().alpha(1f).setDuration(300).start();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
