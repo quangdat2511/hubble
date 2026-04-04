@@ -76,8 +76,9 @@ public class ServerController {
     public ResponseEntity<ApiResponse<List<ChannelResponse>>> getServerChannels(
             @PathVariable UUID serverId,
             Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<List<ChannelResponse>>builder()
-                .result(serverService.getServerChannels(serverId))
+                .result(serverService.getServerChannels(serverId, userId))
                 .build());
     }
 }

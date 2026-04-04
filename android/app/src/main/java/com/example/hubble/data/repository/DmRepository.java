@@ -10,8 +10,11 @@ import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
+import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.PeerReadStatusDto;
+import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
@@ -161,11 +164,13 @@ public class DmRepository {
         apiService.getDirectChannels(token).enqueue(new Callback<List<ChannelDto>>() {
             @Override
             public void onResponse(Call<List<ChannelDto>> call, Response<List<ChannelDto>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    callback.onResult(AuthResult.success(response.body()));
+                if (response.isSuccessful()) {
+                    List<ChannelDto> body = response.body();
+                    callback.onResult(AuthResult.success(body != null ? body : new ArrayList<>()));
                     return;
                 }
-                callback.onResult(AuthResult.error("Không tải được danh sách DM"));
+                callback.onResult(AuthResult.error(
+                        extractErrorMessage(response, "Không tải được danh sách DM")));
             }
 
             @Override
@@ -193,6 +198,52 @@ public class DmRepository {
 
             @Override
             public void onFailure(Call<ChannelDto> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void markChannelRead(String channelId, String messageId, RepositoryCallback<Void> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+        if (channelId == null || messageId == null) {
+            callback.onResult(AuthResult.error("Thiếu thông tin"));
+            return;
+        }
+        apiService.markChannelRead(token, channelId, new MarkChannelReadRequest(messageId))
+                .enqueue(new Callback<ApiResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                        if (response.isSuccessful()) {
+                            callback.onResult(AuthResult.success(null));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(extractErrorMessage(response, "Không cập nhật được trạng thái đã đọc")));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+                    }
+                });
+    }
+
+    public void getPeerReadStatus(String channelId, RepositoryCallback<PeerReadStatusDto> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+        apiService.getPeerReadStatus(token, channelId).enqueue(new Callback<ApiResponse<PeerReadStatusDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<PeerReadStatusDto>> call,
+                                   Response<ApiResponse<PeerReadStatusDto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error(extractErrorMessage(response, "Không tải được trạng thái đã xem")));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<PeerReadStatusDto>> call, Throwable t) {
                 callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });
@@ -279,6 +330,31 @@ public class DmRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<MessageDto>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
+            }
+        });
+    }
+
+    public void toggleReaction(String messageId, String emoji, RepositoryCallback<List<ReactionDto>> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+
+        java.util.Map<String, String> body = new java.util.HashMap<>();
+        body.put("emoji", emoji);
+
+        apiService.toggleReaction(token, messageId, body).enqueue(new Callback<ApiResponse<List<ReactionDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<ReactionDto>>> call,
+                                   Response<ApiResponse<List<ReactionDto>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+                callback.onResult(AuthResult.error("Không thể thả cảm xúc"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<ReactionDto>>> call, Throwable t) {
                 callback.onResult(AuthResult.error("Lỗi mạng: " + t.getMessage()));
             }
         });

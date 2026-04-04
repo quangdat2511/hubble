@@ -26,16 +26,47 @@
                 android:background="@drawable/bg_server_active_indicator"
                 android:visibility="gone" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDmView"
-                style="@style/Widget.Material3.Button.IconButton"
+            <View
+                android:id="@+id/viewDmUnreadPill"
+                android:layout_width="@dimen/server_active_indicator_width"
+                android:layout_height="@dimen/server_unread_indicator_height"
+                android:layout_gravity="start|center_vertical"
+                android:background="@drawable/bg_server_unread_pill"
+                android:visibility="gone" />
+
+            <FrameLayout
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
-                android:layout_margin="@dimen/spacing_sm"
-                android:contentDescription="@string/dm_title"
-                app:icon="@drawable/ic_message"
-                app:iconTint="?attr/colorOnSurfaceVariant" />
+                android:layout_margin="@dimen/spacing_sm">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDmView"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/dm_title"
+                    app:icon="@drawable/ic_message"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <TextView
+                    android:id="@+id/tvDmSidebarBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginEnd="2dp"
+                    android:layout_marginBottom="2dp"
+                    android:background="@drawable/bg_unread_badge_red"
+                    android:gravity="center"
+                    android:minWidth="18dp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
         </FrameLayout>
 
@@ -132,14 +163,6 @@
                     android:text="@string/dm_add_friend"
                     app:icon="@drawable/ic_person"
                     app:iconTint="?attr/colorOnSurfaceVariant" />
-
-                <ImageButton
-                    android:id="@+id/btnPendingRequests"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_notifications"
-                    app:tint="?attr/colorOnSurface" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

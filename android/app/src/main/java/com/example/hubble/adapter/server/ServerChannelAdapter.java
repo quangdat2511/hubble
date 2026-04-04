@@ -1,6 +1,7 @@
 package com.example.hubble.adapter.server;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -198,6 +199,15 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
                 binding.ivChannelIcon.setImageResource(com.example.hubble.R.drawable.ic_hashtag);
             } else {
                 binding.ivChannelIcon.setImageResource(com.example.hubble.R.drawable.ic_sound);
+            }
+
+            Integer u = channel.getUnreadCount();
+            int unread = u != null ? u : 0;
+            if (viewType == VIEW_TYPE_TEXT_CHANNEL && unread > 0) {
+                binding.tvChannelUnreadBadge.setVisibility(View.VISIBLE);
+                binding.tvChannelUnreadBadge.setText(unread > 99 ? "99+" : String.valueOf(unread));
+            } else {
+                binding.tvChannelUnreadBadge.setVisibility(View.GONE);
             }
         }
     }

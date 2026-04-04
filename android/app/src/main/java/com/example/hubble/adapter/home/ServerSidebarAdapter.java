@@ -16,7 +16,9 @@ import com.google.android.material.shape.RelativeCornerSize;
 import com.google.android.material.shape.ShapeAppearanceModel;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdapter.ViewHolder> {
 
@@ -25,6 +27,7 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
     }
 
     private final List<ServerItem> servers = new ArrayList<>();
+    private final Map<String, Integer> unreadByServerId = new HashMap<>();
     private int selectedPosition = 0;
     private OnServerClickListener listener;
 
@@ -72,6 +75,14 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
         this.listener = l;
     }
 
+    public void setUnreadByServerId(Map<String, Integer> map) {
+        unreadByServerId.clear();
+        if (map != null) {
+            unreadByServerId.putAll(map);
+        }
+        notifyDataSetChanged();
+    }
+
     public void setSelectedPosition(int position) {
         int old = selectedPosition;
         if (old == position) return;
@@ -106,7 +117,12 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ServerItem server = servers.get(position);
         boolean selected = (position == selectedPosition);
-        holder.bind(server, selected);
+        int unread = 0;
+        if (server.getId() != null) {
+            Integer u = unreadByServerId.get(server.getId());
+            unread = u != null ? u : 0;
+        }
+        holder.bind(server, selected, unread);
     }
 
     @Override
@@ -127,8 +143,17 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<ServerSidebarAdap
             this.b = binding;
         }
 
-        void bind(ServerItem server, boolean isSelected) {
+        void bind(ServerItem server, boolean isSelected, int unreadCount) {
             b.viewActiveIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+            boolean showUnreadPill = unreadCount > 0 && !isSelected;
+            b.viewUnreadPill.setVisibility(showUnreadPill ? View.VISIBLE : View.GONE);
+
+            if (unreadCount > 0) {
+                b.tvServerUnreadBadge.setVisibility(View.VISIBLE);
+                b.tvServerUnreadBadge.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            } else {
+                b.tvServerUnreadBadge.setVisibility(View.GONE);
+            }
 
             float density = b.ivServerIcon.getContext().getResources().getDisplayMetrics().density;
             ShapeAppearanceModel shapeModel = isSelected
