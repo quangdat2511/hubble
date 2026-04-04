@@ -532,4 +532,17 @@
     <string name="create_category_default_name">Danh Mục Mới</string>
     <string name="create_category_private">Danh Mục Riêng</string>
     <string name="create_category_private_note">Nếu đặt danh mục ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể xem danh mục này. Các kênh đã liên kết trong danh mục này cũng sẽ tự động được chuyển sang trạng thái riêng tư.</string>
+
+    <!-- Channel Profile Bottom Sheet -->
+    <string name="channel_profile_invite">Lời mời</string>
+    <string name="channel_profile_copy_link">Sao Chép Link</string>
+    <string name="channel_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="channel_profile_notifications">Cài đặt thông báo</string>
+    <string name="channel_profile_edit">Chỉnh sửa kênh</string>
+    <string name="channel_profile_duplicate">Trùng lập Kênh</string>
+
+    <!-- Duplicate Channel -->
+    <string name="duplicate_channel_title">Trùng lập Kênh</string>
+    <string name="duplicate_channel_name_label">Tên kênh</string>
+    <string name="duplicate_channel_note">Một kênh mới sẽ được tạo ra với cùng quyền hạn, giới hạn người dùng và bitrate như #%s.</string>
 </resources>

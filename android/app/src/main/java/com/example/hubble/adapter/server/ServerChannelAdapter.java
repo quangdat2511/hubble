@@ -26,6 +26,7 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     private final OnChannelClickListener onChannelClick;
     private final OnCategoryToggleListener onCategoryToggle;
+    private final OnChannelLongClickListener onChannelLongClick;
 
     public interface OnChannelClickListener {
         void onChannelClick(ChannelDto channel);
@@ -35,10 +36,16 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
         void onCategoryToggle(String categoryId);
     }
 
+    public interface OnChannelLongClickListener {
+        void onChannelLongClick(ChannelDto channel);
+    }
+
     public ServerChannelAdapter(OnChannelClickListener onChannelClick,
-                               OnCategoryToggleListener onCategoryToggle) {
+                               OnCategoryToggleListener onCategoryToggle,
+                               OnChannelLongClickListener onChannelLongClick) {
         this.onChannelClick = onChannelClick;
         this.onCategoryToggle = onCategoryToggle;
+        this.onChannelLongClick = onChannelLongClick;
     }
 
     public void submitChannels(List<ChannelDto> channels, Set<String> collapsed) {
@@ -188,6 +195,14 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
                     ChannelDto channel = (ChannelDto) visibleItems.get(pos);
                     onChannelClick.onChannelClick(channel);
                 }
+            });
+            itemView.setOnLongClickListener(v -> {
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION && pos < visibleItems.size()) {
+                    ChannelDto channel = (ChannelDto) visibleItems.get(pos);
+                    onChannelLongClick.onChannelLongClick(channel);
+                }
+                return true;
             });
         }
 

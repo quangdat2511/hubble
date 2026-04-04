@@ -30,6 +30,7 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
+import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
@@ -196,7 +197,18 @@ public class HomeFragment extends Fragment {
                     showMessage("Kênh: " + channel.getName() + " (chức năng đang phát triển)");
                 }
             },
-            viewModel::toggleCategoryCollapse
+            viewModel::toggleCategoryCollapse,
+            channel -> {
+                ServerItem server = viewModel.selectedServer.getValue();
+                if (server != null) {
+                    ChannelProfileBottomSheet.newInstance(
+                            server.getId(), server.getName(), server.getIconUrl(),
+                            channel.getId(), channel.getName(), channel.getType(),
+                            channel.getParentId(),
+                            Boolean.TRUE.equals(channel.getIsPrivate())
+                    ).show(getParentFragmentManager(), "ChannelProfile");
+                }
+            }
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));
