@@ -581,4 +581,22 @@
     <string name="add_channel_access_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
     <string name="add_channel_access_section_roles">Vai trò</string>
     <string name="add_channel_access_section_members">Thành viên</string>
+
+    <!-- Category Profile Bottom Sheet -->
+    <string name="category_profile_invite">Lời mời</string>
+    <string name="category_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="category_profile_mute">Tắt Âm Danh Mục</string>
+    <string name="category_profile_notifications">Cài đặt thông báo</string>
+    <string name="category_profile_edit">Chỉnh Sửa Danh Mục</string>
+    <string name="category_profile_create_channel">Tạo Kênh</string>
+
+    <!-- Category Settings -->
+    <string name="category_settings_title">Cài Đặt Danh Mục</string>
+    <string name="category_settings_name_label">TÊN DANH MỤC</string>
+    <string name="category_settings_name_empty">Tên danh mục không được để trống</string>
+    <string name="category_settings_permissions">Quyền Truy Cập Danh Mục</string>
+    <string name="category_settings_permissions_desc">Tùy chỉnh ai có thể xem danh mục này và các kênh bên trong bằng cách thêm thành viên hoặc vai trò.</string>
+    <string name="category_settings_delete">Xóa mục</string>
+    <string name="category_settings_delete_confirm_title">Xóa danh mục</string>
+    <string name="category_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa %s? Các kênh trong danh mục sẽ không bị xóa.</string>
 </resources>

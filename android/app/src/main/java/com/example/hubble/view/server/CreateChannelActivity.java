@@ -27,6 +27,7 @@ import com.google.android.material.snackbar.Snackbar;
 public class CreateChannelActivity extends AppCompatActivity {
 
     private static final String EXTRA_SERVER_ID = "server_id";
+    private static final String EXTRA_PARENT_ID = "parent_id";
     private ActivityCreateChannelBinding binding;
     private CreateChannelViewModel viewModel;
 
@@ -45,6 +46,13 @@ public class CreateChannelActivity extends AppCompatActivity {
         return intent;
     }
 
+    public static Intent createIntent(Context context, String serverId, String parentId) {
+        Intent intent = new Intent(context, CreateChannelActivity.class);
+        intent.putExtra(EXTRA_SERVER_ID, serverId);
+        intent.putExtra(EXTRA_PARENT_ID, parentId);
+        return intent;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -56,9 +64,12 @@ public class CreateChannelActivity extends AppCompatActivity {
         String serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
         if (serverId == null) { finish(); return; }
 
+        String parentId = getIntent().getStringExtra(EXTRA_PARENT_ID);
+
         viewModel = new ViewModelProvider(this,
                 new CreateChannelViewModelFactory(new ServerRepository(this), serverId))
                 .get(CreateChannelViewModel.class);
+        if (parentId != null) viewModel.setParentId(parentId);
 
         setupToolbar();
         setupChannelName();
@@ -137,7 +148,8 @@ public class CreateChannelActivity extends AppCompatActivity {
             // Navigate to access (members/roles) screen
             String serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
             String type = viewModel.channelType.getValue();
-            Intent intent = CreateChannelAccessActivity.createIntent(this, serverId, name, type);
+            String pid = viewModel.getParentId();
+            Intent intent = CreateChannelAccessActivity.createIntent(this, serverId, name, type, pid);
             accessLauncher.launch(intent);
         } else {
             // Create channel directly

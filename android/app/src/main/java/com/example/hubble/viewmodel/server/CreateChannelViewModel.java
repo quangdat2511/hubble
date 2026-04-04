@@ -18,6 +18,7 @@ public class CreateChannelViewModel extends ViewModel {
 
     private final ServerRepository serverRepository;
     private final String serverId;
+    private String parentId;
 
     private final MutableLiveData<String> _channelName = new MutableLiveData<>("kênh-mới");
     private final MutableLiveData<String> _channelType = new MutableLiveData<>("TEXT");
@@ -37,6 +38,9 @@ public class CreateChannelViewModel extends ViewModel {
         this.serverRepository = serverRepository;
         this.serverId = serverId;
     }
+
+    public void setParentId(String parentId) { this.parentId = parentId; }
+    public String getParentId() { return parentId; }
 
     public void setChannelName(String name) { _channelName.setValue(name); }
     public void setChannelType(String type) { _channelType.setValue(type); }
@@ -71,7 +75,7 @@ public class CreateChannelViewModel extends ViewModel {
         Boolean priv = _isPrivate.getValue();
 
         CreateChannelRequest request = new CreateChannelRequest(
-                name, type, null,
+                name, type, parentId,
                 priv != null && priv,
                 priv != null && priv ? new ArrayList<>(selectedMemberIds) : null,
                 priv != null && priv ? new ArrayList<>(selectedRoleIds) : null

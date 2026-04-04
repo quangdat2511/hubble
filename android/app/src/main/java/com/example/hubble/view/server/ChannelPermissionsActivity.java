@@ -158,7 +158,7 @@ public class ChannelPermissionsActivity extends AppCompatActivity {
                     AddChannelAccessActivity.createIntent(this, serverId, channelId));
         });
 
-        if (isPrivate) loadAccessLists();
+        loadAccessLists();
     }
 
     private void applyEdgeToEdge() {
@@ -176,10 +176,6 @@ public class ChannelPermissionsActivity extends AppCompatActivity {
     private void updatePrivateUI(boolean priv) {
         int vis = priv ? View.VISIBLE : View.GONE;
         binding.cardAddAccess.setVisibility(vis);
-        binding.tvRolesHeader.setVisibility(roles.isEmpty() ? View.GONE : vis);
-        binding.rvRoles.setVisibility(roles.isEmpty() ? View.GONE : vis);
-        binding.tvMembersHeader.setVisibility(members.isEmpty() ? View.GONE : vis);
-        binding.rvMembers.setVisibility(members.isEmpty() ? View.GONE : vis);
     }
 
     private void updatePrivacyOnServer(boolean priv) {

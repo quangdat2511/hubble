@@ -40,22 +40,31 @@ public class CreateChannelAccessActivity extends AppCompatActivity {
     private static final String EXTRA_SERVER_ID = "server_id";
     private static final String EXTRA_CHANNEL_NAME = "channel_name";
     private static final String EXTRA_CHANNEL_TYPE = "channel_type";
+    private static final String EXTRA_PARENT_ID = "parent_id";
 
     private ActivityCreateChannelAccessBinding binding;
     private ChannelAccessAdapter adapter;
     private String serverId;
     private String channelName;
     private String channelType;
+    private String parentId;
 
     private List<RoleResponse> allRoles = new ArrayList<>();
     private List<ServerMemberResponse> allMembers = new ArrayList<>();
 
     public static Intent createIntent(Context context, String serverId,
                                       String channelName, String channelType) {
+        return createIntent(context, serverId, channelName, channelType, null);
+    }
+
+    public static Intent createIntent(Context context, String serverId,
+                                      String channelName, String channelType,
+                                      String parentId) {
         Intent intent = new Intent(context, CreateChannelAccessActivity.class);
         intent.putExtra(EXTRA_SERVER_ID, serverId);
         intent.putExtra(EXTRA_CHANNEL_NAME, channelName);
         intent.putExtra(EXTRA_CHANNEL_TYPE, channelType);
+        intent.putExtra(EXTRA_PARENT_ID, parentId);
         return intent;
     }
 
@@ -70,6 +79,7 @@ public class CreateChannelAccessActivity extends AppCompatActivity {
         serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
         channelName = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
         channelType = getIntent().getStringExtra(EXTRA_CHANNEL_TYPE);
+        parentId = getIntent().getStringExtra(EXTRA_PARENT_ID);
 
         if (serverId == null) { finish(); return; }
 
@@ -172,7 +182,7 @@ public class CreateChannelAccessActivity extends AppCompatActivity {
         CreateChannelRequest request = new CreateChannelRequest(
                 channelName,
                 channelType != null ? channelType : "TEXT",
-                null,
+                parentId,
                 true,
                 memberIds.isEmpty() ? null : new ArrayList<>(memberIds),
                 roleIds.isEmpty() ? null : new ArrayList<>(roleIds)

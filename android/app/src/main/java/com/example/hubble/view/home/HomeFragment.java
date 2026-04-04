@@ -31,6 +31,7 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
+import com.example.hubble.view.server.CategoryProfileBottomSheet;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
@@ -220,6 +221,17 @@ public class HomeFragment extends Fragment {
                             channel.getTopic(), channel.getParentId(), parentName,
                             Boolean.TRUE.equals(channel.getIsPrivate())
                     ).show(getParentFragmentManager(), "ChannelProfile");
+                }
+            },
+            category -> {
+                ServerItem server = viewModel.selectedServer.getValue();
+                if (server != null) {
+                    CategoryProfileBottomSheet.newInstance(
+                            server.getId(), server.getName(), server.getIconUrl(),
+                            server.getOwnerId(),
+                            category.getId(), category.getName(),
+                            Boolean.TRUE.equals(category.getIsPrivate())
+                    ).show(getParentFragmentManager(), "CategoryProfile");
                 }
             }
         );

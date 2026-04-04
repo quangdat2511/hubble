@@ -27,6 +27,7 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final OnChannelClickListener onChannelClick;
     private final OnCategoryToggleListener onCategoryToggle;
     private final OnChannelLongClickListener onChannelLongClick;
+    private final OnCategoryLongClickListener onCategoryLongClick;
 
     public interface OnChannelClickListener {
         void onChannelClick(ChannelDto channel);
@@ -40,12 +41,18 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
         void onChannelLongClick(ChannelDto channel);
     }
 
+    public interface OnCategoryLongClickListener {
+        void onCategoryLongClick(ChannelDto category);
+    }
+
     public ServerChannelAdapter(OnChannelClickListener onChannelClick,
                                OnCategoryToggleListener onCategoryToggle,
-                               OnChannelLongClickListener onChannelLongClick) {
+                               OnChannelLongClickListener onChannelLongClick,
+                               OnCategoryLongClickListener onCategoryLongClick) {
         this.onChannelClick = onChannelClick;
         this.onCategoryToggle = onCategoryToggle;
         this.onChannelLongClick = onChannelLongClick;
+        this.onCategoryLongClick = onCategoryLongClick;
     }
 
     public void submitChannels(List<ChannelDto> channels, Set<String> collapsed) {
@@ -168,6 +175,14 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
                     ChannelDto category = (ChannelDto) visibleItems.get(pos);
                     onCategoryToggle.onCategoryToggle(category.getId());
                 }
+            });
+            itemView.setOnLongClickListener(v -> {
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION && pos < visibleItems.size()) {
+                    ChannelDto category = (ChannelDto) visibleItems.get(pos);
+                    onCategoryLongClick.onCategoryLongClick(category);
+                }
+                return true;
             });
         }
 

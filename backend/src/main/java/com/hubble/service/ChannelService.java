@@ -372,6 +372,16 @@ public class ChannelService {
         UUID serverId = channel.getServerId();
         ChannelResponse response = channelMapper.toChannelResponse(channel);
 
+        // If deleting a CATEGORY, un-parent its children and broadcast updates
+        if (channel.getType() == ChannelType.CATEGORY) {
+            List<Channel> children = channelRepository.findByParentId(channelId);
+            for (Channel child : children) {
+                child.setParentId(null);
+                channelRepository.save(child);
+                broadcastChannelEvent(serverId, "UPDATED", channelMapper.toChannelResponse(child));
+            }
+        }
+
         channelMemberRepository.deleteAllByChannelId(channelId);
         channelRoleRepository.deleteAllByChannelId(channelId);
         messageService.deleteMessagesByChannel(channelId);
