@@ -64,6 +64,8 @@
     <string name="error_empty_name">Vui lòng nhập tên hiển thị</string>
     <string name="error_empty_otp">Vui lòng nhập đầy đủ mã OTP</string>
     <string name="error_generic">Có lỗi xảy ra. Vui lòng thử lại.</string>
+    <string name="error_invalid_otp">Mã OTP không hợp lệ</string>
+    <string name="error_password_weak">Mật khẩu phải chứa ít nhất 1 chữ cái, 1 chữ số và 1 ký tự đặc biệt</string>
 
     <!-- Main / Home -->
     <string name="nav_home">Trang chủ</string>
