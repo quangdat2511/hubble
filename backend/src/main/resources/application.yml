@@ -1,110 +1,108 @@
 server:
-  port: ${PORT:8080}
+    port: ${PORT:8080}
 
 spring:
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0}
-    username: ${DB_USERNAME:postgres.qexzpkwrfjlblrvtqvuh}
-    password: ${DB_PASSWORD:hubble@56183}
-    driver-class-name: org.postgresql.Driver
+    datasource:
+        url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0}
+        username: ${DB_USERNAME:postgres.qexzpkwrfjlblrvtqvuh}
+        password: ${DB_PASSWORD:hubble@56183}
+        driver-class-name: org.postgresql.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    jpa:
+        hibernate:
+            ddl-auto: none
+        show-sql: true
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                format_sql: true
 
+    servlet:
+        multipart:
+            max-file-size: 50MB
+            max-request-size: 100MB
 
-  servlet:
-    multipart:
-      max-file-size: 50MB
-      max-request-size: 100MB
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:huychienthan999@gmail.com}
-    password: ${MAIL_PASSWORD:fkhifplujjzuqkub}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          ssl:
-            trust: smtp.gmail.com
+    mail:
+        host: smtp.gmail.com
+        port: 587
+        username: ${MAIL_USERNAME:huychienthan999@gmail.com}
+        password: ${MAIL_PASSWORD:fkhifplujjzuqkub}
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true
+                        required: true
+                    ssl:
+                        trust: smtp.gmail.com
 
 jwt:
-  secret: ${JWT_SECRET:MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=}
-  access-token-expiration: 3600000
-  refresh-token-expiration: 2592000000
+    secret: ${JWT_SECRET:MzM0NTY3ODkwYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=}
+    access-token-expiration: 3600000
+    refresh-token-expiration: 2592000000
 
 aws:
-  s3:
-    bucket-name: ${AWS_S3_BUCKET:hubble-media}
-    region: ${AWS_REGION:ap-southeast-1}
-    access-key: ${AWS_ACCESS_KEY:YOUR_AWS_ACCESS_KEY}
-    secret-key: ${AWS_SECRET_KEY:YOUR_AWS_SECRET_KEY}
+    s3:
+        bucket-name: ${AWS_S3_BUCKET:hubble-media}
+        region: ${AWS_REGION:ap-southeast-1}
+        access-key: ${AWS_ACCESS_KEY:YOUR_AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY:YOUR_AWS_SECRET_KEY}
 
 supabase:
-  url: ${SUPABASE_URL:https://qexzpkwrfjlblrvtqvuh.supabase.co}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14}
-  server-icon-bucket: ${SUPABASE_SERVER_ICON_BUCKET:server-icon}
+    url: ${SUPABASE_URL:https://qexzpkwrfjlblrvtqvuh.supabase.co}
+    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14}
+    server-icon-bucket: ${SUPABASE_SERVER_ICON_BUCKET:server-icon}
 
 google:
-  client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}
+    client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}
 
 firebase:
-  config:
-    path: firebase-service-account.json
-  expiry-minutes: 5
-  length: 6
+    config:
+        path: firebase-service-account.json
+    expiry-minutes: 5
+    length: 6
 
 logging:
-  level:
-    com.hubble: DEBUG
+    level:
+        com.hubble: DEBUG
 
 groq:
-  endpoint: https://api.groq.com/openai/v1/chat/completions
-  api-key: ${GROQ_API_KEY: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}
+    endpoint: https://api.groq.com/openai/v1/chat/completions
+    api-key: ${GROQ_API_KEY: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}
 
 app:
-  storage:
-    provider: supabase
-    endpoint: https://qexzpkwrfjlblrvtqvuh.supabase.co
-    access-key: ''
-    secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14
-    bucket: hubble-media
-    public-url: https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/hubble-media
-    max-file-size-mb: 25
-    allowed-types:
-      - image/jpeg
-      - image/png
-      - image/gif
-      - image/webp
-      - video/mp4
-      - audio/mpeg
-      - audio/mp4
-      - audio/ogg
-      - audio/aac
-      - audio/m4a
-      - audio/x-m4a
-      - audio/mpeg
-      - application/pdf
-      - application/octet-stream
-      - application/msword                                                      # .doc
-      - application/vnd.openxmlformats-officedocument.wordprocessingml.document # .docx
-      - application/vnd.ms-excel                                                # .xls
-      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet       # .xlsx
-      - application/vnd.ms-powerpoint                                           # .ppt
-      - application/vnd.openxmlformats-officedocument.presentationml.presentation # .pptx
-      - application/zip                                                         # .zip
-      - application/x-zip-compressed
-      - application/vnd.rar                                                     # .rar
-      - application/x-rar-compressed
-      - text/plain
-
+    storage:
+        provider: supabase
+        endpoint: https://qexzpkwrfjlblrvtqvuh.supabase.co
+        access-key: ""
+        secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14
+        bucket: hubble-media
+        public-url: https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/hubble-media
+        max-file-size-mb: 25
+        allowed-types:
+            - image/jpeg
+            - image/png
+            - image/gif
+            - image/webp
+            - video/mp4
+            - audio/mpeg
+            - audio/mp4
+            - audio/ogg
+            - audio/aac
+            - audio/m4a
+            - audio/x-m4a
+            - audio/mpeg
+            - application/pdf
+            - application/octet-stream
+            - application/msword # .doc
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document # .docx
+            - application/vnd.ms-excel # .xls
+            - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet # .xlsx
+            - application/vnd.ms-powerpoint # .ppt
+            - application/vnd.openxmlformats-officedocument.presentationml.presentation # .pptx
+            - application/zip # .zip
+            - application/x-zip-compressed
+            - application/vnd.rar # .rar
+            - application/x-rar-compressed
+            - text/plain
