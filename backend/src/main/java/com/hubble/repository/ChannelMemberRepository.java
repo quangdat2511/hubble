@@ -19,4 +19,8 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
     List<ChannelMember> findAllByUserId(UUID userId);
 
     List<ChannelMember> findAllByChannelId(UUID channelId);
+
+    void deleteByChannelIdAndUserId(UUID channelId, UUID userId);
+
+    void deleteAllByChannelId(UUID channelId);
 }

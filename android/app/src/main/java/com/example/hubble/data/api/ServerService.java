@@ -2,8 +2,11 @@ package com.example.hubble.data.api;
 
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
+import com.example.hubble.data.model.server.ChannelMemberResponse;
+import com.example.hubble.data.model.server.ChannelRoleResponse;
 import com.example.hubble.data.model.server.CreateChannelRequest;
 import com.example.hubble.data.model.server.ServerResponse;
+import com.example.hubble.data.model.server.UpdateChannelRequest;
 
 import java.util.List;
 
@@ -78,5 +81,70 @@ public interface ServerService {
             @Header("Authorization") String token,
             @Path("serverId") String serverId,
             @Body CreateChannelRequest request
+    );
+
+    // ── Update channel ─────────────────────────────────────────────────────
+    @PUT("api/servers/{serverId}/channels/{channelId}")
+    Call<ApiResponse<ChannelDto>> updateChannel(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId,
+            @Body UpdateChannelRequest request
+    );
+
+    // ── Delete channel ─────────────────────────────────────────────────────
+    @DELETE("api/servers/{serverId}/channels/{channelId}")
+    Call<ApiResponse<Void>> deleteChannel(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId
+    );
+
+    // ── Channel members ────────────────────────────────────────────────────
+    @GET("api/servers/{serverId}/channels/{channelId}/members")
+    Call<ApiResponse<List<ChannelMemberResponse>>> getChannelMembers(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId
+    );
+
+    @POST("api/servers/{serverId}/channels/{channelId}/members")
+    Call<ApiResponse<Void>> addChannelMembers(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId,
+            @Body List<String> userIds
+    );
+
+    @DELETE("api/servers/{serverId}/channels/{channelId}/members/{userId}")
+    Call<ApiResponse<Void>> removeChannelMember(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId,
+            @Path("userId") String userId
+    );
+
+    // ── Channel roles ──────────────────────────────────────────────────────
+    @GET("api/servers/{serverId}/channels/{channelId}/roles")
+    Call<ApiResponse<List<ChannelRoleResponse>>> getChannelRoles(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId
+    );
+
+    @POST("api/servers/{serverId}/channels/{channelId}/roles")
+    Call<ApiResponse<Void>> addChannelRoles(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId,
+            @Body List<String> roleIds
+    );
+
+    @DELETE("api/servers/{serverId}/channels/{channelId}/roles/{roleId}")
+    Call<ApiResponse<Void>> removeChannelRole(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("channelId") String channelId,
+            @Path("roleId") String roleId
     );
 }

@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.databinding.BottomSheetChannelProfileBinding;
+import com.example.hubble.utils.TokenManager;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
@@ -28,20 +29,28 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
     private static final String ARG_CHANNEL_TYPE = "channel_type";
     private static final String ARG_CHANNEL_PARENT_ID = "channel_parent_id";
     private static final String ARG_CHANNEL_IS_PRIVATE = "channel_is_private";
+    private static final String ARG_CHANNEL_TOPIC = "channel_topic";
+    private static final String ARG_SERVER_OWNER_ID = "server_owner_id";
+    private static final String ARG_CHANNEL_PARENT_NAME = "channel_parent_name";
 
     public static ChannelProfileBottomSheet newInstance(String serverId, String serverName,
-                                                        String serverIconUrl, String channelId,
-                                                        String channelName, String channelType,
-                                                        String parentId, boolean isPrivate) {
+                                                        String serverIconUrl, String serverOwnerId,
+                                                        String channelId, String channelName,
+                                                        String channelType, String topic,
+                                                        String parentId, String parentName,
+                                                        boolean isPrivate) {
         ChannelProfileBottomSheet sheet = new ChannelProfileBottomSheet();
         Bundle args = new Bundle();
         args.putString(ARG_SERVER_ID, serverId);
         args.putString(ARG_SERVER_NAME, serverName);
         args.putString(ARG_SERVER_ICON_URL, serverIconUrl);
+        args.putString(ARG_SERVER_OWNER_ID, serverOwnerId);
         args.putString(ARG_CHANNEL_ID, channelId);
         args.putString(ARG_CHANNEL_NAME, channelName);
         args.putString(ARG_CHANNEL_TYPE, channelType);
+        args.putString(ARG_CHANNEL_TOPIC, topic);
         args.putString(ARG_CHANNEL_PARENT_ID, parentId);
+        args.putString(ARG_CHANNEL_PARENT_NAME, parentName);
         args.putBoolean(ARG_CHANNEL_IS_PRIVATE, isPrivate);
         sheet.setArguments(args);
         return sheet;
@@ -63,10 +72,20 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
         String serverId = getArguments().getString(ARG_SERVER_ID);
         String serverName = getArguments().getString(ARG_SERVER_NAME);
         String serverIconUrl = getArguments().getString(ARG_SERVER_ICON_URL);
+        String serverOwnerId = getArguments().getString(ARG_SERVER_OWNER_ID);
+        String channelId = getArguments().getString(ARG_CHANNEL_ID);
         String channelName = getArguments().getString(ARG_CHANNEL_NAME);
         String channelType = getArguments().getString(ARG_CHANNEL_TYPE);
+        String topic = getArguments().getString(ARG_CHANNEL_TOPIC);
         String parentId = getArguments().getString(ARG_CHANNEL_PARENT_ID);
+        String parentName = getArguments().getString(ARG_CHANNEL_PARENT_NAME);
         boolean isPrivate = getArguments().getBoolean(ARG_CHANNEL_IS_PRIVATE, false);
+
+        // Owner-only: hide Edit/Duplicate for non-owners
+        TokenManager tm = new TokenManager(requireContext());
+        String currentUserId = tm.getUser() != null ? tm.getUser().getId() : null;
+        boolean isOwner = currentUserId != null && currentUserId.equals(serverOwnerId);
+        binding.cardCluster3.setVisibility(isOwner ? View.VISIBLE : View.GONE);
 
         // Header
         String prefix = "TEXT".equalsIgnoreCase(channelType) ? "# " : "";
@@ -102,7 +121,12 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
         binding.rowNotifications.setOnClickListener(v -> showComingSoon());
 
         // Cluster 3
-        binding.rowEditChannel.setOnClickListener(v -> showComingSoon());
+        binding.rowEditChannel.setOnClickListener(v -> {
+            dismiss();
+            startActivity(ChannelSettingsActivity.createIntent(
+                    requireContext(), serverId, channelId, channelName, channelType,
+                    topic, parentId, parentName, isPrivate));
+        });
         binding.rowDuplicateChannel.setOnClickListener(v -> {
             dismiss();
             startActivity(DuplicateChannelActivity.createIntent(

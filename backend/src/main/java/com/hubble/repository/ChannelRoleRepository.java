@@ -13,4 +13,6 @@ import java.util.UUID;
 public interface ChannelRoleRepository extends JpaRepository<ChannelRole, ChannelRoleId> {
     List<ChannelRole> findAllByChannelId(UUID channelId);
     boolean existsByChannelIdAndRoleIdIn(UUID channelId, Collection<UUID> roleIds);
+    void deleteByChannelIdAndRoleId(UUID channelId, UUID roleId);
+    void deleteAllByChannelId(UUID channelId);
 }

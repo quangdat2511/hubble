@@ -545,4 +545,40 @@
     <string name="duplicate_channel_title">Trùng lập Kênh</string>
     <string name="duplicate_channel_name_label">Tên kênh</string>
     <string name="duplicate_channel_note">Một kênh mới sẽ được tạo ra với cùng quyền hạn, giới hạn người dùng và bitrate như #%s.</string>
+
+    <!-- Channel Settings -->
+    <string name="channel_settings_title">Cài Đặt Kênh</string>
+    <string name="channel_settings_name_label">TÊN KÊNH</string>
+    <string name="channel_settings_topic_label">CHỦ ĐỀ KÊNH</string>
+    <string name="channel_settings_topic_hint">Thêm chủ đề</string>
+    <string name="channel_settings_category">Danh Mục</string>
+    <string name="channel_settings_uncategorized">Không có Danh Mục</string>
+    <string name="channel_settings_permissions">Quyền hạn</string>
+    <string name="channel_settings_notifications">Các Thông Báo</string>
+    <string name="channel_settings_pinned">Tin Nhắn Đã Ghim</string>
+    <string name="channel_settings_delete">Xóa Kênh</string>
+    <string name="channel_settings_delete_confirm_title">Xóa kênh</string>
+    <string name="channel_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa #%s? Thao tác này không thể hoàn tác.</string>
+    <string name="channel_settings_saved">Đã lưu thay đổi</string>
+    <string name="channel_settings_deleted">Kênh đã được xóa</string>
+
+    <!-- Change Category -->
+    <string name="change_category_title">Danh Mục</string>
+
+    <!-- Channel Permissions -->
+    <string name="channel_permissions_title">Quyền Hạn Kênh</string>
+    <string name="channel_permissions_private">Kênh Riêng</string>
+    <string name="channel_permissions_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="channel_permissions_add">Thêm thành viên hoặc vai trò</string>
+    <string name="channel_permissions_section_roles">VAI TRÒ</string>
+    <string name="channel_permissions_section_members">THÀNH VIÊN</string>
+    <string name="channel_permissions_remove_confirm_title">Xóa quyền truy cập</string>
+    <string name="channel_permissions_remove_member_confirm">Xóa quyền truy cập của %s khỏi kênh này?</string>
+    <string name="channel_permissions_remove_role_confirm">Xóa vai trò %s khỏi kênh này?</string>
+
+    <!-- Add Channel Access -->
+    <string name="add_channel_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="add_channel_access_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
+    <string name="add_channel_access_section_roles">Vai trò</string>
+    <string name="add_channel_access_section_members">Thành viên</string>
 </resources>

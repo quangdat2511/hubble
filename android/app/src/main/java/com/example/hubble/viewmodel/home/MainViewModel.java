@@ -11,6 +11,7 @@ import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.server.ChannelEvent;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
@@ -1080,9 +1081,18 @@ public class MainViewModel extends ViewModel {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(stompMessage -> {
-                    ChannelDto newChannel = gson.fromJson(stompMessage.getPayload(), ChannelDto.class);
-                    if (newChannel == null || TextUtils.isEmpty(newChannel.getId())) return;
-                    onServerChannelCreated(sid, newChannel);
+                    ChannelEvent event = gson.fromJson(stompMessage.getPayload(), ChannelEvent.class);
+                    if (event == null || event.getChannel() == null) return;
+                    ChannelDto channel = event.getChannel();
+                    if (TextUtils.isEmpty(channel.getId())) return;
+                    String type = event.getType();
+                    if ("DELETED".equals(type)) {
+                        onServerChannelDeleted(sid, channel.getId());
+                    } else if ("UPDATED".equals(type)) {
+                        onServerChannelUpdated(sid, channel);
+                    } else {
+                        onServerChannelCreated(sid, channel);
+                    }
                 }, throwable -> {});
         dmRealtimeDisposables.add(serverChannelTopicDisposable);
     }
@@ -1099,6 +1109,47 @@ public class MainViewModel extends ViewModel {
             if (c.getId() != null && c.getId().equals(newChannel.getId())) return;
         }
         updated.add(newChannel);
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelUpdated(String serverId, ChannelDto updatedChannel) {
+        if (Boolean.TRUE.equals(updatedChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is recalculated
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>(current);
+        boolean found = false;
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).getId() != null && updated.get(i).getId().equals(updatedChannel.getId())) {
+                updated.set(i, updatedChannel);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            updated.add(updatedChannel);
+        }
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelDeleted(String serverId, String channelId) {
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>();
+        for (ChannelDto c : current) {
+            if (!channelId.equals(c.getId())) {
+                updated.add(c);
+            }
+        }
         channelCache.put(serverId, updated);
         if (serverId.equals(activeServerId)) {
             _serverChannels.postValue(AuthResult.success(updated));
