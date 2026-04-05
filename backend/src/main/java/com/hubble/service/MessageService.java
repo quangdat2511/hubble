@@ -8,6 +8,7 @@ import com.hubble.dto.response.MessageResponse;
 import com.hubble.dto.response.SmartReplyResponse;
 import com.hubble.dto.response.ReactionResponse;
 import com.hubble.entity.Attachment;
+import com.hubble.entity.Channel;
 import com.hubble.entity.Message;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
@@ -15,7 +16,10 @@ import com.hubble.mapper.MessageMapper;
 import com.hubble.repository.AttachmentRepository;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.ChannelRoleRepository;
+import com.hubble.repository.MemberRoleRepository;
 import com.hubble.repository.MessageRepository;
+import com.hubble.repository.ServerMemberRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -41,16 +45,18 @@ public class MessageService {
     MessageMapper messageMapper;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    ChannelRoleRepository channelRoleRepository;
+    ServerMemberRepository serverMemberRepository;
+    MemberRoleRepository memberRoleRepository;
     SimpMessagingTemplate messagingTemplate;
     SmartReplyService smartReplyService;
     ReactionService reactionService;
 
     @Transactional(readOnly = true)
-    public List<MessageResponse> getMessages(String channelId, int page, int size) {
+    public List<MessageResponse> getMessages(String channelId, String userId, int page, int size) {
         UUID channelUuid = UUID.fromString(channelId);
-        if (!channelRepository.existsById(channelUuid)) {
-            throw new AppException(ErrorCode.CHANNEL_NOT_FOUND);
-        }
+        UUID userUuid = UUID.fromString(userId);
+        checkChannelAccess(channelUuid, userUuid);
 
         List<Message> messages = messageRepository
                 .findByChannelIdOrderByCreatedAtDesc(channelUuid, PageRequest.of(page, size))
@@ -95,9 +101,8 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(String authorId, CreateMessageRequest request) {
         UUID channelUuid = UUID.fromString(request.getChannelId());
-        if (!channelRepository.existsById(channelUuid)) {
-            throw new AppException(ErrorCode.CHANNEL_NOT_FOUND);
-        }
+        UUID authorUuid = UUID.fromString(authorId);
+        checkChannelAccess(channelUuid, authorUuid);
 
         Message message = Message.builder()
                 .channelId(channelUuid)
@@ -224,5 +229,28 @@ public class MessageService {
         res.setAttachments(attachments);
         res.setReactions(reactionService.getReactionsForMessage(message.getId()));
         return res;
+    }
+
+    private void checkChannelAccess(UUID channelId, UUID userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+
+        // DM channels (no serverId) and non-private channels are always accessible
+        if (!Boolean.TRUE.equals(channel.getIsPrivate()) || channel.getServerId() == null) return;
+
+        // Check explicit member access
+        if (channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) return;
+
+        // Check role-based access
+        boolean hasRoleAccess = serverMemberRepository.findByServerIdAndUserId(channel.getServerId(), userId)
+                .map(member -> {
+                    List<UUID> roleIds = memberRoleRepository.findRoleIdsByMemberId(member.getId());
+                    return !roleIds.isEmpty() && channelRoleRepository.existsByChannelIdAndRoleIdIn(channelId, roleIds);
+                })
+                .orElse(false);
+
+        if (!hasRoleAccess) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
     }
 }

@@ -87,6 +87,48 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.server.CreateChannelActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.CreateChannelAccessActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.CreateCategoryActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.DuplicateChannelActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.ChannelSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.CategorySettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.ChangeCategoryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.server.ChannelPermissionsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.server.AddChannelAccessActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.friend.AddFriendActivity"
             android:exported="false" />
 

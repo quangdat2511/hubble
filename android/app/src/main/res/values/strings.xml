@@ -505,4 +505,98 @@
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
     <string name="role_detail_delete">Xóa Vai Trò</string>
+
+    <!-- Create Channel -->
+    <string name="create_channel_title">Tạo kênh</string>
+    <string name="create_channel_create">Tạo</string>
+    <string name="create_channel_next">Tiếp Theo</string>
+    <string name="create_channel_skip">Bỏ Qua</string>
+    <string name="create_channel_name_label">Tên kênh</string>
+    <string name="create_channel_default_name">kênh-mới</string>
+    <string name="create_channel_type_label">Loại Kênh</string>
+    <string name="create_channel_type_text">Văn bản</string>
+    <string name="create_channel_type_text_desc">Đăng hình ảnh, ảnh động, sticker, ý kiến, và chơi chữ</string>
+    <string name="create_channel_type_voice">Giọng nói</string>
+    <string name="create_channel_type_voice_desc">Cùng gặp mặt bằng gọi thoại, video, và chia sẻ màn hình</string>
+    <string name="create_channel_private">Kênh Riêng</string>
+    <string name="create_channel_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="create_channel_add_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="create_channel_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
+    <string name="create_channel_section_roles">Vai trò</string>
+    <string name="create_channel_section_members">Thành viên</string>
+    <string name="create_channel_success">Tạo kênh thành công!</string>
+
+    <!-- Create Category -->
+    <string name="create_category_title">Tạo Danh Mục</string>
+    <string name="create_category_name_label">Tên Danh Mục</string>
+    <string name="create_category_default_name">Danh Mục Mới</string>
+    <string name="create_category_private">Danh Mục Riêng</string>
+    <string name="create_category_private_note">Nếu đặt danh mục ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể xem danh mục này. Các kênh đã liên kết trong danh mục này cũng sẽ tự động được chuyển sang trạng thái riêng tư.</string>
+
+    <!-- Channel Profile Bottom Sheet -->
+    <string name="channel_profile_invite">Lời mời</string>
+    <string name="channel_profile_copy_link">Sao Chép Link</string>
+    <string name="channel_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="channel_profile_notifications">Cài đặt thông báo</string>
+    <string name="channel_profile_edit">Chỉnh sửa kênh</string>
+    <string name="channel_profile_duplicate">Trùng lập Kênh</string>
+
+    <!-- Duplicate Channel -->
+    <string name="duplicate_channel_title">Trùng lập Kênh</string>
+    <string name="duplicate_channel_name_label">Tên kênh</string>
+    <string name="duplicate_channel_note">Một kênh mới sẽ được tạo ra với cùng quyền hạn, giới hạn người dùng và bitrate như #%s.</string>
+
+    <!-- Channel Settings -->
+    <string name="channel_settings_title">Cài Đặt Kênh</string>
+    <string name="channel_settings_name_label">TÊN KÊNH</string>
+    <string name="channel_settings_topic_label">CHỦ ĐỀ KÊNH</string>
+    <string name="channel_settings_topic_hint">Thêm chủ đề</string>
+    <string name="channel_settings_category">Danh Mục</string>
+    <string name="channel_settings_uncategorized">Không có Danh Mục</string>
+    <string name="channel_settings_permissions">Quyền hạn</string>
+    <string name="channel_settings_notifications">Các Thông Báo</string>
+    <string name="channel_settings_pinned">Tin Nhắn Đã Ghim</string>
+    <string name="channel_settings_delete">Xóa Kênh</string>
+    <string name="channel_settings_delete_confirm_title">Xóa kênh</string>
+    <string name="channel_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa #%s? Thao tác này không thể hoàn tác.</string>
+    <string name="channel_settings_saved">Đã lưu thay đổi</string>
+    <string name="channel_settings_deleted">Kênh đã được xóa</string>
+
+    <!-- Change Category -->
+    <string name="change_category_title">Danh Mục</string>
+
+    <!-- Channel Permissions -->
+    <string name="channel_permissions_title">Quyền Hạn Kênh</string>
+    <string name="channel_permissions_private">Kênh Riêng</string>
+    <string name="channel_permissions_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="channel_permissions_add">Thêm thành viên hoặc vai trò</string>
+    <string name="channel_permissions_section_roles">VAI TRÒ</string>
+    <string name="channel_permissions_section_members">THÀNH VIÊN</string>
+    <string name="channel_permissions_remove_confirm_title">Xóa quyền truy cập</string>
+    <string name="channel_permissions_remove_member_confirm">Xóa quyền truy cập của %s khỏi kênh này?</string>
+    <string name="channel_permissions_remove_role_confirm">Xóa vai trò %s khỏi kênh này?</string>
+
+    <!-- Add Channel Access -->
+    <string name="add_channel_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="add_channel_access_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
+    <string name="add_channel_access_section_roles">Vai trò</string>
+    <string name="add_channel_access_section_members">Thành viên</string>
+
+    <!-- Category Profile Bottom Sheet -->
+    <string name="category_profile_invite">Lời mời</string>
+    <string name="category_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="category_profile_mute">Tắt Âm Danh Mục</string>
+    <string name="category_profile_notifications">Cài đặt thông báo</string>
+    <string name="category_profile_edit">Chỉnh Sửa Danh Mục</string>
+    <string name="category_profile_create_channel">Tạo Kênh</string>
+
+    <!-- Category Settings -->
+    <string name="category_settings_title">Cài Đặt Danh Mục</string>
+    <string name="category_settings_name_label">TÊN DANH MỤC</string>
+    <string name="category_settings_name_empty">Tên danh mục không được để trống</string>
+    <string name="category_settings_permissions">Quyền Truy Cập Danh Mục</string>
+    <string name="category_settings_permissions_desc">Tùy chỉnh ai có thể xem danh mục này và các kênh bên trong bằng cách thêm thành viên hoặc vai trò.</string>
+    <string name="category_settings_delete">Xóa mục</string>
+    <string name="category_settings_delete_confirm_title">Xóa danh mục</string>
+    <string name="category_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa %s? Các kênh trong danh mục sẽ không bị xóa.</string>
 </resources>

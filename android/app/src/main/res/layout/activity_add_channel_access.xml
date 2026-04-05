@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/toolbar_height"
+        android:background="?attr/colorSurface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="?attr/colorOnSurface"
+        app:title="@string/add_channel_access_title"
+        app:titleTextColor="?attr/colorOnSurface">
+
+        <TextView
+            android:id="@+id/tvAction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="@dimen/spacing_md"
+            android:text="@string/save"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="@color/color_primary" />
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorOutline" />
+
+    <!-- Search -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/spacing_md"
+        app:boxBackgroundMode="filled"
+        app:boxBackgroundColor="?attr/colorSurfaceVariant"
+        app:boxCornerRadiusTopStart="@dimen/radius_md"
+        app:boxCornerRadiusTopEnd="@dimen/radius_md"
+        app:boxCornerRadiusBottomStart="@dimen/radius_md"
+        app:boxCornerRadiusBottomEnd="@dimen/radius_md"
+        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:startIconTint="?attr/colorOnSurfaceVariant"
+        app:hintEnabled="false">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/add_channel_access_search_hint"
+            android:inputType="text"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurface" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvAccessList"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/spacing_md" />
+</LinearLayout>
