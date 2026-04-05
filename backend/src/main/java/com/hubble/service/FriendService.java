@@ -5,6 +5,7 @@ import com.hubble.dto.response.FriendRequestResponse;
 import com.hubble.entity.Friendship;
 import com.hubble.entity.User;
 import com.hubble.enums.FriendshipStatus;
+import com.hubble.enums.NotificationType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.FriendshipRepository;
@@ -12,6 +13,7 @@ import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +24,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class FriendService {
 
     UserRepository userRepository;
     FriendshipRepository friendshipRepository;
+    NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<FriendUserResponse> searchUsers(UUID currentUserId, String query) {
@@ -78,6 +82,8 @@ public class FriendService {
                         .build()
         );
 
+        notifyFriendRequest(currentUserId, targetUserId);
+
         return FriendRequestResponse.builder()
                 .id(created.getId())
                 .requesterId(created.getRequesterId())
@@ -94,6 +100,39 @@ public class FriendService {
                         .relationStatus("PENDING_OUTGOING")
                         .build())
                 .build();
+    }
+
+    private void notifyFriendRequest(UUID requesterId, UUID targetUserId) {
+        // Validation: prevent sending notification to self
+        if (requesterId.equals(targetUserId)) {
+            log.warn("Attempted to send friend request notification to self");
+            return;
+        }
+        
+        User requester = userRepository.findById(requesterId).orElse(null);
+        if (requester == null) {
+            log.warn("Requester user {} not found for friend request notification", requesterId);
+            return;
+        }
+
+        String name = requester.getDisplayName() != null && !requester.getDisplayName().isEmpty() 
+                ? requester.getDisplayName() 
+                : requester.getUsername();
+        
+        // CRITICAL: Only send notification to TARGET (addressee), NOT the requester
+        // The addressee receives notification: "{name} đã gửi cho bạn lời mời kết bạn"
+        // The requester does NOT receive any notification about sending a request
+        notificationService.dispatchNotification(
+                targetUserId,  // ONLY recipient gets the notification
+                NotificationType.FRIEND_REQUEST,
+                requesterId.toString(),  // referenceId = the requester's ID
+                name + " đã gửi cho bạn lời mời kết bạn.",
+                false,  // Don't send email
+                true    // Send push notification
+        );
+        
+        log.info("Friend request notification sent to user {} from user {} ({})", 
+                targetUserId, requesterId, name);
     }
 
     @Transactional
@@ -134,6 +173,19 @@ public class FriendService {
 
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendshipRepository.save(friendship);
+
+        User acceptor = userRepository.findById(currentUserId).orElse(null);
+        if (acceptor != null) {
+            String name = acceptor.getDisplayName() != null ? acceptor.getDisplayName() : acceptor.getUsername();
+            notificationService.dispatchNotification(
+                    friendship.getRequesterId(),
+                    NotificationType.FRIEND_REQUEST,
+                    currentUserId.toString(),
+                    name + " đã chấp nhận lời mời kết bạn của bạn.",
+                    false,
+                    true
+            );
+        }
     }
 
     @Transactional

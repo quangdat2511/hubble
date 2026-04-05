@@ -95,6 +95,10 @@
     <string name="notification_friend_request_text">%1$s đã gửi cho bạn lời mời kết bạn.</string>
     <string name="notification_server_invite_text">%1$s đã mời bạn tham gia %2$s.</string>
     <string name="notification_friend_accepted_text">%1$s đã chấp nhận lời mời kết bạn của bạn.</string>
+    <string name="notification_channel_name">Thông báo Hubble</string>
+    <string name="notification_channel_desc">Thông báo từ ứng dụng Hubble</string>
+    <string name="notification_system_section">Thông báo hệ thống</string>
+    <string name="notification_mark_all_read">Đánh dấu tất cả đã đọc</string>
 
     <!-- Me / Profile screen -->
     <string name="me_title">Bạn</string>

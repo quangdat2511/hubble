@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -60,6 +61,9 @@ dependencies {
 
     implementation("com.hbb20:ccp:2.5.0")
 
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation ("com.google.firebase:firebase-messaging")
+
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
@@ -67,9 +71,6 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
 
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-
-    implementation("com.github.bumptech.glide:glide:4.16.0")
-
 
     implementation(libs.appcompat)
     implementation(libs.material)
