@@ -42,4 +42,9 @@
 
     <!-- Default role color -->
     <color name="role_default_color">#99AAB5</color>
+
+    <!-- Discord-style unread / notification badges -->
+    <color name="discord_unread_badge_red">#FF3B30</color>
+    <color name="discord_dm_unread_dot">#FF000000</color>
+    <color name="discord_nav_home_badge_blue">#5865F2</color>
 </resources>

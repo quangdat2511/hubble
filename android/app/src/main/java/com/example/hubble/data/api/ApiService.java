@@ -19,13 +19,18 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
+import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.MessageDto;
-import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.dm.PeerReadStatusDto;
+import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UploadResponse;
+import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
+
+import java.util.List;
 
 import okhttp3.MultipartBody;
 import retrofit2.Call;
@@ -183,6 +188,19 @@ public interface ApiService {
             @Path("otherUserId") String otherUserId
     );
 
+    @POST("api/messages/channel/{channelId}/read")
+    Call<ApiResponse<Object>> markChannelRead(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Body MarkChannelReadRequest body
+    );
+
+    @GET("api/messages/channel/{channelId}/peer-read-status")
+    Call<ApiResponse<PeerReadStatusDto>> getPeerReadStatus(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
+
     @GET("api/messages/{channelId}")
     Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
@@ -226,6 +244,13 @@ public interface ApiService {
     Call<ApiResponse<AvatarResponse>> getUserAvatar(
             @Header("Authorization") String token,
             @Path("userId") String userId
+    );
+
+    @PUT("api/messages/{messageId}/reactions")
+    Call<ApiResponse<List<ReactionDto>>> toggleReaction(
+            @Header("Authorization") String token,
+            @Path("messageId") String messageId,
+            @Body java.util.Map<String, String> body
     );
 
     @PUT("api/users/me")

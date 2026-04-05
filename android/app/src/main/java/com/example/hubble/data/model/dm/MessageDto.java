@@ -20,6 +20,8 @@ public class MessageDto {
     @SerializedName("attachments")
     private List<AttachmentResponse> attachments;
 
+    @SerializedName("reactions")
+    private List<ReactionDto> reactions;
 
     public String getId() {
         return id;
@@ -64,6 +66,11 @@ public class MessageDto {
     public List<AttachmentResponse> getAttachments() {
         return attachments != null ? attachments : new ArrayList<>();
     }
+
+    public List<ReactionDto> getReactions() {
+        return reactions != null ? reactions : new ArrayList<>();
+    }
+    public void setReactions(List<ReactionDto> reactions) { this.reactions = reactions; }
 
     public void setId(String id) { this.id = id; }
     public void setChannelId(String channelId) { this.channelId = channelId; }

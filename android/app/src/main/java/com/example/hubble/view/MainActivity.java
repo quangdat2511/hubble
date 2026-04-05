@@ -6,6 +6,7 @@ import android.view.View;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -22,6 +23,7 @@ import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.view.home.HomeFragment;
 import com.example.hubble.view.me.MeFragment;
+import com.google.android.material.badge.BadgeDrawable;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.example.hubble.viewmodel.home.MainViewModel;
@@ -76,9 +78,22 @@ public class MainActivity extends BaseAuthActivity {
         }
 
         // Pre-create MainViewModel so HomeFragment can share it
-        new ViewModelProvider(this,
+        MainViewModel mainViewModel = new ViewModelProvider(this,
             new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
             .get(MainViewModel.class);
+
+        mainViewModel.dmTotalUnread.observe(this, count -> {
+            int total = count != null ? count : 0;
+            BadgeDrawable badge = binding.bottomNav.getOrCreateBadge(R.id.nav_home);
+            if (total <= 0) {
+                badge.setVisible(false);
+            } else {
+                badge.setVisible(true);
+                badge.setNumber(Math.min(total, 99));
+                badge.setBackgroundColor(ContextCompat.getColor(this, R.color.discord_nav_home_badge_blue));
+                badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
+            }
+        });
 
         setupBottomNavigation();
 

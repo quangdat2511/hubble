@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Discord-style DM row: all messages left-aligned (avatar + name + time + content). -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:paddingStart="@dimen/spacing_sm"
+    android:paddingEnd="@dimen/spacing_md"
     android:paddingBottom="@dimen/spacing_sm">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivAvatar"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:contentDescription="@string/cd_user_avatar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -16,11 +19,12 @@
 
     <LinearLayout
         android:id="@+id/headerRow"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
         android:gravity="center_vertical"
         android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
         app:layout_constraintTop_toTopOf="@id/ivAvatar">
 
@@ -28,7 +32,7 @@
             android:id="@+id/tvName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold" />
 
@@ -39,7 +43,6 @@
             android:layout_marginStart="8dp"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant" />
-
     </LinearLayout>
 
     <LinearLayout
@@ -48,9 +51,9 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="2dp"
         android:orientation="horizontal"
         android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
         app:layout_constraintTop_toBottomOf="@id/headerRow">
 
@@ -58,7 +61,7 @@
             android:layout_width="3dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="6dp"
-            android:background="?attr/colorPrimary" />
+            android:background="?attr/colorOutline" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -71,7 +74,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:maxWidth="220dp"
+                android:maxWidth="260dp"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorPrimary"
                 android:textStyle="bold" />
@@ -81,30 +84,29 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxLines="1"
-                android:maxWidth="220dp"
+                android:maxLines="2"
+                android:maxWidth="260dp"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
-
         </LinearLayout>
-
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardOther"
-        android:layout_width="wrap_content"
+        android:id="@+id/cardMessage"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
         android:layout_marginTop="2dp"
         app:cardBackgroundColor="@android:color/transparent"
         app:cardCornerRadius="0dp"
         app:cardElevation="0dp"
-        app:strokeWidth="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
-        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer">
+        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer"
+        app:strokeWidth="0dp">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="0dp"
@@ -112,48 +114,77 @@
 
             <TextView
                 android:id="@+id/tvMessage"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxWidth="300dp"
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:textColor="?attr/colorOnSurface" />
 
             <LinearLayout
                 android:id="@+id/llAttachments"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
                 android:layout_marginTop="4dp"
+                android:orientation="vertical"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvEdited"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
                 android:layout_marginTop="2dp"
                 android:text="@string/message_edited"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:alpha="0.72"
                 android:visibility="gone" />
-
         </LinearLayout>
-
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivMedia"
-        android:layout_width="220dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:adjustViewBounds="true"
         android:layout_marginStart="@dimen/spacing_sm"
         android:layout_marginTop="2dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@null"
         android:scaleType="fitCenter"
         android:visibility="gone"
-        android:contentDescription="@null"
-        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
-        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer" />
+        app:layout_constraintTop_toBottomOf="@id/replyQuoteContainer"
+        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium" />
 
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/contentBarrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="cardMessage,ivMedia" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/reactionContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_marginTop="2dp"
+        android:visibility="gone"
+        app:chipSpacingHorizontal="6dp"
+        app:chipSpacingVertical="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toBottomOf="@id/contentBarrier"
+        app:singleLine="false" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_marginTop="2dp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        app:layout_constraintStart_toEndOf="@id/ivAvatar"
+        app:layout_constraintTop_toBottomOf="@id/reactionContainer" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -13,6 +13,7 @@ public interface ChannelMapper {
     @Mapping(target = "peerDisplayName", ignore = true)
     @Mapping(target = "peerAvatarUrl", ignore = true)
     @Mapping(target = "peerStatus", ignore = true)
+    @Mapping(target = "unreadCount", ignore = true)
     @Mapping(target = "id", expression = "java(channel.getId() != null ? channel.getId().toString() : null)")
     @Mapping(target = "serverId", expression = "java(channel.getServerId() != null ? channel.getServerId().toString() : null)")
     @Mapping(target = "parentId", expression = "java(channel.getParentId() != null ? channel.getParentId().toString() : null)")

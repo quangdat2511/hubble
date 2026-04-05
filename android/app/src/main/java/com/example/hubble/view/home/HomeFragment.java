@@ -122,6 +122,14 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        viewModel.serverUnreadByServerId.observe(getViewLifecycleOwner(), map -> {
+            if (serverAdapter != null) {
+                serverAdapter.setUnreadByServerId(map);
+            }
+        });
+
+        viewModel.dmTotalUnread.observe(getViewLifecycleOwner(), n -> syncDmSidebarBadges());
+
         viewModel.selectedServer.observe(getViewLifecycleOwner(), selectedServer -> {
             syncSelectedServer(selectedServer);
             updateDmButtonState(selectedServer == null);
@@ -147,6 +155,22 @@ public class HomeFragment extends Fragment {
 
         if (isActive) {
             serverAdapter.setSelectedPosition(-1);
+        }
+        syncDmSidebarBadges();
+    }
+
+    /** Discord-style: red count on DM icon + white left pill when unread and a server is selected. */
+    private void syncDmSidebarBadges() {
+        if (binding == null || viewModel == null) return;
+        Integer total = viewModel.dmTotalUnread.getValue();
+        int t = total != null ? total : 0;
+        boolean dmPanel = viewModel.selectedServer.getValue() == null;
+        binding.viewDmUnreadPill.setVisibility(t > 0 && !dmPanel ? View.VISIBLE : View.GONE);
+        if (t > 0 && !dmPanel) {
+            binding.tvDmSidebarBadge.setVisibility(View.VISIBLE);
+            binding.tvDmSidebarBadge.setText(t > 99 ? "99+" : String.valueOf(t));
+        } else {
+            binding.tvDmSidebarBadge.setVisibility(View.GONE);
         }
     }
 
@@ -359,11 +383,6 @@ public class HomeFragment extends Fragment {
 
         binding.btnAddFriend.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.AddFriendActivity.class);
-            startActivity(intent);
-        });
-
-        binding.btnPendingRequests.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.PendingRequestsActivity.class);
             startActivity(intent);
         });
 
