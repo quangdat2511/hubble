@@ -3,14 +3,17 @@ package com.example.hubble.view.dm;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.text.Editable;
 import android.text.TextWatcher;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.NewMessageAdapter;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.NewMessageItem;
@@ -80,10 +83,13 @@ public class NewMessageActivity extends AppCompatActivity {
                 dmRepository.getOrCreateDirectChannel(friend.getId(), result -> {
                     if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                         dmRepository.rememberOpenedDirectChannel(result.getData().getId());
+                        String avatarUrl = firstNonBlank(friend.getAvatarUrl(), result.getData().getPeerAvatarUrl());
+                        preloadAvatar(avatarUrl);
                         startActivity(DmChatActivity.createIntent(
                                 this,
                                 result.getData().getId(),
-                                friend.getDisplayName()
+                                friend.getDisplayName(),
+                                avatarUrl
                         ));
                         return;
                     }
@@ -117,6 +123,7 @@ public class NewMessageActivity extends AppCompatActivity {
                     friend.getId(),
                     displayName,
                     username,
+                    friend.getAvatarUrl(),
                     null,
                     "ONLINE".equalsIgnoreCase(friend.getStatus())
             ));
@@ -192,6 +199,33 @@ public class NewMessageActivity extends AppCompatActivity {
 
         adapter.setItems(items);
     }
+
+    private void preloadAvatar(String avatarUrl) {
+        String resolvedAvatarUrl = toAbsoluteAvatarUrl(avatarUrl);
+        if (TextUtils.isEmpty(resolvedAvatarUrl)) {
+            return;
+        }
+
+        Glide.with(this)
+                .load(resolvedAvatarUrl)
+                .circleCrop()
+                .preload();
+    }
+
+    private String toAbsoluteAvatarUrl(String avatarUrl) {
+        return NetworkConfig.resolveUrl(avatarUrl);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String value : values) {
+            if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
+    }
 }
-
-

@@ -9,6 +9,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.example.hubble.R;
 import com.example.hubble.adapter.friend.FriendSearchAdapter;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityAddFriendBinding;
@@ -65,7 +66,7 @@ public class AddFriendActivity extends AppCompatActivity {
         viewModel.sendRequestState.observe(this, result -> {
             if (result == null) return;
             if (result.isSuccess()) {
-                Snackbar.make(binding.getRoot(), "Đã gửi lời mời thành công!", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(binding.getRoot(), R.string.friend_request_sent, Snackbar.LENGTH_SHORT).show();
                 String query = binding.etSearch.getText() != null ? binding.etSearch.getText().toString().trim() : "";
                 if (!query.isEmpty()) viewModel.searchUsers(query);
                 viewModel.resetSendState();

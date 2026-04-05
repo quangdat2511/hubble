@@ -9,9 +9,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
 import com.example.hubble.databinding.ItemDmSectionHeaderBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.google.android.material.color.MaterialColors;
 
 import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
@@ -188,6 +191,30 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
                 binding.tvPreview.setTextColor(onSurfaceVariant);
             }
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            item.getDisplayName(),
+                            avatarSize
+                    );
+            String avatarUrl = toAbsoluteUrl(item.getAvatarUrl());
+            boolean hasAvatar = avatarUrl != null && !avatarUrl.trim().isEmpty();
+
+            Glide.with(binding.ivAvatar.getContext()).clear(binding.ivAvatar);
+            if (!hasAvatar) {
+                binding.ivAvatar.setImageDrawable(avatarFallback);
+            } else {
+                binding.ivAvatar.setImageDrawable(null);
+                Glide.with(binding.ivAvatar.getContext())
+                        .load(avatarUrl)
+                        .error(avatarFallback)
+                        .fallback(avatarFallback)
+                        .circleCrop()
+                        .into(binding.ivAvatar);
+            }
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {
@@ -246,6 +273,11 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
 
             return raw;
         }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            return NetworkConfig.resolveUrl(url);
+        }
     }
 
     static class RowItem {
@@ -268,5 +300,3 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
         }
     }
 }
-
-

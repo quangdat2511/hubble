@@ -39,11 +39,11 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.adapter.dm.ForwardTargetAdapter;
 import com.example.hubble.adapter.dm.ReplySwipeCallback;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
@@ -55,6 +55,7 @@ import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
 import com.example.hubble.databinding.DialogDeleteMessageBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -95,6 +96,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
+    private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
@@ -160,9 +162,14 @@ public class DmChatActivity extends AppCompatActivity {
     private final Runnable hideTypingRunnable = this::hideTypingIndicator;
 
     public static Intent createIntent(Context context, String channelId, String username) {
+        return createIntent(context, channelId, username, null);
+    }
+
+    public static Intent createIntent(Context context, String channelId, String username, String avatarUrl) {
         Intent intent = new Intent(context, DmChatActivity.class);
         intent.putExtra(EXTRA_CHANNEL_ID, channelId);
         intent.putExtra(EXTRA_USERNAME, username);
+        intent.putExtra(EXTRA_AVATAR_URL, avatarUrl);
         return intent;
     }
 
@@ -182,7 +189,7 @@ public class DmChatActivity extends AppCompatActivity {
         UserResponse user = tokenManager.getUser();
         if (user != null) {
             currentUserName = firstNonBlank(user.getDisplayName(), user.getUsername());
-            currentUserAvatarUrl = user.getAvatarUrl();
+            currentUserAvatarUrl = toAbsoluteAvatarUrl(user.getAvatarUrl());
         }
         if (currentUserName == null) currentUserName = getString(R.string.dm_me);
 
@@ -191,7 +198,8 @@ public class DmChatActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(peerDisplayName)) {
             peerDisplayName = getString(R.string.dm_default_user);
         }
-        peerUsername = peerDisplayName;
+        peerUsername = null;
+        peerAvatarUrl = toAbsoluteAvatarUrl(getIntent().getStringExtra(EXTRA_AVATAR_URL));
 
         setupToolbar();
         setupProfileIntro();
@@ -199,7 +207,9 @@ public class DmChatActivity extends AppCompatActivity {
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        loadPeerProfile();
+        if (shouldLoadPeerProfile()) {
+            loadPeerProfile();
+        }
         loadMessageHistory();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -258,7 +268,7 @@ public class DmChatActivity extends AppCompatActivity {
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
 
-        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivProfileIntroAvatar);
+        bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, peerDisplayName);
     }
 
     private void loadPeerProfile() {
@@ -274,10 +284,14 @@ public class DmChatActivity extends AppCompatActivity {
         });
     }
 
+    private boolean shouldLoadPeerProfile() {
+        return TextUtils.isEmpty(peerAvatarUrl) || TextUtils.isEmpty(peerUsername);
+    }
+
     private void applyPeerProfile(ChannelDto channel) {
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
-        peerAvatarUrl = firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl);
+        peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
         refreshPeerUi();
     }
 
@@ -289,7 +303,11 @@ public class DmChatActivity extends AppCompatActivity {
 
         binding.tvHeaderName.setText(peerDisplayName);
         binding.etComposer.setHint(getString(R.string.dm_message_hint, mentionTarget));
-        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivHeaderAvatar);
+        binding.tvProfileIntroDisplayName.setText(peerDisplayName);
+        binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
+        binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
+        bindAvatar(binding.ivHeaderAvatar, peerAvatarUrl, peerDisplayName);
+        bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, peerDisplayName);
         if (adapter != null) {
             adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
             adapter.setIntroItem(DmMessageItem.createIntro(
@@ -328,6 +346,31 @@ public class DmChatActivity extends AppCompatActivity {
             if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) return value;
         }
         return null;
+    }
+
+    private String toAbsoluteAvatarUrl(String avatarUrl) {
+        return NetworkConfig.resolveUrl(avatarUrl);
+    }
+
+    private void bindAvatar(ImageView imageView, String avatarUrl, String displayName) {
+        int avatarSize = imageView.getLayoutParams() != null ? imageView.getLayoutParams().width : imageView.getWidth();
+        android.graphics.drawable.Drawable avatarFallback =
+                AvatarPlaceholderUtils.createAvatarDrawable(this, displayName, avatarSize);
+        String resolvedAvatarUrl = toAbsoluteAvatarUrl(avatarUrl);
+
+        Glide.with(this).clear(imageView);
+        if (TextUtils.isEmpty(resolvedAvatarUrl)) {
+            imageView.setImageDrawable(avatarFallback);
+            return;
+        }
+
+        imageView.setImageDrawable(null);
+        Glide.with(this)
+                .load(resolvedAvatarUrl)
+                .error(avatarFallback)
+                .fallback(avatarFallback)
+                .circleCrop()
+                .into(imageView);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1226,14 +1269,10 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
-
         // Disconnect any previous client before creating a new one
         disconnectStomp();
 
-        String baseUrl = BuildConfig.BASE_URL;
-        if (!baseUrl.endsWith("/")) baseUrl += "/";
-        String wsUrl = baseUrl.replace("https://", "wss://").replace("http://", "ws://") + "ws";
-
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String accessToken = tokenManager.getAccessToken();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;

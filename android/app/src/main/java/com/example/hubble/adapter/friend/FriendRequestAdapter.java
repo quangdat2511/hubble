@@ -6,13 +6,16 @@ import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
-
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.databinding.ItemFriendRequestBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +73,8 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
                         ? request.getUser().getDisplayName() : request.getUser().getUsername();
             }
 
+            bindAvatar(request, name);
+
             String fullText = binding.getRoot().getContext()
                     .getString(R.string.notification_friend_request_text, name);
             SpannableString spannable = new SpannableString(fullText);
@@ -86,6 +91,35 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
             binding.btnDecline.setOnClickListener(v -> {
                 if (listener != null) listener.onDecline(request);
             });
+        }
+
+        private void bindAvatar(@Nullable FriendRequestResponse request, String displayName) {
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String avatarUrl = request != null && request.getUser() != null
+                    ? toAbsoluteUrl(request.getUser().getAvatarUrl())
+                    : null;
+
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(avatarUrl)
+                    .placeholder(avatarFallback)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
+        }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            return NetworkConfig.resolveUrl(url);
         }
     }
 }

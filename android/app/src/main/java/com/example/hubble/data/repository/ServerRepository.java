@@ -2,13 +2,13 @@ package com.example.hubble.data.repository;
 
 import android.content.Context;
 import android.net.Uri;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
-import com.example.hubble.data.api.ServerService;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
@@ -43,16 +43,15 @@ public class ServerRepository {
         defaultColors = resolveDefaultColors();
     }
 
-    // ── Create server (multipart) ─────────────────────────────────────────
-
     public void createServer(String name, @Nullable Uri iconUri,
                              RepositoryCallback<ServerItem> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
+
         String token = "Bearer " + accessToken;
         RequestBody namePart = RequestBody.create(MediaType.parse("text/plain"), name);
         MultipartBody.Part iconPart = iconUri != null ? buildFilePart("icon", iconUri) : null;
@@ -65,10 +64,9 @@ public class ServerRepository {
                                            @NonNull Response<ApiResponse<ServerResponse>> response) {
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().getResult() != null) {
-                            ServerResponse sr = response.body().getResult();
-                            int color = defaultColors[colorIndex % defaultColors.length];
-                            colorIndex++;
-                            callback.onResult(AuthResult.success(mapToServerItem(sr, colorIndex - 1)));
+                            ServerResponse server = response.body().getResult();
+                            int mappedIndex = colorIndex++;
+                            callback.onResult(AuthResult.success(mapToServerItem(server, mappedIndex)));
                         } else {
                             callback.onResult(AuthResult.error(resolveError(response)));
                         }
@@ -76,19 +74,17 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<ServerResponse>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
                     }
                 });
     }
-
-    // ── Get my servers ────────────────────────────────────────────────────
 
     public void getMyServers(RepositoryCallback<List<ServerItem>> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
 
@@ -108,26 +104,26 @@ public class ServerRepository {
                             callback.onResult(AuthResult.success(items));
                             return;
                         }
+
                         callback.onResult(AuthResult.error(resolveError(response)));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ServerResponse>>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
                     }
                 });
     }
-
-    // ── Server channels ───────────────────────────────────────────────────
 
     public void getServerChannels(String serverId, RepositoryCallback<List<ChannelDto>> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_not_logged_in)));
             return;
         }
+
         String token = "Bearer " + accessToken;
         RetrofitClient.getServerService(appContext).getServerChannels(token, serverId)
                 .enqueue(new Callback<ApiResponse<List<ChannelDto>>>() {
@@ -139,30 +135,29 @@ public class ServerRepository {
                             callback.onResult(AuthResult.success(response.body().getResult()));
                             return;
                         }
+
                         callback.onResult(AuthResult.error(resolveError(response)));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ChannelDto>>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.connection_error, t.getMessage())));
                     }
                 });
     }
-
-    // ── Icon management ───────────────────────────────────────────────────
 
     public void updateServerIcon(String serverId, Uri iconUri,
                                  RepositoryCallback<ServerItem> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error("Báº¡n chÆ°a Ä‘Äƒng nháº­p"));
             return;
         }
         MultipartBody.Part iconPart = buildFilePart("icon", iconUri);
         if (iconPart == null) {
-            callback.onResult(AuthResult.error("Không đọc được file ảnh"));
+            callback.onResult(AuthResult.error("KhÃ´ng Ä‘á»c Ä‘Æ°á»£c file áº£nh"));
             return;
         }
         String token = "Bearer " + accessToken;
@@ -183,8 +178,8 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<ServerResponse>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lá»—i káº¿t ná»‘i: " + t.getMessage()));
                     }
                 });
     }
@@ -193,7 +188,7 @@ public class ServerRepository {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error("Báº¡n chÆ°a Ä‘Äƒng nháº­p"));
             return;
         }
         String token = "Bearer " + accessToken;
@@ -214,19 +209,17 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<ServerResponse>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lá»—i káº¿t ná»‘i: " + t.getMessage()));
                     }
                 });
     }
-
-    // ── Member management ─────────────────────────────────────────────────
 
     public void kickMember(String serverId, String memberId, RepositoryCallback<Void> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error("Báº¡n chÆ°a Ä‘Äƒng nháº­p"));
             return;
         }
         String token = "Bearer " + accessToken;
@@ -244,8 +237,8 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<Void>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lá»—i káº¿t ná»‘i: " + t.getMessage()));
                     }
                 });
     }
@@ -254,7 +247,7 @@ public class ServerRepository {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
         if (accessToken == null || accessToken.trim().isEmpty()) {
-            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            callback.onResult(AuthResult.error("Báº¡n chÆ°a Ä‘Äƒng nháº­p"));
             return;
         }
         String token = "Bearer " + accessToken;
@@ -272,13 +265,11 @@ public class ServerRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<Void>> call,
-                                         @NonNull Throwable t) {
-                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lá»—i káº¿t ná»‘i: " + t.getMessage()));
                     }
                 });
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     private ServerItem mapToServerItem(ServerResponse server, int index) {
         int color = defaultColors[index % defaultColors.length];
@@ -286,7 +277,6 @@ public class ServerRepository {
                 server.getName(), server.getIconUrl(), color);
     }
 
-    /** Build a multipart file part from a content URI. Returns null on failure. */
     @Nullable
     private MultipartBody.Part buildFilePart(String fieldName, Uri uri) {
         try (InputStream inputStream = appContext.getContentResolver().openInputStream(uri)) {
@@ -307,31 +297,30 @@ public class ServerRepository {
         }
     }
 
-    /** Map HTTP error codes to user-friendly messages per §2 of the API contract. */
     private <T> String resolveError(Response<ApiResponse<T>> response) {
         if (response.body() != null) {
             int code = response.body().getCode();
             String msg = response.body().getMessage();
-            if (code == 3013) return "Tên máy chủ không được để trống";
-            if (code == 3012) return "Bạn không phải chủ sở hữu máy chủ";
-            if (code == 3001) return "Máy chủ không tồn tại";
+            if (code == 3013) return "TÃªn mÃ¡y chá»§ khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng";
+            if (code == 3012) return "Báº¡n khÃ´ng pháº£i chá»§ sá»Ÿ há»¯u mÃ¡y chá»§";
+            if (code == 3001) return "MÃ¡y chá»§ khÃ´ng tá»“n táº¡i";
             if (msg != null && !msg.isEmpty()) return msg;
         }
-        return "Đã xảy ra lỗi. Vui lòng thử lại.";
+        return "ÄÃ£ xáº£y ra lá»—i. Vui lÃ²ng thá»­ láº¡i.";
     }
 
     private <T> String resolveIconError(Response<ApiResponse<T>> response) {
         if (response.body() != null) {
             int code = response.body().getCode();
-            if (code == 6002) return "Chỉ chấp nhận ảnh (jpg, png, gif, webp, svg)";
-            if (code == 6003) return "Ảnh phải nhỏ hơn 5 MB";
-            if (code == 6001) return "Tải ảnh thất bại. Vui lòng thử lại.";
-            if (code == 3012) return "Bạn không phải chủ sở hữu máy chủ";
-            if (code == 3001) return "Máy chủ không tồn tại";
+            if (code == 6002) return "Chá»‰ cháº¥p nháº­n áº£nh (jpg, png, gif, webp, svg)";
+            if (code == 6003) return "áº¢nh pháº£i nhá» hÆ¡n 5 MB";
+            if (code == 6001) return "Táº£i áº£nh tháº¥t báº¡i. Vui lÃ²ng thá»­ láº¡i.";
+            if (code == 3012) return "Báº¡n khÃ´ng pháº£i chá»§ sá»Ÿ há»¯u mÃ¡y chá»§";
+            if (code == 3001) return "MÃ¡y chá»§ khÃ´ng tá»“n táº¡i";
             String msg = response.body().getMessage();
             if (msg != null && !msg.isEmpty()) return msg;
         }
-        return "Đã xảy ra lỗi. Vui lòng thử lại.";
+        return "ÄÃ£ xáº£y ra lá»—i. Vui lÃ²ng thá»­ láº¡i.";
     }
 
     private int[] resolveDefaultColors() {
@@ -377,4 +366,3 @@ public class ServerRepository {
                 });
     }
 }
-

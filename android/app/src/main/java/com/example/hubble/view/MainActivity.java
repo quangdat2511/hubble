@@ -17,8 +17,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.NotificationRepository;
@@ -95,7 +95,7 @@ public class MainActivity extends BaseAuthActivity {
         TokenManager tokenManager = new TokenManager(this);
         if (tokenManager.getUser() != null) {
             ServerEventWebSocketManager.getInstance().connect(
-                    BuildConfig.BASE_URL,
+                    NetworkConfig.getApiBaseUrl(),
                     tokenManager.getUser().getId(),
                     tokenManager.getAccessToken()
             );
@@ -106,7 +106,7 @@ public class MainActivity extends BaseAuthActivity {
 
         // Pre-create MainViewModel so HomeFragment can share it
         MainViewModel mainViewModel = new ViewModelProvider(this,
-            new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+            new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
             .get(MainViewModel.class);
 
         mainViewModel.dmTotalUnread.observe(this, count -> {
@@ -167,14 +167,13 @@ public class MainActivity extends BaseAuthActivity {
                 .replace(R.id.fragmentContainer, fragment);
         tx.commit();
     }
-
     @Override
     protected void onResume() {
         super.onResume();
         // Refresh server list when returning from ServerSettingsActivity
         // (e.g. after icon update/delete) — MainViewModel is scoped to this activity
         MainViewModel mainViewModel = new ViewModelProvider(this,
-                new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+                new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
                 .get(MainViewModel.class);
         mainViewModel.refreshServers();
     }

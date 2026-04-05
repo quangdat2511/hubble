@@ -4,12 +4,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.NewMessageItem;
 import com.example.hubble.databinding.ItemNewMessageFriendBinding;
 import com.example.hubble.databinding.ItemNewMessageSectionBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +104,7 @@ public class NewMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                     ? "?"
                     : friend.getDisplayName().substring(0, 1).toUpperCase());
             binding.viewPresence.setVisibility(friend.isOnline() ? View.VISIBLE : View.GONE);
+            bindAvatar(friend);
 
             if (friend.getBadge() == null || friend.getBadge().trim().isEmpty()) {
                 binding.chipBadge.setVisibility(View.GONE);
@@ -114,7 +119,40 @@ public class NewMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 }
             });
         }
+
+        private void bindAvatar(NewMessageItem.Friend friend) {
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            friend.getDisplayName(),
+                            avatarSize
+                    );
+
+            String avatarUrl = toAbsoluteUrl(friend.getAvatarUrl());
+            boolean hasAvatar = avatarUrl != null && !avatarUrl.trim().isEmpty();
+            binding.tvInitial.setVisibility(View.GONE);
+
+            Glide.with(binding.ivAvatar.getContext()).clear(binding.ivAvatar);
+            if (!hasAvatar) {
+                binding.ivAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            binding.ivAvatar.setImageDrawable(null);
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(avatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
+        }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            return NetworkConfig.resolveUrl(url);
+        }
     }
 }
-
-

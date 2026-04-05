@@ -10,7 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        app:title="Thêm bạn"
+        app:title="@string/add_friend_title"
         app:navigationIcon="@drawable/ic_arrow_back" />
 
     <LinearLayout
@@ -33,7 +33,7 @@
                 android:id="@+id/etSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Nhập username"
+                android:hint="@string/add_friend_search_hint"
                 android:singleLine="true" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_gravity="center_vertical"
-            android:text="Tìm" />
+            android:text="@string/search" />
     </LinearLayout>
 
     <ProgressBar

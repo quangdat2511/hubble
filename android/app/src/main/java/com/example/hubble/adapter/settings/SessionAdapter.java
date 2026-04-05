@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.hubble.R;
 import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.databinding.ItemSessionBinding;
 import java.util.ArrayList;
@@ -57,8 +58,12 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.ViewHold
         }
 
         void bind(SessionDto session) {
-            binding.tvDeviceName.setText(session.getDeviceName() != null ? session.getDeviceName() : "Thiết bị không xác định");
-            binding.tvIpAddress.setText(session.getIpAddress() != null ? session.getIpAddress() : "Không xác định");
+            binding.tvDeviceName.setText(session.getDeviceName() != null
+                    ? session.getDeviceName()
+                    : binding.getRoot().getContext().getString(R.string.session_unknown_device));
+            binding.tvIpAddress.setText(session.getIpAddress() != null
+                    ? session.getIpAddress()
+                    : binding.getRoot().getContext().getString(R.string.session_unknown_value));
             binding.tvLastActive.setText(session.getLastActiveAt());
 
             binding.btnRevoke.setOnClickListener(v -> {
