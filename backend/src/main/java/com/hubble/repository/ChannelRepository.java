@@ -11,4 +11,5 @@ import java.util.UUID;
 @Repository
 public interface ChannelRepository extends JpaRepository<Channel, UUID> {
     List<Channel> findByServerId(UUID serverId);
+    List<Channel> findByParentId(UUID parentId);
 }

@@ -25,6 +25,10 @@ import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
+import com.example.hubble.data.model.dm.DmConversationItem;
+import com.example.hubble.data.model.dm.ChannelDto;
+import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
+import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
@@ -35,6 +39,8 @@ import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
+import com.example.hubble.view.server.CategoryProfileBottomSheet;
+import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
@@ -93,7 +99,7 @@ public class HomeFragment extends Fragment {
         viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
             if (serverName != null) {
                 Snackbar.make(requireView(),
-                        "Báº¡n Ä‘Ã£ bá»‹ xÃ³a khá»i \"" + serverName + "\"",
+                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
                         Snackbar.LENGTH_LONG).show();
                 viewModel.consumeKickedFromServer();
             }
@@ -105,6 +111,11 @@ public class HomeFragment extends Fragment {
         super.onResume();
         if (viewModel != null) {
             viewModel.refreshDirectMessages();
+            // Refresh channels if a server is selected (e.g. after creating a channel)
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                viewModel.loadServerChannels(server.getId());
+            }
         }
     }
 
@@ -190,11 +201,48 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-                channel -> {
-                    // TODO: Open channel chat activity
-                    showMessage(getString(R.string.home_open_channel, channel.getName()));
-                },
-                viewModel::toggleCategoryCollapse
+            channel -> {
+                if (Boolean.TRUE.equals(channel.getIsPrivate()) && !Boolean.TRUE.equals(channel.getCanAccess())) {
+                    showMessage("Bạn không có quyền truy cập kênh " + channel.getName());
+                } else {
+                    showMessage("Kênh: " + channel.getName() + " (chức năng đang phát triển)");
+                }
+            },
+            viewModel::toggleCategoryCollapse,
+            channel -> {
+                ServerItem server = viewModel.selectedServer.getValue();
+                if (server != null) {
+                    // Resolve parent category name
+                    String parentName = null;
+                    if (channel.getParentId() != null && viewModel.serverChannels.getValue() != null
+                            && viewModel.serverChannels.getValue().getData() != null) {
+                        for (ChannelDto ch : viewModel.serverChannels.getValue().getData()) {
+                            if (channel.getParentId().equals(ch.getId())) {
+                                parentName = ch.getName();
+                                break;
+                            }
+                        }
+                    }
+                    ChannelProfileBottomSheet.newInstance(
+                            server.getId(), server.getName(), server.getIconUrl(),
+                            server.getOwnerId(),
+                            channel.getId(), channel.getName(), channel.getType(),
+                            channel.getTopic(), channel.getParentId(), parentName,
+                            Boolean.TRUE.equals(channel.getIsPrivate())
+                    ).show(getParentFragmentManager(), "ChannelProfile");
+                }
+            },
+            category -> {
+                ServerItem server = viewModel.selectedServer.getValue();
+                if (server != null) {
+                    CategoryProfileBottomSheet.newInstance(
+                            server.getId(), server.getName(), server.getIconUrl(),
+                            server.getOwnerId(),
+                            category.getId(), category.getName(),
+                            Boolean.TRUE.equals(category.getIsPrivate())
+                    ).show(getParentFragmentManager(), "CategoryProfile");
+                }
+            }
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));

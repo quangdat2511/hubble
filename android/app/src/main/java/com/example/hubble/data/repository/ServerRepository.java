@@ -12,6 +12,7 @@ import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
+import com.example.hubble.data.model.server.CreateChannelRequest;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.server.ServerResponse;
 import com.example.hubble.utils.TokenManager;
@@ -330,5 +331,38 @@ public class ServerRepository {
                 ContextCompat.getColor(appContext, R.color.server_color_red),
                 ContextCompat.getColor(appContext, R.color.server_color_pink)
         };
+    }
+
+    // ── Create channel ────────────────────────────────────────────────────
+
+    public void createChannel(String serverId, CreateChannelRequest request,
+                              RepositoryCallback<ChannelDto> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+        String token = "Bearer " + accessToken;
+        RetrofitClient.getServerService(appContext)
+                .createChannel(token, serverId, request)
+                .enqueue(new Callback<ApiResponse<ChannelDto>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<ChannelDto>> call,
+                                           @NonNull Response<ApiResponse<ChannelDto>> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                        } else {
+                            callback.onResult(AuthResult.error(resolveError(response)));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<ChannelDto>> call,
+                                         @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
     }
 }

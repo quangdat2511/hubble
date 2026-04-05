@@ -8,11 +8,12 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.R;
-import com.example.hubble.data.api.NetworkConfig;
+import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.server.ChannelEvent;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
@@ -112,6 +113,12 @@ public class MainViewModel extends ViewModel {
     private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
     private volatile String activeServerId;
+
+    // Server channel realtime
+    private volatile String desiredServerChannelServerId = null;
+    private volatile String subscribedServerChannelServerId = null;
+    private Disposable serverChannelTopicDisposable = null;
+
 
     public MainViewModel(Context appContext, DmRepository dmRepository, ServerRepository serverRepository) {
         this.appContext = appContext.getApplicationContext();
@@ -464,7 +471,7 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
+        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
         String accessToken = dmRepository.getAccessTokenRaw();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;
@@ -490,12 +497,15 @@ public class MainViewModel extends ViewModel {
                     if (event.getType() == LifecycleEvent.Type.OPENED) {
                         dmRealtimeConnected = true;
                         syncDmTopicSubscriptions();
+                        subscribeToServerChannelTopic(desiredServerChannelServerId);
                         // STOMP does not replay missed messages. Pull latest previews from REST
                         // so B sees new messages on the home list without opening the chat.
                         refreshDirectMessages();
                     } else if (event.getType() == LifecycleEvent.Type.CLOSED
                             || event.getType() == LifecycleEvent.Type.ERROR) {
                         dmRealtimeConnected = false;
+                        subscribedServerChannelServerId = null;
+                        serverChannelTopicDisposable = null;
                         clearDmTopicSubscriptions();
                         scheduleDmRealtimeReconnect();
                     }
@@ -643,6 +653,25 @@ public class MainViewModel extends ViewModel {
             }
         }
         dmTopicSubscriptions.clear();
+    }
+
+    private String toWebSocketUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.trim().isEmpty()) {
+            return "ws://";
+        }
+
+        String normalized = baseUrl.endsWith("/")
+                ? baseUrl.substring(0, baseUrl.length() - 1)
+                : baseUrl;
+        String lower = normalized.toLowerCase();
+
+        if (lower.startsWith("https://")) {
+            return "wss://" + normalized.substring("https://".length()) + "/";
+        }
+        if (lower.startsWith("http://")) {
+            return "ws://" + normalized.substring("http://".length()) + "/";
+        }
+        return "ws://" + normalized + "/";
     }
 
     private void upsertConversationFromRealtime(MessageDto message) {
@@ -1053,6 +1082,100 @@ public class MainViewModel extends ViewModel {
                 _serverChannels.postValue(AuthResult.error(result.getMessage()));
             }
         });
+
+        ensureDmRealtimeConnected();
+        subscribeToServerChannelTopic(serverId);
+    }
+
+    private void subscribeToServerChannelTopic(String serverId) {
+        desiredServerChannelServerId = serverId;
+        if (!dmRealtimeConnected || dmRealtimeClient == null || serverId == null) return;
+        if (serverId.equals(subscribedServerChannelServerId)) return;
+
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
+        subscribedServerChannelServerId = serverId;
+
+        final String sid = serverId;
+        serverChannelTopicDisposable = dmRealtimeClient
+                .topic("/topic/servers/" + sid + "/channels")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    ChannelEvent event = gson.fromJson(stompMessage.getPayload(), ChannelEvent.class);
+                    if (event == null || event.getChannel() == null) return;
+                    ChannelDto channel = event.getChannel();
+                    if (TextUtils.isEmpty(channel.getId())) return;
+                    String type = event.getType();
+                    if ("DELETED".equals(type)) {
+                        onServerChannelDeleted(sid, channel.getId());
+                    } else if ("UPDATED".equals(type)) {
+                        onServerChannelUpdated(sid, channel);
+                    } else {
+                        onServerChannelCreated(sid, channel);
+                    }
+                }, throwable -> {});
+        dmRealtimeDisposables.add(serverChannelTopicDisposable);
+    }
+
+    private void onServerChannelCreated(String serverId, ChannelDto newChannel) {
+        if (Boolean.TRUE.equals(newChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is applied by the server
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        List<ChannelDto> updated = current != null ? new ArrayList<>(current) : new ArrayList<>();
+        for (ChannelDto c : updated) {
+            if (c.getId() != null && c.getId().equals(newChannel.getId())) return;
+        }
+        updated.add(newChannel);
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelUpdated(String serverId, ChannelDto updatedChannel) {
+        if (Boolean.TRUE.equals(updatedChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is recalculated
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>(current);
+        boolean found = false;
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).getId() != null && updated.get(i).getId().equals(updatedChannel.getId())) {
+                updated.set(i, updatedChannel);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            updated.add(updatedChannel);
+        }
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelDeleted(String serverId, String channelId) {
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>();
+        for (ChannelDto c : current) {
+            if (!channelId.equals(c.getId())) {
+                updated.add(c);
+            }
+        }
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
     }
 
     public void toggleCategoryCollapse(String categoryId) {
@@ -1081,6 +1204,9 @@ public class MainViewModel extends ViewModel {
     protected void onCleared() {
         dmRealtimeReconnectPending = false;
         clearDmTopicSubscriptions();
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
         dmRealtimeDisposables.clear();
         if (dmRealtimeClient != null) {
             dmRealtimeClient.disconnect();
