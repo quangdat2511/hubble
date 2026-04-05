@@ -21,4 +21,12 @@ public class EmailService {
         message.setText("Mã OTP của bạn là: " + otp + "\n\nMã này sẽ hết hạn trong 5 phút.");
         mailSender.send(message);
     }
+
+    public void sendNotificationEmail(String to, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
+    }
 }

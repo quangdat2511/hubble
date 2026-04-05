@@ -82,5 +82,8 @@ $RECYCLE.BIN/
 *.bak
 *.orig
 
+
 # ==================== LOCAL BUILD CACHE ====================
 backend/.m2/
+backend/src/main/resources/firebase-service-account.json
+

@@ -14,17 +14,22 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.hubble.R;
 import com.example.hubble.adapter.friend.FriendRequestAdapter;
 import com.example.hubble.adapter.friend.NotificationActivityAdapter;
+import com.example.hubble.adapter.notify.SystemNotificationAdapter;
 import com.example.hubble.adapter.server.PendingInviteAdapter;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
+import com.example.hubble.data.model.notify.NotificationResponse;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.FriendRepository;
+import com.example.hubble.data.repository.NotificationRepository;
 import com.example.hubble.data.repository.ServerInviteRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.FragmentNotificationsBinding;
 import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.FriendViewModel;
 import com.example.hubble.viewmodel.FriendViewModelFactory;
+import com.example.hubble.viewmodel.NotificationViewModel;
+import com.example.hubble.viewmodel.NotificationViewModelFactory;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.viewmodel.server.ServerInviteViewModel;
@@ -39,15 +44,18 @@ public class NotificationsFragment extends Fragment {
     private FragmentNotificationsBinding binding;
     private ServerInviteViewModel inviteViewModel;
     private FriendViewModel friendViewModel;
+    private NotificationViewModel notificationViewModel;
     private PendingInviteAdapter inviteAdapter;
     private FriendRequestAdapter friendRequestAdapter;
     private NotificationActivityAdapter activityAdapter;
+    private SystemNotificationAdapter systemNotificationAdapter;
 
     private boolean invitesLoaded = false;
     private boolean friendRequestsLoaded = false;
     private boolean hasInvites = false;
     private boolean hasFriendRequests = false;
     private boolean hasRecentActivity = false;
+    private boolean hasSystemNotifications = false;
 
     @Nullable
     @Override
@@ -70,6 +78,10 @@ public class NotificationsFragment extends Fragment {
                 new FriendViewModelFactory(new FriendRepository(requireContext())))
                 .get(FriendViewModel.class);
 
+        notificationViewModel = new ViewModelProvider(this,
+                new NotificationViewModelFactory(new NotificationRepository(requireContext())))
+                .get(NotificationViewModel.class);
+
         MainViewModel mainViewModel = new ViewModelProvider(requireActivity(),
                 new MainViewModelFactory(
                         requireContext(),
@@ -84,11 +96,14 @@ public class NotificationsFragment extends Fragment {
         observeFriendRequests();
         observeInvites(mainViewModel);
         observeRecentActivity();
+        observeSystemNotifications();
 
         binding.progressBar.setVisibility(View.VISIBLE);
         friendViewModel.fetchIncomingRequests();
         inviteViewModel.loadMyInvites();
         friendViewModel.fetchOutgoingRequests();
+        notificationViewModel.loadNotifications(0, 20);
+        notificationViewModel.loadUnreadCount();
     }
 
     private void setupRecyclerViews() {
@@ -123,6 +138,17 @@ public class NotificationsFragment extends Fragment {
         activityAdapter = new NotificationActivityAdapter();
         binding.rvRecentActivity.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvRecentActivity.setAdapter(activityAdapter);
+
+        systemNotificationAdapter = new SystemNotificationAdapter();
+        systemNotificationAdapter.setListener(notification -> {
+            if (!Boolean.TRUE.equals(notification.getIsRead())) {
+                notificationViewModel.markAsRead(notification.getId());
+            }
+        });
+        binding.rvSystemNotifications.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvSystemNotifications.setAdapter(systemNotificationAdapter);
+
+        binding.btnMarkAllRead.setOnClickListener(v -> notificationViewModel.markAllAsRead());
     }
 
     private void observeFriendRequests() {
@@ -222,11 +248,42 @@ public class NotificationsFragment extends Fragment {
                 binding.rvRecentActivity.setVisibility(View.GONE);
             }
 
-            // Update divider visibility based on current pending state
             boolean hasPending = hasFriendRequests || hasInvites;
             binding.dividerRecentActivity.setVisibility(
                     (hasPending && hasRecentActivity) ? View.VISIBLE : View.GONE);
             updateScrollContentVisibility();
+        });
+    }
+
+    private void observeSystemNotifications() {
+        notificationViewModel.notifications.observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isLoading()) return;
+
+            if (result.isSuccess()) {
+                List<NotificationResponse> notifications = result.getData();
+                hasSystemNotifications = notifications != null && !notifications.isEmpty();
+                boolean hasOther = hasFriendRequests || hasInvites || hasRecentActivity;
+                binding.dividerSystemNotifications.setVisibility(
+                        (hasOther && hasSystemNotifications) ? View.VISIBLE : View.GONE);
+                binding.layoutSystemNotificationsHeader.setVisibility(
+                        hasSystemNotifications ? View.VISIBLE : View.GONE);
+                binding.rvSystemNotifications.setVisibility(
+                        hasSystemNotifications ? View.VISIBLE : View.GONE);
+                if (hasSystemNotifications) systemNotificationAdapter.setItems(notifications);
+            } else {
+                hasSystemNotifications = false;
+                binding.dividerSystemNotifications.setVisibility(View.GONE);
+                binding.layoutSystemNotificationsHeader.setVisibility(View.GONE);
+                binding.rvSystemNotifications.setVisibility(View.GONE);
+            }
+            updateScrollContentVisibility();
+        });
+
+        notificationViewModel.markReadState.observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+            if (result.isSuccess()) {
+                notificationViewModel.resetMarkReadState();
+            }
         });
     }
 
@@ -238,7 +295,7 @@ public class NotificationsFragment extends Fragment {
     }
 
     private void updateScrollContentVisibility() {
-        boolean hasAny = hasFriendRequests || hasInvites || hasRecentActivity;
+        boolean hasAny = hasFriendRequests || hasInvites || hasRecentActivity || hasSystemNotifications;
         binding.layoutEmpty.setVisibility(hasAny ? View.GONE : View.VISIBLE);
         binding.scrollContent.setVisibility(hasAny ? View.VISIBLE : View.GONE);
     }
