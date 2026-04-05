@@ -3,9 +3,11 @@ package com.example.hubble.view.home;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -16,18 +18,21 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmConversationAdapter;
 import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
-import com.example.hubble.data.model.dm.DmConversationItem;
-import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
-import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
+import com.example.hubble.databinding.FragmentHomeBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
 import com.example.hubble.view.server.CreateServerActivity;
@@ -50,6 +55,7 @@ public class HomeFragment extends Fragment {
     private MainViewModel viewModel;
     private final List<ServerItem> currentServers = new ArrayList<>();
     private String pendingDmDisplayName;
+    private String pendingDmAvatarUrl;
 
     private final ActivityResultLauncher<Intent> createServerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -73,8 +79,8 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(
-            requireActivity(),
-            new MainViewModelFactory(new DmRepository(requireContext()), new ServerRepository(requireContext()))
+                requireActivity(),
+                new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
         ).get(MainViewModel.class);
 
         setupServerSidebar(viewModel);
@@ -87,7 +93,7 @@ public class HomeFragment extends Fragment {
         viewModel.kickedFromServer.observe(getViewLifecycleOwner(), serverName -> {
             if (serverName != null) {
                 Snackbar.make(requireView(),
-                        "Bạn đã bị xóa khỏi \"" + serverName + "\"",
+                        "Báº¡n Ä‘Ã£ bá»‹ xÃ³a khá»i \"" + serverName + "\"",
                         Snackbar.LENGTH_LONG).show();
                 viewModel.consumeKickedFromServer();
             }
@@ -184,8 +190,11 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-            channel -> showMessage("Mở kênh: " + channel.getName()),
-            viewModel::toggleCategoryCollapse
+                channel -> {
+                    // TODO: Open channel chat activity
+                    showMessage(getString(R.string.home_open_channel, channel.getName()));
+                },
+                viewModel::toggleCategoryCollapse
         );
 
         binding.rvServerChannels.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -230,6 +239,7 @@ public class HomeFragment extends Fragment {
         binding.rvStories.setLayoutManager(
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rvStories.setAdapter(storyAdapter);
+        storyAdapter.setOnStoryClickListener(this::openConversation);
 
         viewModel.dmStories.observe(getViewLifecycleOwner(), stories -> {
             if (stories != null) {
@@ -249,21 +259,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        conversationAdapter.setOnConversationClickListener(item -> {
-            if (item.hasChannelId()) {
-                startActivity(DmChatActivity.createIntent(requireContext(), item.getChannelId(), item.getDisplayName()));
-                return;
-            }
-
-            String friendId = item.getFriendId();
-            if (friendId == null || friendId.trim().isEmpty()) {
-                showMessage(getString(R.string.error_generic));
-                return;
-            }
-            pendingDmDisplayName = item.getDisplayName();
-            viewModel.openOrCreateDirectChannel(friendId);
-        });
-
+        conversationAdapter.setOnConversationClickListener(this::openConversation);
         conversationAdapter.setOnConversationLongClickListener(this::showConversationActionsSheet);
 
         viewModel.openDmState.observe(getViewLifecycleOwner(), result -> {
@@ -272,12 +268,13 @@ public class HomeFragment extends Fragment {
             }
 
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                startActivity(DmChatActivity.createIntent(
-                        requireContext(),
+                openDmChat(
                         result.getData().getId(),
-                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user)
-                ));
+                        pendingDmDisplayName != null ? pendingDmDisplayName : getString(R.string.dm_default_user),
+                        firstNonBlank(pendingDmAvatarUrl, result.getData().getPeerAvatarUrl())
+                );
                 pendingDmDisplayName = null;
+                pendingDmAvatarUrl = null;
                 viewModel.consumeOpenDmState();
                 return;
             }
@@ -285,6 +282,7 @@ public class HomeFragment extends Fragment {
             String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
             showMessage(error);
             pendingDmDisplayName = null;
+            pendingDmAvatarUrl = null;
             viewModel.consumeOpenDmState();
         });
 
@@ -293,6 +291,37 @@ public class HomeFragment extends Fragment {
                 showMessage(message);
             }
         });
+    }
+
+    private void openConversation(@Nullable DmConversationItem item) {
+        if (item == null) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        String displayName = item.getDisplayName() != null && !item.getDisplayName().trim().isEmpty()
+                ? item.getDisplayName()
+                : getString(R.string.dm_default_user);
+
+        if (item.hasChannelId()) {
+            startActivity(DmChatActivity.createIntent(
+                    requireContext(),
+                    item.getChannelId(),
+                    displayName,
+                    item.getAvatarUrl()
+            ));
+            return;
+        }
+
+        String friendId = item.getFriendId();
+        if (friendId == null || friendId.trim().isEmpty()) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        pendingDmDisplayName = displayName;
+        pendingDmAvatarUrl = item.getAvatarUrl();
+        viewModel.openOrCreateDirectChannel(friendId);
     }
 
     private void showConversationActionsSheet(DmConversationItem item) {
@@ -305,6 +334,11 @@ public class HomeFragment extends Fragment {
             displayName = getString(R.string.dm_default_user);
         }
         sheet.tvConversationHandle.setText("@" + displayName);
+        bindConversationAvatar(
+                sheet.ivConversationAvatar,
+                item != null ? item.getAvatarUrl() : null,
+                displayName
+        );
 
         boolean isFavorite = item != null && item.isFavorite();
         sheet.actionFavorite.setText(isFavorite ? R.string.dm_unfavorite : R.string.dm_favorite);
@@ -363,12 +397,60 @@ public class HomeFragment extends Fragment {
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
     }
 
+    private void openDmChat(@Nullable String channelId, @Nullable String displayName, @Nullable String avatarUrl) {
+        if (channelId == null || channelId.trim().isEmpty()) {
+            showMessage(getString(R.string.error_generic));
+            return;
+        }
+
+        String safeDisplayName = displayName;
+        if (safeDisplayName == null || safeDisplayName.trim().isEmpty()) {
+            safeDisplayName = getString(R.string.dm_default_user);
+        }
+
+        startActivity(DmChatActivity.createIntent(requireContext(), channelId, safeDisplayName, avatarUrl));
+    }
+
+    private void bindConversationAvatar(@NonNull ImageView imageView, @Nullable String avatarUrl, @Nullable String displayName) {
+        int avatarSize = imageView.getLayoutParams() != null ? imageView.getLayoutParams().width : imageView.getWidth();
+        android.graphics.drawable.Drawable avatarFallback =
+                AvatarPlaceholderUtils.createAvatarDrawable(
+                        imageView.getContext(),
+                        displayName,
+                        avatarSize
+                );
+
+        Glide.with(imageView.getContext())
+                .load(toAbsoluteAvatarUrl(avatarUrl))
+                .placeholder(avatarFallback)
+                .error(avatarFallback)
+                .fallback(avatarFallback)
+                .circleCrop()
+                .into(imageView);
+    }
+
+    @Nullable
+    private String toAbsoluteAvatarUrl(@Nullable String avatarUrl) {
+        return NetworkConfig.resolveUrl(avatarUrl);
+    }
+
+    @Nullable
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String value : values) {
+            if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
 }
-
-
-

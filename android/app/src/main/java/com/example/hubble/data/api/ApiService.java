@@ -1,6 +1,5 @@
 package com.example.hubble.data.api;
 
-import okhttp3.MultipartBody;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
@@ -25,12 +24,15 @@ import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UploadResponse;
-
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.PushConfigRequest;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 
 import java.util.List;
 
+import okhttp3.MultipartBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -146,10 +148,24 @@ public interface ApiService {
     );
 
     @POST("/api/friends/requests/{userId}")
-    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(@Header("Authorization") String token, @Path("userId") String userId);
+    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
+
+    @GET("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> getPushConfig(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> updatePushConfig(
+            @Header("Authorization") String token,
+            @Body PushConfigRequest request
+    );
 
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
@@ -212,6 +228,24 @@ public interface ApiService {
             @Path("messageId") String messageId
     );
 
+    @Multipart
+    @POST("api/users/me/avatar")
+    Call<ApiResponse<UserResponse>> uploadMyAvatar(
+            @Header("Authorization") String token,
+            @Part MultipartBody.Part file
+    );
+
+    @GET("api/users/me/avatar")
+    Call<ApiResponse<AvatarResponse>> getMyAvatar(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/{userId}/avatar")
+    Call<ApiResponse<AvatarResponse>> getUserAvatar(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
     @PUT("api/messages/{messageId}/reactions")
     Call<ApiResponse<List<ReactionDto>>> toggleReaction(
             @Header("Authorization") String token,
@@ -229,6 +263,37 @@ public interface ApiService {
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
     );
+    @PUT("api/settings/theme")
+    Call<ApiResponse<String>> updateTheme(
+            @Header("Authorization") String token,
+            @Query("theme") String theme
+    );
+
+    @GET("api/settings/theme")
+    Call<ApiResponse<String>> getTheme(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
+
+    @PUT("api/settings/language")
+    Call<ApiResponse<String>> updateLanguage(
+            @Header("Authorization") String token,
+            @Query("locale") String language
+    );
+
+    @GET("api/settings/language")
+    Call<ApiResponse<String>> getLanguage(
+            @Header("Authorization") String token
+    );
+
 
     @GET("api/notifications")
     Call<ApiResponse<java.util.List<com.example.hubble.data.model.notify.NotificationResponse>>> getNotifications(

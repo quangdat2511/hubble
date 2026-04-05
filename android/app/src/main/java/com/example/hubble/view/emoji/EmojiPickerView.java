@@ -198,7 +198,7 @@ public class EmojiPickerView extends FrameLayout {
                 } else {
                     categoryBar.setVisibility(GONE);
                     List<String> results = EmojiData.search(query);
-                    emojiAdapter.setSearchResults(results);
+                    emojiAdapter.setSearchResults(results, getContext().getString(R.string.emoji_results));
                 }
             }
         });
@@ -250,10 +250,10 @@ public class EmojiPickerView extends FrameLayout {
                 String query = s.toString().trim();
                 debounceHandler.removeCallbacks(gifDebounce);
                 if (query.isEmpty()) {
-                    tvGifLabel.setText("TRENDING");
+                    tvGifLabel.setText(R.string.emoji_trending);
                     loadTrendingGifs(true);
                 } else {
-                    tvGifLabel.setText("RESULTS");
+                    tvGifLabel.setText(R.string.emoji_results);
                     gifDebounce = () -> searchGifs(query);
                     debounceHandler.postDelayed(gifDebounce, DEBOUNCE_MS);
                 }
@@ -324,10 +324,10 @@ public class EmojiPickerView extends FrameLayout {
                 String query = s.toString().trim();
                 debounceHandler.removeCallbacks(stickerDebounce);
                 if (query.isEmpty()) {
-                    tvStickerLabel.setText("TRENDING");
+                    tvStickerLabel.setText(R.string.emoji_trending);
                     loadTrendingStickers(true);
                 } else {
-                    tvStickerLabel.setText("RESULTS");
+                    tvStickerLabel.setText(R.string.emoji_results);
                     stickerDebounce = () -> searchStickers(query);
                     debounceHandler.postDelayed(stickerDebounce, DEBOUNCE_MS);
                 }

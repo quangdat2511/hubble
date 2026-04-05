@@ -9,6 +9,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.example.hubble.R;
 import com.example.hubble.adapter.friend.FriendSearchAdapter;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityBlockedUsersBinding;
@@ -39,7 +40,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this,
                 new FriendViewModelFactory(new FriendRepository(this))).get(FriendViewModel.class);
 
-        binding.toolbar.setTitle("Người dùng đã chặn");
+        binding.toolbar.setTitle(R.string.me_blocked_users);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
 //        binding.etSearch.setVisibility(View.GONE);
@@ -71,7 +72,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
             } else {
                 binding.progressBar.setVisibility(View.GONE);
                 if (result.isSuccess()) {
-                    Snackbar.make(binding.getRoot(), "Đã bỏ chặn thành công!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(binding.getRoot(), R.string.blocked_user_unblocked, Snackbar.LENGTH_SHORT).show();
                     viewModel.fetchBlockedUsers();
                 } else if (result.isError()) {
                     Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();

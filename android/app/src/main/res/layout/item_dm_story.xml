@@ -20,7 +20,6 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:contentDescription="@string/cd_user_avatar"
-            android:src="@mipmap/ic_launcher_round"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
         <TextView

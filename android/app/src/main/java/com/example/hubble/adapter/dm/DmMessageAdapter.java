@@ -16,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.ReactionDto;
@@ -32,7 +32,8 @@ import com.example.hubble.databinding.ItemDmDateSeparatorBinding;
 import com.example.hubble.databinding.ItemDmMessageBinding;
 import com.example.hubble.databinding.ItemDmProfileIntroBinding;
 import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.InAppMessageUtils;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -498,7 +499,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         for (AttachmentResponse att : attachments) {
             String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
-            String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
+            String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
 
             if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
                 View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
@@ -544,7 +545,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
                 ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
-                String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
+                Context context = container.getContext();
+                String fileName = att.getFilename() != null
+                        ? att.getFilename()
+                        : context.getString(R.string.dm_untitled_file);
 
                 String safeFileName = fileName;
                 if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -557,31 +561,31 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String lowerName = fileName.toLowerCase();
 
                 if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
-                    tvFileType.setText("Tài liệu PDF");
+                    tvFileType.setText(R.string.dm_file_type_pdf);
                     ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
                 }
                 else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
-                    tvFileType.setText("Tài liệu Word");
+                    tvFileType.setText(R.string.dm_file_type_word);
                     ivFileIcon.setImageResource(R.drawable.ic_file_docx);
                 }
                 else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
-                    tvFileType.setText("Bảng tính Excel");
+                    tvFileType.setText(R.string.dm_file_type_excel);
                     ivFileIcon.setImageResource(R.drawable.ic_file_excel);
                 }
                 else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
-                    tvFileType.setText("Bài thuyết trình");
+                    tvFileType.setText(R.string.dm_file_type_presentation);
                     ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
                 }
                 else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
-                    tvFileType.setText("Tệp nén");
+                    tvFileType.setText(R.string.dm_file_type_archive);
                     ivFileIcon.setImageResource(R.drawable.ic_file_zip);
                 }
                 else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
-                    tvFileType.setText("Tệp văn bản");
+                    tvFileType.setText(R.string.dm_file_type_text);
                     ivFileIcon.setImageResource(R.drawable.ic_file_text);
                 }
                 else {
-                    tvFileType.setText("Tệp đính kèm");
+                    tvFileType.setText(R.string.attachment_file);
                     ivFileIcon.setImageResource(R.drawable.ic_file_generic);
                 }
 
@@ -680,7 +684,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(browserIntent);
             } catch (Exception ex) {
-                Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_open_file_error));
             }
         }
     }
@@ -688,10 +692,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static void downloadFile(Context context, String url, String fileName) {
         if (url == null || url.isEmpty()) return;
 
-        String finalUrl = url;
-        if (finalUrl.contains("localhost")) {
-            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
-        }
+        String finalUrl = NetworkConfig.resolveUrl(url);
 
         String safeFileName = fileName;
         if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -701,7 +702,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
             request.setTitle(safeFileName);
-            request.setDescription("Đang tải tệp đính kèm...");
+            request.setDescription(context.getString(R.string.dm_download_description));
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
@@ -714,14 +715,14 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
                 downloadManager.enqueue(request);
-                Toast.makeText(context, "Bắt đầu tải " + safeFileName + "...", Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_download_started, safeFileName));
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);
+            InAppMessageUtils.show(context, context.getString(R.string.dm_download_error, message));
         }
     }
-
 
     static class IntroHolder extends RecyclerView.ViewHolder {
         private final ItemDmProfileIntroBinding b;
@@ -736,10 +737,34 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             b.tvIntroDisplayName.setText(intro.getSenderName());
             b.tvIntroUsername.setText(intro.getTimestamp());
             b.tvIntroDesc.setText(intro.getContent());
+            bindAvatar(avatarUrl, intro.getSenderName());
+        }
+
+        private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {
+            int avatarSize = b.ivIntroAvatar.getLayoutParams() != null
+                    ? b.ivIntroAvatar.getLayoutParams().width
+                    : b.ivIntroAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            b.ivIntroAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String resolvedAvatarUrl = NetworkConfig.resolveUrl(avatarUrl);
+            boolean hasAvatar = resolvedAvatarUrl != null && !resolvedAvatarUrl.trim().isEmpty();
+
+            Glide.with(b.ivIntroAvatar.getContext()).clear(b.ivIntroAvatar);
+            if (!hasAvatar) {
+                b.ivIntroAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            b.ivIntroAvatar.setImageDrawable(null);
             Glide.with(b.ivIntroAvatar.getContext())
-                    .load(avatarUrl)
-                    .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
-                    .error(com.example.hubble.R.mipmap.ic_launcher_round)
+                    .load(resolvedAvatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
                     .circleCrop()
                     .into(b.ivIntroAvatar);
         }
@@ -785,12 +810,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
 
             if (showHeader) {
-                Glide.with(b.ivAvatar.getContext())
-                        .load(avatarUrl)
-                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .circleCrop()
-                        .into(b.ivAvatar);
+                bindAvatar(avatarUrl, item.getSenderName());
             }
 
             int topMargin = showHeader || item.hasReply() ? dp(2) : dp(0);
@@ -814,7 +834,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String replyContent = item.getReplyToContent();
                 if (isMedia(replyContent)) {
                     String title = extractMediaTitle(replyContent);
-                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                    b.tvReplyQuoteContent.setText(title != null ? title : b.getRoot().getContext().getString(R.string.dm_reply_media));
                 } else {
                     b.tvReplyQuoteContent.setText(replyContent);
                 }
@@ -827,7 +847,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             if (isMedia(content)) {
                 b.cardMessage.setVisibility(View.GONE);
                 b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
+                String url = NetworkConfig.resolveUrl(extractMediaUrl(content));
                 Glide.with(b.ivMedia.getContext())
                         .asGif()
                         .load(url)
@@ -837,7 +857,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 b.ivMedia.setVisibility(View.GONE);
                 Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
                 if (item.isDeleted()) {
-                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvMessage.setText(R.string.dm_deleted_message);
                     b.tvEdited.setVisibility(View.GONE);
                 } else {
                     if (content != null && !content.isEmpty()) {
@@ -950,6 +970,35 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         private int dp(int value) {
             return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
+        }
+
+        private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {
+            int avatarSize = b.ivAvatar.getLayoutParams() != null
+                    ? b.ivAvatar.getLayoutParams().width
+                    : b.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            b.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String resolvedAvatarUrl = NetworkConfig.resolveUrl(avatarUrl);
+            boolean hasAvatar = resolvedAvatarUrl != null && !resolvedAvatarUrl.trim().isEmpty();
+
+            Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+            if (!hasAvatar) {
+                b.ivAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            b.ivAvatar.setImageDrawable(null);
+            Glide.with(b.ivAvatar.getContext())
+                    .load(resolvedAvatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(b.ivAvatar);
         }
     }
 }

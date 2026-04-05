@@ -39,10 +39,10 @@ public class EmojiPanelAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         notifyDataSetChanged();
     }
 
-    public void setSearchResults(List<String> emojis) {
+    public void setSearchResults(List<String> emojis, String label) {
         items.clear();
         if (emojis != null && !emojis.isEmpty()) {
-            EmojiCategory resultCat = new EmojiCategory("Results", "🔍", emojis);
+            EmojiCategory resultCat = new EmojiCategory(label, "🔍", emojis);
             items.add(resultCat);
             items.addAll(emojis);
         }

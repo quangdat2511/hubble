@@ -35,6 +35,17 @@ set APP_HOME=%DIRNAME%
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
+@rem Default heavy Gradle/Android/temp directories into the project drive to avoid filling C:
+if not defined GRADLE_USER_HOME set "GRADLE_USER_HOME=%APP_HOME%\.gradle-home"
+if not defined ANDROID_USER_HOME set "ANDROID_USER_HOME=%APP_HOME%\.android-home"
+if not defined TMP set "TMP=%APP_HOME%\.tmp"
+if not defined TEMP set "TEMP=%APP_HOME%\.tmp"
+
+if not exist "%GRADLE_USER_HOME%" mkdir "%GRADLE_USER_HOME%"
+if not exist "%ANDROID_USER_HOME%" mkdir "%ANDROID_USER_HOME%"
+if not exist "%TMP%" mkdir "%TMP%"
+if not exist "%TEMP%" mkdir "%TEMP%"
+
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
