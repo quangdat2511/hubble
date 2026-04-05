@@ -58,7 +58,9 @@ supabase:
 google:
   client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}
 
-otp:
+firebase:
+  config:
+    path: firebase-service-account.json
   expiry-minutes: 5
   length: 6
 
@@ -104,4 +106,5 @@ app:
       - application/x-zip-compressed
       - application/vnd.rar                                                     # .rar
       - application/x-rar-compressed
-      - text/plain                                                              # .txt
+      - text/plain
+

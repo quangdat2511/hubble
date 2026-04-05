@@ -2,6 +2,7 @@ package com.example.hubble.data.ws;
 
 import android.util.Log;
 
+import com.example.hubble.data.model.notify.NotificationResponse;
 import com.example.hubble.data.model.server.ServerEventNotification;
 
 import org.json.JSONException;
@@ -32,6 +33,7 @@ public class ServerEventWebSocketManager {
     // Emits {channelId} whenever a DM message is delivered to this user's device.
     // DmChatActivity observes this to mark the sender's messages as DELIVERED.
     private final PublishSubject<String> dmDeliverySubject = PublishSubject.create();
+    private final PublishSubject<NotificationResponse> notificationSubject = PublishSubject.create();
 
     private String savedBaseUrl;
     private String savedUserId;
@@ -61,6 +63,10 @@ public class ServerEventWebSocketManager {
      */
     public Observable<String> getDmDeliveryEvents() {
         return dmDeliverySubject.hide();
+    }
+
+    public Observable<NotificationResponse> getNotificationEvents() {
+        return notificationSubject.hide();
     }
 
     public void connect(String baseUrl, String userId, String token) {
@@ -126,6 +132,7 @@ public class ServerEventWebSocketManager {
     private void subscribeToUserTopic() {
         subscribeToServerEvents();
         subscribeToDmDelivery();
+        subscribeToNotifications();
     }
 
     private void subscribeToServerEvents() {
@@ -196,6 +203,32 @@ public class ServerEventWebSocketManager {
                         }
                     },
                     t -> Log.e(TAG, "DM delivery subscription error", t)
+                )
+        );
+    }
+
+    private void subscribeToNotifications() {
+        String topic = "/topic/users/" + savedUserId + "/notifications";
+        Log.d(TAG, "Subscribing to notifications topic: " + topic);
+
+        disposables.add(
+            stompClient.topic(topic)
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                    stompMessage -> {
+                        try {
+                            com.google.gson.Gson gson = new com.google.gson.Gson();
+                            NotificationResponse notification = gson.fromJson(
+                                    stompMessage.getPayload(), NotificationResponse.class);
+                            if (notification != null) {
+                                Log.d(TAG, "Notification received: " + notification.getType());
+                                notificationSubject.onNext(notification);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to parse notification", e);
+                        }
+                    },
+                    t -> Log.e(TAG, "Notification subscription error", t)
                 )
         );
     }

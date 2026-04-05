@@ -25,6 +25,8 @@ DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS user_otps CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS server_invites CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS device_tokens CASCADE;
 
 -- Drop function (after tables are dropped)
 DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
@@ -38,6 +40,7 @@ DROP TYPE IF EXISTS otp_type;
 DROP TYPE IF EXISTS auth_provider;
 DROP TYPE IF EXISTS user_status;
 DROP TYPE IF EXISTS server_invite_status;
+DROP TYPE IF EXISTS notification_type;
 
 -- =====================================================
 -- Enable UUID extension
@@ -57,6 +60,7 @@ CREATE TYPE channel_type AS ENUM ('TEXT', 'VOICE', 'CATEGORY', 'DM', 'GROUP_DM')
 CREATE TYPE message_type AS ENUM ('TEXT', 'IMAGE', 'FILE', 'SYSTEM', 'VOICE_NOTE', 'STICKER', 'GIPHY');
 CREATE TYPE friendship_status AS ENUM ('PENDING', 'ACCEPTED', 'BLOCKED');
 CREATE TYPE server_invite_status AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED');
+CREATE TYPE notification_type AS ENUM ('NEW_MESSAGE', 'FRIEND_REQUEST', 'SERVER_INVITE', 'SYSTEM_ALERT');
 
 
 -- =====================================================
@@ -256,6 +260,26 @@ CREATE TABLE server_invites (
                             CHECK (inviter_id <> invitee_id)
 );
 
+-- Notifications table
+CREATE TABLE notifications (
+                               id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                               user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                               type notification_type NOT NULL,
+                               reference_id TEXT,
+                               content TEXT NOT NULL,
+                               is_read BOOLEAN DEFAULT FALSE,
+                               created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Device tokens table (FCM push)
+CREATE TABLE device_tokens (
+                               id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                               user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                               token TEXT NOT NULL UNIQUE,
+                               device_type VARCHAR(50),
+                               created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 
 -- =====================================================
 -- INDEXES
@@ -326,6 +350,13 @@ CREATE INDEX idx_server_invites_inviter ON server_invites(inviter_id);
 CREATE UNIQUE INDEX uq_server_invites_pending
     ON server_invites (server_id, invitee_id)
     WHERE status = 'PENDING';
+
+-- Notifications
+CREATE INDEX idx_notifications_user ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_unread ON notifications(user_id) WHERE is_read = FALSE;
+
+-- Device tokens
+CREATE INDEX idx_device_tokens_user ON device_tokens(user_id);
 
 
 -- =====================================================

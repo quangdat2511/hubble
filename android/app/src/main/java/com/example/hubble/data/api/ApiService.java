@@ -229,4 +229,39 @@ public interface ApiService {
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
     );
+
+    @GET("api/notifications")
+    Call<ApiResponse<java.util.List<com.example.hubble.data.model.notify.NotificationResponse>>> getNotifications(
+            @Header("Authorization") String token,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/notifications/unread-count")
+    Call<ApiResponse<Long>> getNotificationUnreadCount(
+            @Header("Authorization") String token
+    );
+
+    @PATCH("api/notifications/{notificationId}/read")
+    Call<ApiResponse<Void>> markNotificationRead(
+            @Header("Authorization") String token,
+            @Path("notificationId") String notificationId
+    );
+
+    @PATCH("api/notifications/read-all")
+    Call<ApiResponse<Void>> markAllNotificationsRead(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/device-tokens")
+    Call<ApiResponse<Void>> registerDeviceToken(
+            @Header("Authorization") String token,
+            @Body java.util.Map<String, String> body
+    );
+
+    @DELETE("api/device-tokens/{fcmToken}")
+    Call<ApiResponse<Void>> removeDeviceToken(
+            @Header("Authorization") String token,
+            @Path("fcmToken") String fcmToken
+    );
 }
