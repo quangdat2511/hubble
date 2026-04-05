@@ -1,8 +1,10 @@
 package com.hubble.service;
 
+import com.hubble.dto.request.CreateChannelRequest;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.entity.Channel;
 import com.hubble.entity.ChannelMember;
+import com.hubble.entity.ChannelRole;
 import com.hubble.entity.User;
 import com.hubble.enums.ChannelType;
 import com.hubble.exception.AppException;
@@ -10,11 +12,14 @@ import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ChannelMapper;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.ChannelRoleRepository;
+import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.MessageRepository;
 import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +43,10 @@ public class ChannelService {
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
     MessageRepository messageRepository;
+    ChannelRoleRepository channelRoleRepository;
+    ServerMemberRepository serverMemberRepository;
     MessageService messageService;
+    SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ChannelResponse getOrCreateDirectChannel(UUID currentUserId, UUID otherUserId){
@@ -176,6 +184,64 @@ public class ChannelService {
                 response.setPeerAvatarUrl(peerUser.getAvatarUrl());
                 response.setPeerStatus(peerUser.getStatus() != null ? peerUser.getStatus().name() : null);
         }
+    @Transactional
+    public ChannelResponse createChannel(UUID serverId, UUID creatorUserId, CreateChannelRequest request) {
+        // Calculate next position
+        List<Channel> existing = channelRepository.findByServerId(serverId);
+        short maxPos = existing.stream()
+                .filter(c -> java.util.Objects.equals(c.getParentId(), request.getParentId()))
+                .map(Channel::getPosition)
+                .max(Short::compare)
+                .orElse((short) -1);
+
+        Channel channel = Channel.builder()
+                .serverId(serverId)
+                .parentId(request.getParentId())
+                .name(request.getName())
+                .type(request.getType())
+                .isPrivate(request.getIsPrivate() != null && request.getIsPrivate())
+                .position((short) (maxPos + 1))
+                .build();
+        channel = channelRepository.save(channel);
+
+        // If private, always add creator + any selected members/roles
+        if (Boolean.TRUE.equals(channel.getIsPrivate())) {
+            UUID channelId = channel.getId();
+
+            // Build member set: always include creator
+            Set<UUID> memberSet = new java.util.LinkedHashSet<>();
+            memberSet.add(creatorUserId);
+            if (request.getMemberIds() != null) {
+                memberSet.addAll(request.getMemberIds());
+            }
+            List<ChannelMember> members = memberSet.stream()
+                    .map(userId -> ChannelMember.builder()
+                            .channelId(channelId)
+                            .userId(userId)
+                            .build())
+                    .toList();
+            channelMemberRepository.saveAll(members);
+
+            if (request.getRoleIds() != null && !request.getRoleIds().isEmpty()) {
+                List<ChannelRole> roles = request.getRoleIds().stream()
+                        .map(roleId -> ChannelRole.builder()
+                                .channelId(channelId)
+                                .roleId(roleId)
+                                .build())
+                        .toList();
+                channelRoleRepository.saveAll(roles);
+            }
+        }
+
+        ChannelResponse response = channelMapper.toChannelResponse(channel);
+        broadcastChannelCreated(serverId, response);
+        return response;
+    }
+
+    private void broadcastChannelCreated(UUID serverId, ChannelResponse response) {
+        messagingTemplate.convertAndSend("/topic/servers/" + serverId + "/channels", response);
+    }
+
     @Transactional
     public void deleteChannel(UUID channelId) {
         messageService.deleteMessagesByChannel(channelId);

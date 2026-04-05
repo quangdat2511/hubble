@@ -2,6 +2,7 @@ package com.example.hubble.data.api;
 
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
+import com.example.hubble.data.model.server.CreateChannelRequest;
 import com.example.hubble.data.model.server.ServerResponse;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
+import retrofit2.http.Body;
 
 public interface ServerService {
 
@@ -68,5 +70,13 @@ public interface ServerService {
             @Header("Authorization") String token,
             @Path("serverId") String serverId,
             @Path("memberId") String memberId
+    );
+
+    // ── Create channel ─────────────────────────────────────────────────────
+    @POST("api/servers/{serverId}/channels")
+    Call<ApiResponse<ChannelDto>> createChannel(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Body CreateChannelRequest request
     );
 }

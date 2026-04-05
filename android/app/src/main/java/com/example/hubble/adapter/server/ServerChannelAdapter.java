@@ -209,6 +209,10 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
             } else {
                 binding.tvChannelUnreadBadge.setVisibility(View.GONE);
             }
+
+            // Show lock badge for private channels
+            binding.ivLockBadge.setVisibility(
+                    Boolean.TRUE.equals(channel.getIsPrivate()) ? View.VISIBLE : View.GONE);
         }
     }
 }

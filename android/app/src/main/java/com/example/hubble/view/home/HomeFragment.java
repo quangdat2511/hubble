@@ -99,6 +99,11 @@ public class HomeFragment extends Fragment {
         super.onResume();
         if (viewModel != null) {
             viewModel.refreshDirectMessages();
+            // Refresh channels if a server is selected (e.g. after creating a channel)
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                viewModel.loadServerChannels(server.getId());
+            }
         }
     }
 
@@ -184,7 +189,13 @@ public class HomeFragment extends Fragment {
 
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
-            channel -> showMessage("Mở kênh: " + channel.getName()),
+            channel -> {
+                if (Boolean.TRUE.equals(channel.getIsPrivate()) && !Boolean.TRUE.equals(channel.getCanAccess())) {
+                    showMessage("Bạn không có quyền truy cập kênh " + channel.getName());
+                } else {
+                    showMessage("Kênh: " + channel.getName() + " (chức năng đang phát triển)");
+                }
+            },
             viewModel::toggleCategoryCollapse
         );
 

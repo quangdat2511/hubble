@@ -17,6 +17,7 @@ public class ChannelResponse {
     String topic;
     Short position;
     Boolean isPrivate;
+    Boolean canAccess;
     String createdAt;
     String peerUserId;
     String peerUsername;

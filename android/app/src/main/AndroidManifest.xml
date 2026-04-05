@@ -87,6 +87,16 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.server.CreateChannelActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.CreateChannelAccessActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".view.friend.AddFriendActivity"
             android:exported="false" />
 

@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.databinding.BottomSheetServerProfileBinding;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -100,11 +101,22 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                         requireContext(), serverId, serverName, ownerId, iconUrl));
             });
 
+            // Show create actions card only to server owner
+            TokenManager tokenManager = new TokenManager(requireContext());
+            String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : null;
+            if (ownerId != null && ownerId.equals(currentUserId)) {
+                binding.cardCreateActions.setVisibility(View.VISIBLE);
+            } else {
+                binding.cardCreateActions.setVisibility(View.GONE);
+            }
+
             // List items
             binding.rowMarkAsRead.setOnClickListener(v -> showComingSoon());
-            binding.rowCreateChannel.setOnClickListener(v -> showComingSoon());
+            binding.rowCreateChannel.setOnClickListener(v -> {
+                dismiss();
+                startActivity(CreateChannelActivity.createIntent(requireContext(), serverId));
+            });
             binding.rowCreateCategory.setOnClickListener(v -> showComingSoon());
-            binding.rowCreateEvent.setOnClickListener(v -> showComingSoon());
             binding.rowEditServerProfile.setOnClickListener(v -> showComingSoon());
             binding.rowHideMuted.setOnClickListener(v ->
                     binding.switchHideMuted.setChecked(!binding.switchHideMuted.isChecked()));

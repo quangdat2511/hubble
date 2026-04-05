@@ -505,4 +505,24 @@
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
     <string name="role_detail_delete">Xóa Vai Trò</string>
+
+    <!-- Create Channel -->
+    <string name="create_channel_title">Tạo kênh</string>
+    <string name="create_channel_create">Tạo</string>
+    <string name="create_channel_next">Tiếp Theo</string>
+    <string name="create_channel_skip">Bỏ Qua</string>
+    <string name="create_channel_name_label">Tên kênh</string>
+    <string name="create_channel_default_name">kênh-mới</string>
+    <string name="create_channel_type_label">Loại Kênh</string>
+    <string name="create_channel_type_text">Văn bản</string>
+    <string name="create_channel_type_text_desc">Đăng hình ảnh, ảnh động, sticker, ý kiến, và chơi chữ</string>
+    <string name="create_channel_type_voice">Giọng nói</string>
+    <string name="create_channel_type_voice_desc">Cùng gặp mặt bằng gọi thoại, video, và chia sẻ màn hình</string>
+    <string name="create_channel_private">Kênh Riêng</string>
+    <string name="create_channel_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="create_channel_add_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="create_channel_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
+    <string name="create_channel_section_roles">Vai trò</string>
+    <string name="create_channel_section_members">Thành viên</string>
+    <string name="create_channel_success">Tạo kênh thành công!</string>
 </resources>

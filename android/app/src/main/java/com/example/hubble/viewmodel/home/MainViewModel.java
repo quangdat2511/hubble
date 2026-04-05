@@ -110,6 +110,11 @@ public class MainViewModel extends ViewModel {
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
     private volatile String activeServerId;
 
+    // Server channel realtime
+    private volatile String desiredServerChannelServerId = null;
+    private volatile String subscribedServerChannelServerId = null;
+    private Disposable serverChannelTopicDisposable = null;
+
     public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
         this.dmRepository = dmRepository;
         this.serverRepository = serverRepository;
@@ -476,12 +481,15 @@ public class MainViewModel extends ViewModel {
                     if (event.getType() == LifecycleEvent.Type.OPENED) {
                         dmRealtimeConnected = true;
                         syncDmTopicSubscriptions();
+                        subscribeToServerChannelTopic(desiredServerChannelServerId);
                         // STOMP does not replay missed messages. Pull latest previews from REST
                         // so B sees new messages on the home list without opening the chat.
                         refreshDirectMessages();
                     } else if (event.getType() == LifecycleEvent.Type.CLOSED
                             || event.getType() == LifecycleEvent.Type.ERROR) {
                         dmRealtimeConnected = false;
+                        subscribedServerChannelServerId = null;
+                        serverChannelTopicDisposable = null;
                         clearDmTopicSubscriptions();
                         scheduleDmRealtimeReconnect();
                     }
@@ -1051,6 +1059,50 @@ public class MainViewModel extends ViewModel {
                 _serverChannels.postValue(AuthResult.error(result.getMessage()));
             }
         });
+
+        ensureDmRealtimeConnected();
+        subscribeToServerChannelTopic(serverId);
+    }
+
+    private void subscribeToServerChannelTopic(String serverId) {
+        desiredServerChannelServerId = serverId;
+        if (!dmRealtimeConnected || dmRealtimeClient == null || serverId == null) return;
+        if (serverId.equals(subscribedServerChannelServerId)) return;
+
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
+        subscribedServerChannelServerId = serverId;
+
+        final String sid = serverId;
+        serverChannelTopicDisposable = dmRealtimeClient
+                .topic("/topic/servers/" + sid + "/channels")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    ChannelDto newChannel = gson.fromJson(stompMessage.getPayload(), ChannelDto.class);
+                    if (newChannel == null || TextUtils.isEmpty(newChannel.getId())) return;
+                    onServerChannelCreated(sid, newChannel);
+                }, throwable -> {});
+        dmRealtimeDisposables.add(serverChannelTopicDisposable);
+    }
+
+    private void onServerChannelCreated(String serverId, ChannelDto newChannel) {
+        if (Boolean.TRUE.equals(newChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is applied by the server
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        List<ChannelDto> updated = current != null ? new ArrayList<>(current) : new ArrayList<>();
+        for (ChannelDto c : updated) {
+            if (c.getId() != null && c.getId().equals(newChannel.getId())) return;
+        }
+        updated.add(newChannel);
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
     }
 
     public void toggleCategoryCollapse(String categoryId) {
@@ -1075,6 +1127,9 @@ public class MainViewModel extends ViewModel {
     protected void onCleared() {
         dmRealtimeReconnectPending = false;
         clearDmTopicSubscriptions();
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
         dmRealtimeDisposables.clear();
         if (dmRealtimeClient != null) {
             dmRealtimeClient.disconnect();

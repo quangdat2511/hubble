@@ -1,9 +1,11 @@
 package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
+import com.hubble.dto.request.CreateChannelRequest;
 import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ServerResponse;
+import com.hubble.service.ChannelService;
 import com.hubble.service.ServerService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ServerController {
 
     ServerService serverService;
+    ChannelService channelService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ServerResponse>> createServer(
@@ -79,6 +82,18 @@ public class ServerController {
         UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(ApiResponse.<List<ChannelResponse>>builder()
                 .result(serverService.getServerChannels(serverId, userId))
+                .result(serverService.getServerChannels(serverId, userId))
+                .build());
+    }
+
+    @PostMapping("/{serverId}/channels")
+    public ResponseEntity<ApiResponse<ChannelResponse>> createChannel(
+            @PathVariable UUID serverId,
+            @RequestBody CreateChannelRequest request,
+            Authentication authentication) {
+        UUID creatorId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<ChannelResponse>builder()
+                .result(channelService.createChannel(serverId, creatorId, request))
                 .build());
     }
 }

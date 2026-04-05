@@ -9,6 +9,7 @@ public class ChannelDto {
     private String topic;
     private Short position;
     private Boolean isPrivate;
+    private Boolean canAccess;
     private String createdAt;
     private String peerUserId;
     private String peerUsername;
@@ -47,6 +48,10 @@ public class ChannelDto {
 
     public Boolean getIsPrivate() {
         return isPrivate;
+    }
+
+    public Boolean getCanAccess() {
+        return canAccess;
     }
 
     public String getCreatedAt() {

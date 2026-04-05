@@ -48,12 +48,13 @@ public class MessageController {
 
     @GetMapping("/{channelId}")
     public ApiResponse<List<MessageResponse>> getMessages(
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable String channelId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
         return ApiResponse.<List<MessageResponse>>builder()
-                .result(messageService.getMessages(channelId, page, size))
+                .result(messageService.getMessages(channelId, principal.getId().toString(), page, size))
                 .build();
     }
 
