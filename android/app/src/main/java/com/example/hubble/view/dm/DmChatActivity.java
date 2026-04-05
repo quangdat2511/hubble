@@ -439,7 +439,7 @@ public class DmChatActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 boolean hasText = s != null && s.length() > 0;
-                updateComposerButtons(hasText);
+                updateComposerState();
                 if (hasText) {
                     long now = System.currentTimeMillis();
                     if (now - lastTypingSentMillis >= TYPING_SEND_INTERVAL_MS) {
@@ -452,7 +452,7 @@ public class DmChatActivity extends AppCompatActivity {
 
         binding.btnCollapse.setOnClickListener(v -> {
             binding.etComposer.getText().clear();
-            updateComposerButtons(false);
+            updateComposerState();
         });
 
         binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
@@ -638,11 +638,21 @@ public class DmChatActivity extends AppCompatActivity {
         }
     }
 
-    private void updateComposerButtons(boolean hasText) {
+    private void updateComposerState() {
+        boolean hasText = binding.etComposer.getText() != null && binding.etComposer.getText().length() > 0;
+        boolean hasAttachment = !pendingAttachmentIds.isEmpty();
+
+        // Điều kiện để gửi là: Có chữ HOẶC có file đính kèm
+        boolean canSend = hasText || hasAttachment;
+
+        // Nút Gửi và nút Mic sẽ đổi chỗ cho nhau dựa trên canSend
+        binding.btnVoice.setVisibility(canSend ? View.GONE : View.VISIBLE);
+        binding.btnSend.setVisibility(canSend ? View.VISIBLE : View.GONE);
+
+        // Nút Đính kèm (+) và nút Mũi tên (>) thì chỉ phụ thuộc vào việc có gõ chữ hay không
+        // (Để khi user mới chỉ thêm ảnh, họ vẫn thấy nút (+) để bấm thêm ảnh nữa)
         binding.btnAttach.setVisibility(hasText ? View.GONE : View.VISIBLE);
         binding.btnCollapse.setVisibility(hasText ? View.VISIBLE : View.GONE);
-        binding.btnVoice.setVisibility(hasText ? View.GONE : View.VISIBLE);
-        binding.btnSend.setVisibility(hasText ? View.VISIBLE : View.GONE);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -674,6 +684,7 @@ public class DmChatActivity extends AppCompatActivity {
                         if (completed[0] == total) {
                             binding.btnAttach.setEnabled(true);
                             Snackbar.make(binding.getRoot(), total + " file(s) ready", Snackbar.LENGTH_SHORT).show();
+                            updateComposerState();
                         }
                         break;
                     case ERROR:
@@ -721,6 +732,7 @@ public class DmChatActivity extends AppCompatActivity {
                 pendingAttachmentIds.remove(index);
                 pendingAttachmentTypes.remove(index);
             }
+            updateComposerState();
             if (pendingAttachmentIds.isEmpty()) clearAttachmentPreview();
         });
 
@@ -734,6 +746,7 @@ public class DmChatActivity extends AppCompatActivity {
         binding.llAttachmentPreviews.removeAllViews();
         binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
         binding.btnAttach.setEnabled(true);
+        updateComposerState();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1424,15 +1437,31 @@ public class DmChatActivity extends AppCompatActivity {
                                 adapter.applyPeerReadAtMillis(ms);
                             }
                         }
+                    } catch (Exception ignored) {}
+                }, throwable -> {}));
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/suggestions")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    android.util.Log.d("SmartReply", "Nhận được payload: " + stompMessage.getPayload());
+                    try {
                         com.example.hubble.data.model.dm.SmartReplyResponse response =
                                 gson.fromJson(stompMessage.getPayload(), com.example.hubble.data.model.dm.SmartReplyResponse.class);
 
-                        // CHỈ HIỆN NẾU TIN NHẮN KHÔNG PHẢI DO MÌNH GỬI
-                        if (response != null && !currentUserId.equals(response.getMessageAuthorId())) {
-                            runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                        // CHỈ HIỆN GỢI Ý NẾU TIN NHẮN KHÔNG PHẢI DO CHÍNH MÌNH GỬI
+                        if (response != null) {
+                            android.util.Log.d("SmartReply", "Author: " + response.getMessageAuthorId() + ", Me: " + currentUserId);
+                            if (!currentUserId.equals(response.getMessageAuthorId())) {
+                                runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                            }
                         }
-                    } catch (Exception ignored) {}
-                }, throwable -> {}));
+                    } catch (Exception e) {
+                        android.util.Log.e("SmartReply", "Lỗi Parse JSON từ Backend: ", e);
+                    }
+                }, throwable -> {
+                    android.util.Log.e("SmartReply", "Lỗi đường truyền Stomp: ", throwable);
+                }));
     }
 
     /**
