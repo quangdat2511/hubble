@@ -11,8 +11,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
@@ -69,7 +69,7 @@ public class MainActivity extends BaseAuthActivity {
         TokenManager tokenManager = new TokenManager(this);
         if (tokenManager.getUser() != null) {
             ServerEventWebSocketManager.getInstance().connect(
-                    BuildConfig.BASE_URL,
+                    NetworkConfig.getApiBaseUrl(),
                     tokenManager.getUser().getId(),
                     tokenManager.getAccessToken()
             );

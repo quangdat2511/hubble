@@ -4,101 +4,423 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?android:attr/colorBackground"
-        android:minHeight="?attr/actionBarSize"
-        android:title="@string/me_qr_scan_title"
-        android:titleTextColor="?attr/colorOnSurface"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="?attr/colorOnSurface" />
+    android:background="@color/color_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_md"
-        android:paddingTop="88dp">
+        android:orientation="vertical">
 
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.Material3.CardView.Filled"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp">
+            android:background="@color/color_surface"
+            android:minHeight="?attr/actionBarSize"
+            android:title="@string/me_qr_scan_title"
+            android:titleTextColor="?attr/colorOnSurface"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="?attr/colorOnSurface" />
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="@dimen/spacing_lg">
+                android:paddingStart="@dimen/spacing_md"
+                android:paddingTop="@dimen/spacing_lg"
+                android:paddingEnd="@dimen/spacing_md"
+                android:paddingBottom="@dimen/spacing_xl">
 
-                <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_gravity="center_horizontal">
-
-                    <com.google.android.material.imageview.ShapeableImageView
-                        android:id="@+id/ivAvatar"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
-
-                    <TextView
-                        android:id="@+id/tvAvatarInitials"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:gravity="center"
-                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                </FrameLayout>
-
-                <TextView
-                    android:id="@+id/tvDisplayName"
+                <LinearLayout
+                    android:id="@+id/layoutLoadingState"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_md"
-                    android:gravity="center"
-                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textStyle="bold" />
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="@dimen/spacing_xxl"
+                    android:paddingBottom="@dimen/spacing_xxl">
 
-                <TextView
-                    android:id="@+id/tvUsername"
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/color_surface"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/color_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical"
+                            android:padding="@dimen/spacing_xl">
+
+                            <ProgressBar
+                                android:id="@+id/progressInline"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+
+                            <TextView
+                                android:id="@+id/tvLoadingTitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_lg"
+                                android:text="@string/me_qr_loading_title"
+                                android:textAppearance="?attr/textAppearanceTitleLarge"
+                                android:textColor="@color/color_text_primary"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvLoadingMessage"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_sm"
+                                android:gravity="center"
+                                android:text="@string/me_qr_loading"
+                                android:textAppearance="?attr/textAppearanceBodyMedium"
+                                android:textColor="@color/color_text_secondary" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutErrorState"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:gravity="center"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/tvHint"
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/color_surface"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/color_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical"
+                            android:padding="@dimen/spacing_xl">
+
+                            <FrameLayout
+                                android:layout_width="88dp"
+                                android:layout_height="88dp"
+                                android:backgroundTint="@color/color_surface_elevated">
+
+                                <ImageView
+                                    android:id="@+id/ivStateIcon"
+                                    android:layout_width="56dp"
+                                    android:layout_height="56dp"
+                                    android:layout_gravity="center"
+                                    android:contentDescription="@null"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_person"
+                                    app:tint="@color/color_text_secondary" />
+
+                            </FrameLayout>
+
+                            <TextView
+                                android:id="@+id/tvStateTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_lg"
+                                android:gravity="center"
+                                android:textAppearance="?attr/textAppearanceTitleLarge"
+                                android:textColor="@color/color_text_primary"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvStateMessage"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_sm"
+                                android:gravity="center"
+                                android:textAppearance="?attr/textAppearanceBodyMedium"
+                                android:textColor="@color/color_text_secondary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRetry"
+                                style="@style/Widget.Material3.Button"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:layout_marginTop="@dimen/spacing_lg"
+                                android:text="@string/me_qr_retry" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutContentState"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_md"
-                    android:gravity="center"
-                    android:textAppearance="?attr/textAppearanceBodyLarge"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAddFriend"
-                    style="@style/Widget.Material3.Button"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="@dimen/spacing_lg"
-                    android:text="@string/me_qr_add_friend"
-                    app:icon="@drawable/ic_add"
-                    app:iconTint="@color/white" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/color_surface"
+                        app:cardCornerRadius="28dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/color_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical"
+                            android:padding="@dimen/spacing_xl">
+
+                            <TextView
+                                android:id="@+id/tvResultBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_status_chip"
+                                android:paddingStart="@dimen/spacing_md"
+                                android:paddingTop="@dimen/spacing_xs"
+                                android:paddingEnd="@dimen/spacing_md"
+                                android:paddingBottom="@dimen/spacing_xs"
+                                android:text="@string/me_qr_result_badge"
+                                android:textAppearance="?attr/textAppearanceLabelLarge"
+                                android:textColor="@color/color_primary"
+                                android:textStyle="bold" />
+
+                            <FrameLayout
+                                android:layout_width="112dp"
+                                android:layout_height="112dp"
+                                android:layout_marginTop="@dimen/spacing_lg">
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/ivAvatar"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:contentDescription="@string/cd_user_avatar"
+                                    android:scaleType="centerCrop"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                                <View
+                                    android:id="@+id/viewStatusDot"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:layout_gravity="bottom|end"
+                                    android:layout_marginEnd="6dp"
+                                    android:layout_marginBottom="6dp"
+                                    android:background="@drawable/bg_online_status_dot"
+                                    android:visibility="gone" />
+
+                            </FrameLayout>
+
+                            <TextView
+                                android:id="@+id/tvDisplayName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_lg"
+                                android:gravity="center"
+                                android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                                android:textColor="@color/color_text_primary"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvUsername"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_xs"
+                                android:gravity="center"
+                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textColor="@color/color_text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tvHint"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_md"
+                                android:gravity="center"
+                                android:text="@string/me_qr_result_subtitle"
+                                android:textAppearance="?attr/textAppearanceBodyLarge"
+                                android:textColor="@color/color_text_secondary" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:cardBackgroundColor="@color/color_surface"
+                            app:cardCornerRadius="20dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/color_divider"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="@dimen/spacing_md">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/me_qr_user_tag_label"
+                                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                                    android:textColor="@color/color_text_hint" />
+
+                                <TextView
+                                    android:id="@+id/tvUserTag"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="@dimen/spacing_xs"
+                                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                                    android:textColor="@color/color_text_primary"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <Space
+                            android:layout_width="@dimen/spacing_md"
+                            android:layout_height="1dp" />
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:cardBackgroundColor="@color/color_surface"
+                            app:cardCornerRadius="20dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/color_divider"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="@dimen/spacing_md">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/me_qr_status_label"
+                                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                                    android:textColor="@color/color_text_hint" />
+
+                                <TextView
+                                    android:id="@+id/tvStatus"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="@dimen/spacing_xs"
+                                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                                    android:textColor="@color/color_text_primary"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        app:cardBackgroundColor="@color/color_surface"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/color_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="@dimen/spacing_md">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/me_qr_username_label"
+                                android:textAppearance="?attr/textAppearanceLabelLarge"
+                                android:textColor="@color/color_text_hint" />
+
+                            <TextView
+                                android:id="@+id/tvUsernameValue"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_xs"
+                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textColor="@color/color_text_primary"
+                                android:textStyle="bold" />
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginTop="@dimen/spacing_md"
+                                android:background="@color/color_divider" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_md"
+                                android:text="@string/me_qr_user_id_label"
+                                android:textAppearance="?attr/textAppearanceLabelLarge"
+                                android:textColor="@color/color_text_hint" />
+
+                            <TextView
+                                android:id="@+id/tvUserId"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_xs"
+                                android:textAppearance="?attr/textAppearanceBodyLarge"
+                                android:textColor="@color/color_text_primary"
+                                android:textIsSelectable="true" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddFriend"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="@dimen/spacing_lg"
+                        android:text="@string/me_qr_add_friend"
+                        app:icon="@drawable/ic_add"
+                        app:iconTint="@color/white" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
+        </androidx.core.widget.NestedScrollView>
 
     </LinearLayout>
 
@@ -106,13 +428,33 @@
         android:id="@+id/progressOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#66000000"
+        android:background="#52000000"
+        android:clickable="true"
+        android:focusable="true"
         android:visibility="gone">
 
-        <ProgressBar
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_lg">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="@string/me_qr_action_loading"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@color/white" />
+
+        </LinearLayout>
+
     </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

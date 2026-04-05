@@ -3,13 +3,12 @@ package com.example.hubble.data.realtime;
 import android.content.Context;
 
 import com.example.hubble.R;
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
 
 import java.util.Collections;
-import java.util.Locale;
 
 import io.reactivex.disposables.Disposable;
 import ua.naiksoftware.stomp.Stomp;
@@ -45,7 +44,7 @@ public class DmStompClient {
             return;
         }
 
-        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String destination = "/topic/channel/" + channelId;
 
         stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
@@ -85,22 +84,6 @@ public class DmStompClient {
             stompClient.disconnect();
             stompClient = null;
         }
-    }
-
-    private String toWebSocketUrl(String baseUrl) {
-        String normalized = baseUrl;
-        if (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-
-        String lower = normalized.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("https://")) {
-            return "wss://" + normalized.substring("https://".length()) + "/";
-        }
-        if (lower.startsWith("http://")) {
-            return "ws://" + normalized.substring("http://".length()) + "/";
-        }
-        return "ws://" + normalized + "/";
     }
 
     private static class MessageEventPayload {

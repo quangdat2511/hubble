@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.NewMessageAdapter;
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.NewMessageItem;
@@ -213,23 +213,7 @@ public class NewMessageActivity extends AppCompatActivity {
     }
 
     private String toAbsoluteAvatarUrl(String avatarUrl) {
-        if (TextUtils.isEmpty(avatarUrl)) {
-            return null;
-        }
-
-        String trimmedAvatarUrl = avatarUrl.trim();
-        if (trimmedAvatarUrl.startsWith("http://") || trimmedAvatarUrl.startsWith("https://")) {
-            return trimmedAvatarUrl.replace("localhost", "10.0.2.2");
-        }
-
-        String baseUrl = RetrofitClient.getBaseUrl();
-        if (baseUrl.endsWith("/") && trimmedAvatarUrl.startsWith("/")) {
-            return baseUrl.substring(0, baseUrl.length() - 1) + trimmedAvatarUrl;
-        }
-        if (!baseUrl.endsWith("/") && !trimmedAvatarUrl.startsWith("/")) {
-            return baseUrl + "/" + trimmedAvatarUrl;
-        }
-        return baseUrl + trimmedAvatarUrl;
+        return NetworkConfig.resolveUrl(avatarUrl);
     }
 
     private String firstNonBlank(String... values) {
@@ -245,5 +229,3 @@ public class NewMessageActivity extends AppCompatActivity {
         return null;
     }
 }
-
-

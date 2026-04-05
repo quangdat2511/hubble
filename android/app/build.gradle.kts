@@ -4,6 +4,10 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+fun String.toBuildConfigString(): String {
+    return "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+}
+
 android {
     namespace = "com.example.hubble"
     compileSdk = 36
@@ -21,13 +25,21 @@ android {
     val localProps = Properties()
     val localPropsFile = rootProject.file("local.properties")
     if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
-    val localBaseUrl = localProps.getProperty("BASE_URL_DEBUG", "https://hubble-production.up.railway.app/")
+    val releaseBaseUrl = "https://hubble-production.up.railway.app/"
+    val debugBaseUrlOverride = localProps.getProperty("BASE_URL_DEBUG", "").trim()
+    val devBackendScheme = localProps.getProperty("DEV_BACKEND_SCHEME", "http").trim()
+    val devBackendHost = localProps.getProperty("DEV_BACKEND_HOST", "").trim()
+    val devBackendPort = localProps.getProperty("DEV_BACKEND_PORT", "8080").trim()
     val giphyApiKey = localProps.getProperty("GIPHY_API_KEY", "")
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"$localBaseUrl\"")
-            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
+            buildConfigField("String", "BASE_URL", releaseBaseUrl.toBuildConfigString())
+            buildConfigField("String", "DEBUG_BASE_URL_OVERRIDE", debugBaseUrlOverride.toBuildConfigString())
+            buildConfigField("String", "DEV_BACKEND_SCHEME", devBackendScheme.toBuildConfigString())
+            buildConfigField("String", "DEV_BACKEND_HOST", devBackendHost.toBuildConfigString())
+            buildConfigField("String", "DEV_BACKEND_PORT", devBackendPort.toBuildConfigString())
+            buildConfigField("String", "GIPHY_API_KEY", giphyApiKey.toBuildConfigString())
         }
         release {
             isMinifyEnabled = false
@@ -35,8 +47,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://hubble-production.up.railway.app/\"")
-            buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
+            buildConfigField("String", "BASE_URL", releaseBaseUrl.toBuildConfigString())
+            buildConfigField("String", "DEBUG_BASE_URL_OVERRIDE", "\"\"")
+            buildConfigField("String", "DEV_BACKEND_SCHEME", "\"https\"")
+            buildConfigField("String", "DEV_BACKEND_HOST", "\"\"")
+            buildConfigField("String", "DEV_BACKEND_PORT", "\"\"")
+            buildConfigField("String", "GIPHY_API_KEY", giphyApiKey.toBuildConfigString())
         }
     }
 

@@ -8,7 +8,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.R;
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
@@ -419,7 +419,7 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String accessToken = dmRepository.getAccessTokenRaw();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;
@@ -542,25 +542,6 @@ public class MainViewModel extends ViewModel {
             }
         }
         dmTopicSubscriptions.clear();
-    }
-
-    private String toWebSocketUrl(String baseUrl) {
-        if (baseUrl == null || baseUrl.trim().isEmpty()) {
-            return "ws://";
-        }
-
-        String normalized = baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
-        String lower = normalized.toLowerCase();
-
-        if (lower.startsWith("https://")) {
-            return "wss://" + normalized.substring("https://".length()) + "/";
-        }
-        if (lower.startsWith("http://")) {
-            return "ws://" + normalized.substring("http://".length()) + "/";
-        }
-        return "ws://" + normalized + "/";
     }
 
     private void upsertConversationFromRealtime(MessageDto message) {

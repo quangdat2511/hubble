@@ -36,12 +36,11 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.adapter.dm.ForwardTargetAdapter;
 import com.example.hubble.adapter.dm.ReplySwipeCallback;
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
@@ -318,23 +317,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private String toAbsoluteAvatarUrl(String avatarUrl) {
-        if (TextUtils.isEmpty(avatarUrl)) {
-            return null;
-        }
-
-        String trimmedAvatarUrl = avatarUrl.trim();
-        if (trimmedAvatarUrl.startsWith("http://") || trimmedAvatarUrl.startsWith("https://")) {
-            return trimmedAvatarUrl.replace("localhost", "10.0.2.2");
-        }
-
-        String baseUrl = RetrofitClient.getBaseUrl();
-        if (baseUrl.endsWith("/") && trimmedAvatarUrl.startsWith("/")) {
-            return baseUrl.substring(0, baseUrl.length() - 1) + trimmedAvatarUrl;
-        }
-        if (!baseUrl.endsWith("/") && !trimmedAvatarUrl.startsWith("/")) {
-            return baseUrl + "/" + trimmedAvatarUrl;
-        }
-        return baseUrl + trimmedAvatarUrl;
+        return NetworkConfig.resolveUrl(avatarUrl);
     }
 
     private void bindAvatar(ImageView imageView, String avatarUrl, String displayName) {
@@ -997,7 +980,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
-        String wsUrl = BuildConfig.BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "ws";
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String accessToken = tokenManager.getAccessToken();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;

@@ -24,9 +24,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.databinding.ItemDmMessageOtherBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.InAppMessageUtils;
 
 import java.io.IOException;
@@ -229,7 +231,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         for (AttachmentResponse att : attachments) {
             String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
-            String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
+            String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
 
             if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
                 View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
@@ -410,10 +412,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static void downloadFile(Context context, String url, String fileName) {
         if (url == null || url.isEmpty()) return;
 
-        String finalUrl = url;
-        if (finalUrl.contains("localhost")) {
-            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
-        }
+        String finalUrl = NetworkConfig.resolveUrl(url);
 
         String safeFileName = fileName;
         if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -469,12 +468,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             if (showHeader) {
-                Glide.with(b.ivAvatar.getContext())
-                        .load(avatarUrl)
-                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .circleCrop()
-                        .into(b.ivAvatar);
+                bindAvatar(avatarUrl, item.getSenderName());
             }
 
             try {
@@ -509,7 +503,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             if (isMedia(content)) {
                 b.cardOther.setVisibility(View.GONE);
                 b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
+                String url = NetworkConfig.resolveUrl(extractMediaUrl(content));
                 Glide.with(b.ivMedia.getContext())
                         .asGif()
                         .load(url)
@@ -545,6 +539,35 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         private int dp(int value) {
             return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
+        }
+
+        private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {
+            int avatarSize = b.ivAvatar.getLayoutParams() != null
+                    ? b.ivAvatar.getLayoutParams().width
+                    : b.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            b.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String resolvedAvatarUrl = NetworkConfig.resolveUrl(avatarUrl);
+            boolean hasAvatar = resolvedAvatarUrl != null && !resolvedAvatarUrl.trim().isEmpty();
+
+            Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+            if (!hasAvatar) {
+                b.ivAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            b.ivAvatar.setImageDrawable(null);
+            Glide.with(b.ivAvatar.getContext())
+                    .load(resolvedAvatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(b.ivAvatar);
         }
     }
 }

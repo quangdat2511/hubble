@@ -8,7 +8,7 @@ import android.view.View;
 
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.BuildConfig;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySplashBinding;
@@ -50,7 +50,7 @@ public class SplashActivity extends BaseAuthActivity {
                 .get(AuthViewModel.class);
 
         TokenManager tokenManager = new TokenManager(this);
-        tokenManager.clearSessionIfBaseUrlChanged(BuildConfig.BASE_URL);
+        tokenManager.clearSessionIfBaseUrlChanged(NetworkConfig.getBackendIdentity());
 
         boolean isLoggedIn = authViewModel.getCurrentUser() != null;
         scheduleNavigation(isLoggedIn);

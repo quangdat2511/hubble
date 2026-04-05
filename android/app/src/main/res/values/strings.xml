@@ -611,4 +611,24 @@
     <string name="me_qr_get_hint">Hiển thị mã QR của bạn để người khác quét.</string>
     <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
     <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
+    <string name="me_qr_loading_title">Đang xác nhận mã QR</string>
+    <string name="me_qr_result_badge">Đã quét thành công</string>
+    <string name="me_qr_result_subtitle">Thông tin hồ sơ đã được tải. Hãy kiểm tra lại trước khi tiếp tục.</string>
+    <string name="me_qr_username_label">Tên người dùng</string>
+    <string name="me_qr_user_tag_label">Thẻ người dùng</string>
+    <string name="me_qr_user_id_label">ID người dùng</string>
+    <string name="me_qr_status_label">Trạng thái</string>
+    <string name="me_qr_retry">Thử lại</string>
+    <string name="me_qr_action_loading">Đang xử lý…</string>
+    <string name="me_qr_error_invalid_title">QR không hợp lệ</string>
+    <string name="me_qr_error_not_found_title">Không tìm thấy người dùng</string>
+    <string name="me_qr_error_not_found_message">Không tìm thấy người dùng tương ứng với mã QR này.</string>
+    <string name="me_qr_error_network_title">Không thể kết nối</string>
+    <string name="me_qr_error_network_message">Kiểm tra kết nối mạng rồi thử quét lại.</string>
+    <string name="me_qr_error_generic_title">Không tải được hồ sơ</string>
+    <string name="me_qr_status_online">Đang hoạt động</string>
+    <string name="me_qr_status_idle">Rảnh</string>
+    <string name="me_qr_status_dnd">Không làm phiền</string>
+    <string name="me_qr_status_offline">Ngoại tuyến</string>
+    <string name="me_qr_status_unknown">Chưa rõ</string>
 </resources>

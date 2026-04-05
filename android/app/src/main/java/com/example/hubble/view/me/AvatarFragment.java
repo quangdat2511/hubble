@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.UserResponse;
@@ -392,18 +393,7 @@ public class AvatarFragment extends Fragment {
     }
 
     private String toAbsoluteAvatarUrl(@NonNull String avatarUrl) {
-        if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
-            return avatarUrl;
-        }
-
-        String baseUrl = RetrofitClient.getBaseUrl();
-        if (baseUrl.endsWith("/") && avatarUrl.startsWith("/")) {
-            return baseUrl.substring(0, baseUrl.length() - 1) + avatarUrl;
-        }
-        if (!baseUrl.endsWith("/") && !avatarUrl.startsWith("/")) {
-            return baseUrl + "/" + avatarUrl;
-        }
-        return baseUrl + avatarUrl;
+        return NetworkConfig.resolveUrl(avatarUrl);
     }
 
     @Override
