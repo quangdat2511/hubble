@@ -1,5 +1,6 @@
 package com.example.hubble.adapter.dm;
 
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,9 +9,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
 import com.example.hubble.databinding.ItemDmSectionHeaderBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.google.android.material.color.MaterialColors;
 
 import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
@@ -164,10 +168,53 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             int strokeColor = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOutline);
             binding.containerRow.setCardBackgroundColor(cardColor);
             binding.containerRow.setStrokeColor(strokeColor);
-            binding.tvName.setTextColor(item.isSelected()
-                    ? MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurface)
-                    : MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant));
+            int onSurface = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurface);
+            int onSurfaceVariant = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant);
+
+            boolean unread = item.hasUnread();
+            binding.viewUnreadDot.setVisibility(unread ? View.VISIBLE : View.GONE);
+
+            if (item.isSelected()) {
+                binding.tvName.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
+                binding.tvPreview.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
+                binding.tvName.setTextColor(onSurface);
+                binding.tvPreview.setTextColor(unread ? onSurface : onSurfaceVariant);
+            } else if (unread) {
+                binding.tvName.setTypeface(null, Typeface.BOLD);
+                binding.tvPreview.setTypeface(null, Typeface.BOLD);
+                binding.tvName.setTextColor(onSurface);
+                binding.tvPreview.setTextColor(onSurface);
+            } else {
+                binding.tvName.setTypeface(null, Typeface.NORMAL);
+                binding.tvPreview.setTypeface(null, Typeface.NORMAL);
+                binding.tvName.setTextColor(onSurfaceVariant);
+                binding.tvPreview.setTextColor(onSurfaceVariant);
+            }
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            item.getDisplayName(),
+                            avatarSize
+                    );
+            String avatarUrl = toAbsoluteUrl(item.getAvatarUrl());
+            boolean hasAvatar = avatarUrl != null && !avatarUrl.trim().isEmpty();
+
+            Glide.with(binding.ivAvatar.getContext()).clear(binding.ivAvatar);
+            if (!hasAvatar) {
+                binding.ivAvatar.setImageDrawable(avatarFallback);
+            } else {
+                binding.ivAvatar.setImageDrawable(null);
+                Glide.with(binding.ivAvatar.getContext())
+                        .load(avatarUrl)
+                        .error(avatarFallback)
+                        .fallback(avatarFallback)
+                        .circleCrop()
+                        .into(binding.ivAvatar);
+            }
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {
@@ -226,6 +273,11 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
 
             return raw;
         }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            return NetworkConfig.resolveUrl(url);
+        }
     }
 
     static class RowItem {
@@ -248,5 +300,3 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
         }
     }
 }
-
-

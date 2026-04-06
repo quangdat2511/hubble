@@ -23,6 +23,7 @@ public interface MessageMapper {
     Message toMessage(CreateMessageRequest request, UUID authorId);
 
     @Mapping(target = "attachments", ignore = true)
+    @Mapping(target = "reactions", ignore = true)
     MessageResponse toMessageResponse(Message message);
 
     default MessageResponse toMessageResponse(Message message, List<AttachmentResponse> attachments) {

@@ -9,6 +9,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.example.hubble.R;
 import com.example.hubble.adapter.friend.FriendRequestAdapter;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.repository.FriendRepository;
@@ -68,7 +69,7 @@ public class PendingRequestsActivity extends AppCompatActivity implements Friend
             } else {
                 binding.progressBar.setVisibility(View.GONE);
                 if (result.isSuccess()) {
-                    Snackbar.make(binding.getRoot(), "Đã xử lý lời mời!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(binding.getRoot(), R.string.pending_requests_processed, Snackbar.LENGTH_SHORT).show();
                     viewModel.fetchIncomingRequests();
                 } else if (result.isError()) {
                     Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();

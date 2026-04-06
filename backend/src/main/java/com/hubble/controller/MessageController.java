@@ -2,11 +2,14 @@ package com.hubble.controller;
 
 import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateMessageRequest;
+import com.hubble.dto.request.MarkChannelReadRequest;
 import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
+import com.hubble.dto.response.PeerReadStatusResponse;
 import com.hubble.dto.response.SharedContentPageResponse;
 import com.hubble.enums.SharedContentType;
 import com.hubble.security.UserPrincipal;
+import com.hubble.service.ChannelReadService;
 import com.hubble.service.MessageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,27 @@ import java.util.List;
 public class MessageController {
 
     MessageService messageService;
+    ChannelReadService channelReadService;
+
+    @PostMapping("/channel/{channelId}/read")
+    public ApiResponse<Void> markChannelRead(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @RequestBody MarkChannelReadRequest request
+    ) {
+        channelReadService.markRead(principal.getId(), channelId, request);
+        return ApiResponse.<Void>builder().build();
+    }
+
+    @GetMapping("/channel/{channelId}/peer-read-status")
+    public ApiResponse<PeerReadStatusResponse> getPeerReadStatus(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId
+    ) {
+        return ApiResponse.<PeerReadStatusResponse>builder()
+                .result(channelReadService.getPeerReadStatus(principal.getId(), channelId))
+                .build();
+    }
 
     @GetMapping("/{channelId}")
     public ApiResponse<List<MessageResponse>> getMessages(

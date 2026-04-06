@@ -3,10 +3,17 @@ package com.example.hubble.adapter.friend;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.databinding.ItemFriendSearchBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,6 +68,7 @@ public class FriendSearchAdapter extends RecyclerView.Adapter<FriendSearchAdapte
                     ? user.getDisplayName() : user.getUsername();
             binding.tvDisplayName.setText(displayName);
             binding.tvUsername.setText(user.getUsername());
+            bindAvatar(user, displayName);
 
             if ("NONE".equalsIgnoreCase(user.getRelationStatus())) {
                 binding.btnAdd.setVisibility(View.VISIBLE);
@@ -73,6 +81,31 @@ public class FriendSearchAdapter extends RecyclerView.Adapter<FriendSearchAdapte
                 binding.tvStatus.setVisibility(View.VISIBLE);
                 binding.tvStatus.setText(user.getRelationStatus());
             }
+        }
+
+        private void bindAvatar(FriendUserDto user, String displayName) {
+            int avatarSize = binding.ivAvatar.getLayoutParams() != null
+                    ? binding.ivAvatar.getLayoutParams().width
+                    : binding.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(toAbsoluteUrl(user.getAvatarUrl()))
+                    .placeholder(avatarFallback)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
+        }
+
+        @Nullable
+        private String toAbsoluteUrl(@Nullable String url) {
+            return NetworkConfig.resolveUrl(url);
         }
     }
 }

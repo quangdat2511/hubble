@@ -13,7 +13,12 @@ import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ChannelMapper;
 import com.hubble.mapper.ServerMapper;
+import com.hubble.entity.ChannelMember;
+import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.ChannelRoleRepository;
+import com.hubble.repository.MemberRoleRepository;
+import com.hubble.repository.MessageRepository;
 import com.hubble.repository.RoleRepository;
 import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
@@ -30,6 +35,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,6 +54,10 @@ public class ServerService {
     private final ServerRepository serverRepository;
     private final ServerMemberRepository serverMemberRepository;
     private final ChannelRepository channelRepository;
+    private final ChannelMemberRepository channelMemberRepository;
+    private final ChannelRoleRepository channelRoleRepository;
+    private final MemberRoleRepository memberRoleRepository;
+    private final MessageRepository messageRepository;
     private final RoleRepository roleRepository;
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
@@ -59,6 +69,10 @@ public class ServerService {
             ServerRepository serverRepository,
             ServerMemberRepository serverMemberRepository,
             ChannelRepository channelRepository,
+            ChannelMemberRepository channelMemberRepository,
+            ChannelRoleRepository channelRoleRepository,
+            MemberRoleRepository memberRoleRepository,
+            MessageRepository messageRepository,
             RoleRepository roleRepository,
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
@@ -68,6 +82,10 @@ public class ServerService {
         this.serverRepository = serverRepository;
         this.serverMemberRepository = serverMemberRepository;
         this.channelRepository = channelRepository;
+        this.channelMemberRepository = channelMemberRepository;
+        this.channelRoleRepository = channelRoleRepository;
+        this.memberRoleRepository = memberRoleRepository;
+        this.messageRepository = messageRepository;
         this.roleRepository = roleRepository;
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
@@ -81,12 +99,29 @@ public class ServerService {
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND)));
     }
 
-    public List<ChannelResponse> getServerChannels(UUID serverId) {
+    public List<ChannelResponse> getServerChannels(UUID serverId, UUID userId) {
         serverRepository.findById(serverId)
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
+
+        List<UUID> userRoleIds = serverMemberRepository.findByServerIdAndUserId(serverId, userId)
+                .map(m -> memberRoleRepository.findRoleIdsByMemberId(m.getId()))
+                .orElse(List.of());
+
         return channelRepository.findByServerId(serverId)
                 .stream()
-                .map(channelMapper::toChannelResponse)
+                .map(channel -> {
+                    ChannelResponse response = channelMapper.toChannelResponse(channel);
+                    if (!Boolean.TRUE.equals(channel.getIsPrivate())) {
+                        response.setCanAccess(true);
+                    } else {
+                        boolean directAccess = channelMemberRepository
+                                .existsByChannelIdAndUserId(channel.getId(), userId);
+                        boolean roleAccess = !userRoleIds.isEmpty() && channelRoleRepository
+                                .existsByChannelIdAndRoleIdIn(channel.getId(), userRoleIds);
+                        response.setCanAccess(directAccess || roleAccess);
+                    }
+                    return response;
+                })
                 .toList();
     }
 

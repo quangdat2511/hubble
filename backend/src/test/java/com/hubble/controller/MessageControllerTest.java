@@ -6,6 +6,7 @@ import com.hubble.repository.UserRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtService;
 import com.hubble.security.UserPrincipal;
+import com.hubble.service.ChannelReadService;
 import com.hubble.service.MessageService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class MessageControllerTest {
 
     @MockBean
     MessageService messageService;
+
+    @MockBean
+    ChannelReadService channelReadService;
 
     @MockBean
     JwtService jwtService;

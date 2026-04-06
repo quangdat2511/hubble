@@ -9,12 +9,14 @@ public class ChannelDto {
     private String topic;
     private Short position;
     private Boolean isPrivate;
+    private Boolean canAccess;
     private String createdAt;
     private String peerUserId;
     private String peerUsername;
     private String peerDisplayName;
     private String peerAvatarUrl;
     private String peerStatus;
+    private Integer unreadCount;
 
     public String getId() {
         return id;
@@ -48,6 +50,10 @@ public class ChannelDto {
         return isPrivate;
     }
 
+    public Boolean getCanAccess() {
+        return canAccess;
+    }
+
     public String getCreatedAt() {
         return createdAt;
     }
@@ -70,6 +76,14 @@ public class ChannelDto {
 
     public String getPeerStatus() {
         return peerStatus;
+    }
+
+    public Integer getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(Integer unreadCount) {
+        this.unreadCount = unreadCount;
     }
 }
 

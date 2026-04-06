@@ -1,5 +1,6 @@
 package com.example.hubble.data.model.dm;
 
+import android.net.Uri;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
@@ -97,9 +98,20 @@ public class SharedContentItemResponse {
             return filename;
         }
         if (!TextUtils.isEmpty(url)) {
-            int slash = url.lastIndexOf('/');
-            if (slash >= 0 && slash < url.length() - 1) {
-                return url.substring(slash + 1);
+            try {
+                String lastSegment = Uri.parse(url).getLastPathSegment();
+                if (!TextUtils.isEmpty(lastSegment)) {
+                    return lastSegment;
+                }
+            } catch (Exception ignored) {
+                // fall through to string parsing below
+            }
+
+            int queryIndex = url.indexOf('?');
+            String sanitizedUrl = queryIndex >= 0 ? url.substring(0, queryIndex) : url;
+            int slash = sanitizedUrl.lastIndexOf('/');
+            if (slash >= 0 && slash < sanitizedUrl.length() - 1) {
+                return sanitizedUrl.substring(slash + 1);
             }
         }
         if (isLink()) {

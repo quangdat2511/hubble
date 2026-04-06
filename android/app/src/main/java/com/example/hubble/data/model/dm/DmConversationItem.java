@@ -6,12 +6,14 @@ public class DmConversationItem {
     private final String channelId;
     private final String friendId;
     private final String displayName;
+    private final String avatarUrl;
     private final String lastMessage;
     private final String timeLabel;
     private final boolean online;
     private final boolean verified;
     private final boolean selected;
     private final boolean favorite;
+    private final int unreadCount;
     private final long lastMessageAtMillis;
 
     public DmConversationItem(
@@ -19,24 +21,28 @@ public class DmConversationItem {
             String channelId,
             String friendId,
             String displayName,
+            String avatarUrl,
             String lastMessage,
             String timeLabel,
             boolean online,
             boolean verified,
             boolean selected,
             boolean favorite,
+            int unreadCount,
             long lastMessageAtMillis
     ) {
         this.id = id;
         this.channelId = channelId;
         this.friendId = friendId;
         this.displayName = displayName;
+        this.avatarUrl = avatarUrl;
         this.lastMessage = lastMessage;
         this.timeLabel = timeLabel;
         this.online = online;
         this.verified = verified;
         this.selected = selected;
         this.favorite = favorite;
+        this.unreadCount = unreadCount;
         this.lastMessageAtMillis = lastMessageAtMillis;
     }
 
@@ -58,6 +64,10 @@ public class DmConversationItem {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public String getLastMessage() {
@@ -84,8 +94,15 @@ public class DmConversationItem {
         return favorite;
     }
 
+    public int getUnreadCount() {
+        return unreadCount;
+    }
+
+    public boolean hasUnread() {
+        return unreadCount > 0;
+    }
+
     public long getLastMessageAtMillis() {
         return lastMessageAtMillis;
     }
 }
-

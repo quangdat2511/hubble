@@ -1,139 +1,286 @@
 package com.hubble.controller;
 
-import com.hubble.dto.common.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hubble.configuration.SecurityConfig;
 import com.hubble.dto.response.FriendRequestResponse;
 import com.hubble.dto.response.FriendUserResponse;
+import com.hubble.exception.AppException;
+import com.hubble.exception.ErrorCode;
+import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSessionRepository;
+import com.hubble.security.JwtAuthenticationFilter;
+import com.hubble.security.JwtService;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.FriendService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(FriendController.class)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 public class FriendControllerTest {
 
-   @Mock
-   private FriendService friendService;
+    @Autowired
+    private MockMvc mockMvc;
 
-   @InjectMocks
-   private FriendController friendController;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-   private UserPrincipal principal;
-   private UUID currentUserId;
-   private UUID targetUserId;
+    @MockBean
+    private FriendService friendService;
 
-   @BeforeEach
-   void setUp() {
-       currentUserId = UUID.randomUUID();
-       targetUserId = UUID.randomUUID();
-       principal = new UserPrincipal(currentUserId);
-   }
+    @MockBean
+    private JwtService jwtService;
 
-   @Test
-   void searchUsers_ReturnsOk() {
-       List<FriendUserResponse> mockResponse = List.of(new FriendUserResponse());
-       when(friendService.searchUsers(currentUserId, "test")).thenReturn(mockResponse);
+    @MockBean
+    private UserRepository userRepository;
 
-       ResponseEntity<ApiResponse<List<FriendUserResponse>>> response = friendController.searchUsers(principal, "test");
+    @MockBean
+    private UserSessionRepository userSessionRepository;
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals(mockResponse, response.getBody().getResult());
-   }
+    private UUID currentUserId;
+    private Authentication authentication;
 
-   @Test
-   void sendFriendRequest_ReturnsOk() {
-       FriendRequestResponse mockResponse = new FriendRequestResponse();
-       when(friendService.sendFriendRequest(currentUserId, targetUserId)).thenReturn(mockResponse);
+    @BeforeEach
+    void setUp() {
+        currentUserId = UUID.randomUUID();
+        UserPrincipal principal = new UserPrincipal(currentUserId);
+        authentication = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+    }
 
-       ResponseEntity<ApiResponse<FriendRequestResponse>> response = friendController.sendFriendRequest(principal, targetUserId);
+    @Test
+    public void searchUsers_ValidQuery_ReturnsList() throws Exception {
+        String query = "testuser";
+        List<FriendUserResponse> mockResponse = List.of(
+                FriendUserResponse.builder()
+                        .id(UUID.randomUUID())
+                        .username("testuser1")
+                        .displayName("Test User 1")
+                        .relationStatus("NONE")
+                        .build()
+        );
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals(mockResponse, response.getBody().getResult());
-   }
+        when(friendService.searchUsers(currentUserId, query)).thenReturn(mockResponse);
 
-   @Test
-   void sendFriendRequestByUsername_ReturnsOk() {
-       FriendRequestResponse mockResponse = new FriendRequestResponse();
-       when(friendService.sendFriendRequestByUsername(currentUserId, "john_doe")).thenReturn(mockResponse);
+        mockMvc.perform(get("/api/friends/search")
+                        .param("q", query)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result[0].username").value("testuser1"));
+    }
 
-       ResponseEntity<ApiResponse<FriendRequestResponse>> response = friendController.sendFriendRequestByUsername(principal, "john_doe");
+    @Test
+    public void searchUsers_EmptyQuery_ReturnsEmptyList() throws Exception {
+        when(friendService.searchUsers(currentUserId, "")).thenReturn(List.of());
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals(mockResponse, response.getBody().getResult());
-   }
+        mockMvc.perform(get("/api/friends/search")
+                        .param("q", "")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isEmpty());
+    }
 
-   @Test
-   void getBlockedUsers_ReturnsOk() {
-       List<FriendUserResponse> mockResponse = List.of(new FriendUserResponse());
-       when(friendService.getBlockedUsers(currentUserId)).thenReturn(mockResponse);
+    @Test
+    public void sendFriendRequest_ValidUserId_ReturnsResponse() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        FriendRequestResponse mockResponse = FriendRequestResponse.builder()
+                .id(UUID.randomUUID())
+                .requesterId(currentUserId)
+                .addresseeId(targetUserId)
+                .status("PENDING")
+                .createdAt(LocalDateTime.now())
+                .incoming(false)
+                .build();
 
-       ResponseEntity<ApiResponse<List<FriendUserResponse>>> response = friendController.getBlockedUsers(principal);
+        when(friendService.sendFriendRequest(currentUserId, targetUserId)).thenReturn(mockResponse);
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals(mockResponse, response.getBody().getResult());
-   }
+        mockMvc.perform(post("/api/friends/requests/{userId}", targetUserId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result.status").value("PENDING"));
+    }
 
-   @Test
-   void blockUser_ReturnsOk() {
-       doNothing().when(friendService).blockUser(currentUserId, targetUserId);
+    @Test
+    public void sendFriendRequest_AlreadyFriends_ReturnsBadRequest() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        doThrow(new AppException(ErrorCode.ALREADY_FRIENDS))
+                .when(friendService).sendFriendRequest(currentUserId, targetUserId);
 
-       ResponseEntity<ApiResponse<String>> response = friendController.blockUser(principal, targetUserId);
+        mockMvc.perform(post("/api/friends/requests/{userId}", targetUserId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorCode.ALREADY_FRIENDS.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.ALREADY_FRIENDS.getMessage()));
+    }
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals("Đã chặn người dùng", response.getBody().getResult());
-       verify(friendService).blockUser(currentUserId, targetUserId);
-   }
+    @Test
+    public void sendFriendRequestByUsername_ValidUsername_ReturnsResponse() throws Exception {
+        String targetUsername = "targetuser";
+        FriendRequestResponse mockResponse = FriendRequestResponse.builder()
+                .id(UUID.randomUUID())
+                .status("PENDING")
+                .build();
 
-   @Test
-   void unblockUser_ReturnsOk() {
-       doNothing().when(friendService).unblockUser(currentUserId, targetUserId);
+        when(friendService.sendFriendRequestByUsername(currentUserId, targetUsername)).thenReturn(mockResponse);
 
-       ResponseEntity<ApiResponse<String>> response = friendController.unblockUser(principal, targetUserId);
+        mockMvc.perform(post("/api/friends/requests/username/{username}", targetUsername)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result.status").value("PENDING"));
+    }
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       assertEquals("Đã bỏ chặn người dùng", response.getBody().getResult());
-       verify(friendService).unblockUser(currentUserId, targetUserId);
-   }
+    @Test
+    public void getIncomingRequests_ReturnsList() throws Exception {
+        List<FriendRequestResponse> mockResponse = List.of(
+                FriendRequestResponse.builder().id(UUID.randomUUID()).incoming(true).status("PENDING").build()
+        );
 
-   @Test
-   void acceptRequest_ReturnsOk() {
-       UUID requestId = UUID.randomUUID();
-       doNothing().when(friendService).acceptRequest(currentUserId, requestId);
+        when(friendService.getIncomingRequests(currentUserId)).thenReturn(mockResponse);
 
-       ResponseEntity<ApiResponse<String>> response = friendController.acceptRequest(principal, requestId);
+        mockMvc.perform(get("/api/friends/requests/received")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result[0].incoming").value(true));
+    }
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       verify(friendService).acceptRequest(currentUserId, requestId);
-   }
+    @Test
+    public void getOutgoingRequests_ReturnsList() throws Exception {
+        List<FriendRequestResponse> mockResponse = List.of(
+                FriendRequestResponse.builder().id(UUID.randomUUID()).incoming(false).status("PENDING").build()
+        );
 
-   @Test
-   void declineRequest_ReturnsOk() {
-       UUID requestId = UUID.randomUUID();
-       doNothing().when(friendService).declineRequest(currentUserId, requestId);
+        when(friendService.getOutgoingRequests(currentUserId)).thenReturn(mockResponse);
 
-       ResponseEntity<ApiResponse<String>> response = friendController.declineRequest(principal, requestId);
+        mockMvc.perform(get("/api/friends/requests/sent")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result[0].incoming").value(false));
+    }
 
-       assertEquals(HttpStatus.OK, response.getStatusCode());
-       assertNotNull(response.getBody());
-       verify(friendService).declineRequest(currentUserId, requestId);
-   }
+    @Test
+    public void acceptRequest_ValidRequestId_ReturnsOk() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        doNothing().when(friendService).acceptRequest(currentUserId, requestId);
+
+        mockMvc.perform(post("/api/friends/requests/{requestId}/accept", requestId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").value("Đã chấp nhận lời mời"));
+    }
+
+    @Test
+    public void declineRequest_ValidRequestId_ReturnsOk() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        doNothing().when(friendService).declineRequest(currentUserId, requestId);
+
+        mockMvc.perform(delete("/api/friends/requests/{requestId}", requestId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").value("Đã từ chối lời mời"));
+    }
+
+    @Test
+    public void getBlockedUsers_ReturnsList() throws Exception {
+        List<FriendUserResponse> mockResponse = List.of(
+                FriendUserResponse.builder().id(UUID.randomUUID()).relationStatus("BLOCKED_BY_ME").build()
+        );
+
+        when(friendService.getBlockedUsers(currentUserId)).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/api/friends/blocks")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result[0].relationStatus").value("BLOCKED_BY_ME"));
+    }
+
+    @Test
+    public void blockUser_ValidUserId_ReturnsOk() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        doNothing().when(friendService).blockUser(currentUserId, targetUserId);
+
+        mockMvc.perform(post("/api/friends/blocks/{userId}", targetUserId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").value("Đã chặn người dùng"));
+    }
+
+    @Test
+    public void unblockUser_ValidUserId_ReturnsOk() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        doNothing().when(friendService).unblockUser(currentUserId, targetUserId);
+
+        mockMvc.perform(delete("/api/friends/blocks/{userId}", targetUserId)
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").value("Đã bỏ chặn người dùng"));
+    }
+
+    @Test
+    public void getFriends_ReturnsList() throws Exception {
+        List<FriendUserResponse> mockResponse = List.of(
+                FriendUserResponse.builder()
+                        .id(UUID.randomUUID())
+                        .username("friend1")
+                        .relationStatus("FRIEND")
+                        .build()
+        );
+
+        when(friendService.getFriends(currentUserId)).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/api/friends/friends")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result[0].relationStatus").value("FRIEND"));
+    }
 }

@@ -16,12 +16,15 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.animation.ObjectAnimator;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.activity.OnBackPressedCallback;
@@ -36,21 +39,23 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.adapter.dm.ForwardTargetAdapter;
 import com.example.hubble.adapter.dm.ReplySwipeCallback;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
 import com.example.hubble.databinding.DialogDeleteMessageBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -70,6 +75,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -90,6 +96,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
+    private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
@@ -125,25 +132,45 @@ public class DmChatActivity extends AppCompatActivity {
     private DmMessageItem replyingToItem;
     private DmMessageItem editingItem;
 
+    // Tracks server-assigned IDs for messages that are currently in-flight (optimistic).
+    // When STOMP echoes back our own message, we skip it — the HTTP response handles it.
+    private final Set<String> pendingServerIds = new HashSet<>();
+
+    private String lastMarkedReadMessageId;
+    private final Runnable flushMarkReadRunnable = this::flushMarkChannelRead;
+
     // File / Media state (Của bạn)
     private final List<String> pendingAttachmentIds = new ArrayList<>();
     private final List<String> pendingAttachmentTypes = new ArrayList<>();
     private MediaRecorder mediaRecorder;
     private File audioFile;
     private boolean isRecording = false;
-    private int recordSeconds = 0;
+    private int recordTicks = 0;
+    private android.media.MediaPlayer previewPlayer ;
+
     private Handler recordHandler = new Handler(Looper.getMainLooper());
     private Runnable recordRunnable;
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private final Runnable hideCopyBannerRunnable = this::hideCopyBanner;
-    private boolean isProfileIntroVisible = true;
     private boolean isKeyboardVisible = false;
 
+    // Typing indicator
+    private static final long TYPING_SEND_INTERVAL_MS = 2000L;
+    private static final long TYPING_HIDE_DELAY_MS = 3500L;
+    private long lastTypingSentMillis = 0L;
+    private final ObjectAnimator[] dotAnimators = new ObjectAnimator[3];
+    private final Runnable hideTypingRunnable = this::hideTypingIndicator;
+
     public static Intent createIntent(Context context, String channelId, String username) {
+        return createIntent(context, channelId, username, null);
+    }
+
+    public static Intent createIntent(Context context, String channelId, String username, String avatarUrl) {
         Intent intent = new Intent(context, DmChatActivity.class);
         intent.putExtra(EXTRA_CHANNEL_ID, channelId);
         intent.putExtra(EXTRA_USERNAME, username);
+        intent.putExtra(EXTRA_AVATAR_URL, avatarUrl);
         return intent;
     }
 
@@ -163,7 +190,7 @@ public class DmChatActivity extends AppCompatActivity {
         UserResponse user = tokenManager.getUser();
         if (user != null) {
             currentUserName = firstNonBlank(user.getDisplayName(), user.getUsername());
-            currentUserAvatarUrl = user.getAvatarUrl();
+            currentUserAvatarUrl = toAbsoluteAvatarUrl(user.getAvatarUrl());
         }
         if (currentUserName == null) currentUserName = getString(R.string.dm_me);
 
@@ -172,7 +199,8 @@ public class DmChatActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(peerDisplayName)) {
             peerDisplayName = getString(R.string.dm_default_user);
         }
-        peerUsername = peerDisplayName;
+        peerUsername = null;
+        peerAvatarUrl = toAbsoluteAvatarUrl(getIntent().getStringExtra(EXTRA_AVATAR_URL));
 
         setupToolbar();
         setupProfileIntro();
@@ -180,7 +208,9 @@ public class DmChatActivity extends AppCompatActivity {
         setupComposer();
         setupEmojiPanel();
         setupKeyboardHeightDetection();
-        loadPeerProfile();
+        if (shouldLoadPeerProfile()) {
+            loadPeerProfile();
+        }
         loadMessageHistory();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -203,6 +233,12 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        scheduleMarkChannelRead();
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         disconnectStomp();
@@ -211,7 +247,7 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        uiHandler.removeCallbacksAndMessages(null);
+        disconnectStomp();
         disposables.clear();
     }
 
@@ -235,7 +271,7 @@ public class DmChatActivity extends AppCompatActivity {
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
 
-        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivProfileIntroAvatar);
+        bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, peerDisplayName);
     }
 
     private void loadPeerProfile() {
@@ -251,11 +287,15 @@ public class DmChatActivity extends AppCompatActivity {
         });
     }
 
+    private boolean shouldLoadPeerProfile() {
+        return TextUtils.isEmpty(peerAvatarUrl) || TextUtils.isEmpty(peerUsername);
+    }
+
     private void applyPeerProfile(ChannelDto channel) {
         peerUserId = firstNonBlank(channel.getPeerUserId(), peerUserId);
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
-        peerAvatarUrl = firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl);
+        peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
         refreshPeerUi();
     }
 
@@ -280,13 +320,19 @@ public class DmChatActivity extends AppCompatActivity {
         String mentionTarget = firstNonBlank(stripLeadingAt(peerUsername), peerDisplayName);
 
         binding.tvHeaderName.setText(peerDisplayName);
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, mentionTarget));
+        binding.etComposer.setHint(getString(R.string.dm_message_hint, mentionTarget));
         binding.tvProfileIntroDisplayName.setText(peerDisplayName);
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
-        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivHeaderAvatar);
-        Glide.with(this).load(peerAvatarUrl).placeholder(R.mipmap.ic_launcher_round).error(R.mipmap.ic_launcher_round).circleCrop().into(binding.ivProfileIntroAvatar);
-        if (adapter != null) adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+        bindAvatar(binding.ivHeaderAvatar, peerAvatarUrl, peerDisplayName);
+        bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, peerDisplayName);
+        if (adapter != null) {
+            adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+            adapter.setIntroItem(DmMessageItem.createIntro(
+                    peerDisplayName,
+                    formatUsername(peerUsername),
+                    getString(R.string.dm_profile_intro_desc, peerDisplayName)));
+        }
     }
 
     private String formatUsername(String username) {
@@ -320,14 +366,45 @@ public class DmChatActivity extends AppCompatActivity {
         return null;
     }
 
+    private String toAbsoluteAvatarUrl(String avatarUrl) {
+        return NetworkConfig.resolveUrl(avatarUrl);
+    }
+
+    private void bindAvatar(ImageView imageView, String avatarUrl, String displayName) {
+        int avatarSize = imageView.getLayoutParams() != null ? imageView.getLayoutParams().width : imageView.getWidth();
+        android.graphics.drawable.Drawable avatarFallback =
+                AvatarPlaceholderUtils.createAvatarDrawable(this, displayName, avatarSize);
+        String resolvedAvatarUrl = toAbsoluteAvatarUrl(avatarUrl);
+
+        Glide.with(this).clear(imageView);
+        if (TextUtils.isEmpty(resolvedAvatarUrl)) {
+            imageView.setImageDrawable(avatarFallback);
+            return;
+        }
+
+        imageView.setImageDrawable(null);
+        Glide.with(this)
+                .load(resolvedAvatarUrl)
+                .error(avatarFallback)
+                .fallback(avatarFallback)
+                .circleCrop()
+                .into(imageView);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Danh sách tin nhắn (Merge: Swipe to Reply, List, Touch)
     // ─────────────────────────────────────────────────────────────────────────
 
     private void setupMessageList() {
         adapter = new DmMessageAdapter();
+        adapter.setCurrentUserId(currentUserId);
         adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+        adapter.setIntroItem(DmMessageItem.createIntro(
+                peerDisplayName,
+                formatUsername(peerUsername),
+                getString(R.string.dm_profile_intro_desc, peerDisplayName)));
         adapter.setOnMessageLongClickListener((item, anchorView) -> showMessageActionsSheet(item));
+        adapter.setOnReactionClickListener((item, emoji) -> toggleReaction(item.getId(), emoji));
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         binding.rvMessages.setLayoutManager(layoutManager);
@@ -335,7 +412,7 @@ public class DmChatActivity extends AppCompatActivity {
 
         ReplySwipeCallback swipeCallback = new ReplySwipeCallback(this, position -> {
             DmMessageItem item = adapter.getItem(position);
-            if (item != null) startReply(item);
+            if (item != null && !item.isDateSeparator() && !item.isIntro()) startReply(item);
         });
         new ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.rvMessages);
 
@@ -344,58 +421,9 @@ public class DmChatActivity extends AppCompatActivity {
             return false;
         });
 
-        binding.rvMessages.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
-
-                if (isKeyboardVisible) {
-                    setProfileIntroVisible(false);
-                    return;
-                }
-
-                if (adapter.getItemCount() == 0) {
-                    setProfileIntroVisible(true);
-                    return;
-                }
-
-                if (dy > 0) {
-                    // While scrolling down, collapse intro to prioritize message viewport.
-                    setProfileIntroVisible(false);
-                    return;
-                }
-
-                boolean isAtTop = !recyclerView.canScrollVertically(-1);
-                if (isAtTop) {
-                    setProfileIntroVisible(true);
-                }
-            }
-        });
+        // No scroll-based intro visibility — intro is inside the RecyclerView as first item.
     }
 
-    private void setProfileIntroVisible(boolean visible) {
-        if (binding == null || isProfileIntroVisible == visible) {
-            return;
-        }
-
-        isProfileIntroVisible = visible;
-        binding.layoutDmProfileIntro.setVisibility(visible ? View.VISIBLE : View.GONE);
-    }
-
-    private void syncProfileIntroVisibilityWithMessages() {
-        if (isKeyboardVisible) {
-            setProfileIntroVisible(false);
-            return;
-        }
-
-        if (adapter == null || adapter.getItemCount() == 0) {
-            setProfileIntroVisible(true);
-            return;
-        }
-
-        boolean atTop = !binding.rvMessages.canScrollVertically(-1);
-        setProfileIntroVisible(atTop);
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Composer & Media (Merge)
@@ -418,24 +446,231 @@ public class DmChatActivity extends AppCompatActivity {
         binding.etComposer.setOnClickListener(v -> { if (isEmojiPanelVisible) hideEmojiPanel(true); });
         binding.etComposer.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus && isEmojiPanelVisible) hideEmojiPanel(true); });
 
-        // Nút Media (Của bạn)
+        binding.etComposer.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Nếu người dùng bắt đầu gõ, tự động ẩn gợi ý đi
+                if (s.length() > 0 && binding.suggestionBar.getVisibility() == View.VISIBLE) {
+                    binding.suggestionBar.setVisibility(View.GONE);
+                }
+            }
+            @Override
+            public void afterTextChanged(Editable s) {
+                boolean hasText = s != null && s.length() > 0;
+                updateComposerState();
+                if (hasText) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastTypingSentMillis >= TYPING_SEND_INTERVAL_MS) {
+                        lastTypingSentMillis = now;
+                        sendTypingEvent();
+                    }
+                }
+            }
+        });
+
+        binding.btnCollapse.setOnClickListener(v -> {
+            binding.etComposer.getText().clear();
+            updateComposerState();
+        });
+
         binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
         binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-        binding.btnVoice.setOnClickListener(v -> {
-            if (!isRecording) {
-                startRecording();
-                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
-                binding.btnSend.setEnabled(false);
-                binding.btnAttach.setEnabled(false);
-            } else {
-                stopRecording();
-                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
-                binding.btnSend.setEnabled(true);
-                binding.btnAttach.setEnabled(true);
+//        binding.btnVoice.setOnClickListener(v -> {
+//            if (!isRecording) {
+//                startRecording();
+//                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
+//                binding.btnSend.setEnabled(false);
+//                binding.btnAttach.setEnabled(false);
+//            } else {
+//                stopRecording();
+//                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
+//                binding.btnSend.setEnabled(true);
+//                binding.btnAttach.setEnabled(true);
+//            }
+//        });
+        // Khi bấm nút Mic, mở BottomSheet
+        binding.btnVoice.setOnClickListener(v -> showVoiceRecordSheet());
+    }
+
+    private void showVoiceRecordSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_record, null);
+        dialog.setContentView(sheetView);
+
+        TextView tvStatusHint = sheetView.findViewById(R.id.tvStatusHint);
+        View llWaveform = sheetView.findViewById(R.id.llWaveform);
+        TextView tvTimer = sheetView.findViewById(R.id.tvTimer);
+        View btnDelete = sheetView.findViewById(R.id.btnDelete);
+        View btnListen = sheetView.findViewById(R.id.btnListen);
+        ImageView ivListenIcon = sheetView.findViewById(R.id.ivListenIcon);
+        com.google.android.material.floatingactionbutton.FloatingActionButton btnMainAction = sheetView.findViewById(R.id.btnMainAction);
+        // Khai báo ánh xạ View sóng âm
+        com.example.hubble.view.custom.AudioWaveformView audioWaveform = sheetView.findViewById(R.id.audioWaveform);
+
+        // State: 0 = IDLE (Chờ), 1 = RECORDING (Đang ghi), 2 = PREVIEW (Xem trước)
+        final int[] state = {0};
+
+        Runnable updateUI = () -> {
+            if (state[0] == 0) {
+                tvStatusHint.setVisibility(View.VISIBLE);
+                llWaveform.setVisibility(View.INVISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnListen.setVisibility(View.INVISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_btn_speak_now);
+                tvTimer.setText("00:00");
+            } else if (state[0] == 1) {
+                tvStatusHint.setVisibility(View.INVISIBLE);
+                llWaveform.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnListen.setVisibility(View.INVISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_media_pause); // Icon Dừng
+            } else if (state[0] == 2) {
+                tvStatusHint.setVisibility(View.INVISIBLE);
+                llWaveform.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.VISIBLE);
+                btnListen.setVisibility(View.VISIBLE);
+                btnMainAction.setImageResource(android.R.drawable.ic_menu_send); // Icon Gửi
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+            }
+        };
+
+        btnMainAction.setOnClickListener(v -> {
+            if (state[0] == 0) {
+                // KIỂM TRA QUYỀN VÀ BẮT ĐẦU GHI ÂM
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+                    dialog.dismiss();
+                    return;
+                }
+                internalStartRecord(tvTimer, audioWaveform);
+                state[0] = 1;
+                updateUI.run();
+
+            } else if (state[0] == 1) {
+                // DỪNG GHI ÂM VÀ CHUYỂN SANG PREVIEW
+                internalStopRecord();
+                if (recordTicks < 10) {
+                    Snackbar.make(binding.getRoot(), "Ghi âm quá ngắn!", Snackbar.LENGTH_SHORT).show();
+                    state[0] = 0;
+                } else {
+                    state[0] = 2;
+                }
+                updateUI.run();
+
+            } else if (state[0] == 2) {
+                // BẤM GỬI FILE GHI ÂM
+                if (audioFile != null && audioFile.exists()) {
+                    uploadVoiceAndSend(audioFile);
+                }
+                state[0] = 0; // Reset state để dismiss không xóa mất file
+                dialog.dismiss();
             }
         });
+
+        btnDelete.setOnClickListener(v -> {
+            if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
+            if (audioFile != null && audioFile.exists()) audioFile.delete();
+            state[0] = 0;
+            updateUI.run();
+        });
+
+        btnListen.setOnClickListener(v -> {
+            if (previewPlayer == null) {
+                previewPlayer = new android.media.MediaPlayer();
+                try {
+                    previewPlayer.setDataSource(audioFile.getAbsolutePath());
+                    previewPlayer.prepare();
+                    previewPlayer.setOnCompletionListener(mp -> ivListenIcon.setImageResource(android.R.drawable.ic_media_play));
+                } catch (IOException e) { e.printStackTrace(); }
+            }
+            if (previewPlayer.isPlaying()) {
+                previewPlayer.pause();
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+            } else {
+                previewPlayer.start();
+                ivListenIcon.setImageResource(android.R.drawable.ic_media_pause);
+            }
+        });
+
+        dialog.setOnDismissListener(d -> {
+            if (state[0] == 1) internalStopRecord(); // Nếu đang thu mà tắt ngang
+            if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
+            if (state[0] != 0 && audioFile != null && audioFile.exists()) audioFile.delete(); // Xóa file nháp
+            recordHandler.removeCallbacks(recordRunnable);
+        });
+
+        updateUI.run();
+        dialog.show();
+    }
+
+    private void internalStartRecord(android.widget.TextView tvTimer, com.example.hubble.view.custom.AudioWaveformView audioWaveform) {
+        audioFile = new File(getExternalCacheDir(), "voice_" + System.currentTimeMillis() + ".m4a");
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setOutputFile(audioFile.getAbsolutePath());
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+            recordTicks = 0; // Reset bộ đếm tick
+
+            recordRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    recordTicks++; // Mỗi 100ms tăng lên 1
+                    int currentSeconds = recordTicks / 10; // Chia 10 để ra số giây chuẩn
+
+                    // Cập nhật text đồng hồ
+                    tvTimer.setText(String.format("%02d:%02d", currentSeconds / 60, currentSeconds % 60));
+
+                    // Lấy âm lượng và truyền cho View vẽ sóng
+                    if (mediaRecorder != null) {
+                        int amplitude = mediaRecorder.getMaxAmplitude();
+                        audioWaveform.addAmplitude((float) amplitude);
+                    }
+
+                    // Chạy lại hàm này sau mỗi 100ms
+                    recordHandler.postDelayed(this, 100);
+                }
+            };
+            recordHandler.post(recordRunnable);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void internalStopRecord() {
+        if (mediaRecorder != null && isRecording) {
+            try { mediaRecorder.stop(); } catch (RuntimeException e) {}
+            finally {
+                mediaRecorder.release();
+                mediaRecorder = null;
+                isRecording = false;
+            }
+            recordHandler.removeCallbacks(recordRunnable);
+        }
+    }
+
+    private void updateComposerState() {
+        boolean hasText = binding.etComposer.getText() != null && binding.etComposer.getText().length() > 0;
+        boolean hasAttachment = !pendingAttachmentIds.isEmpty();
+
+        // Điều kiện để gửi là: Có chữ HOẶC có file đính kèm
+        boolean canSend = hasText || hasAttachment;
+
+        // Nút Gửi và nút Mic sẽ đổi chỗ cho nhau dựa trên canSend
+        binding.btnVoice.setVisibility(canSend ? View.GONE : View.VISIBLE);
+        binding.btnSend.setVisibility(canSend ? View.VISIBLE : View.GONE);
+
+        // Nút Đính kèm (+) và nút Mũi tên (>) thì chỉ phụ thuộc vào việc có gõ chữ hay không
+        // (Để khi user mới chỉ thêm ảnh, họ vẫn thấy nút (+) để bấm thêm ảnh nữa)
+        binding.btnAttach.setVisibility(hasText ? View.GONE : View.VISIBLE);
+        binding.btnCollapse.setVisibility(hasText ? View.VISIBLE : View.GONE);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -467,6 +702,7 @@ public class DmChatActivity extends AppCompatActivity {
                         if (completed[0] == total) {
                             binding.btnAttach.setEnabled(true);
                             Snackbar.make(binding.getRoot(), total + " file(s) ready", Snackbar.LENGTH_SHORT).show();
+                            updateComposerState();
                         }
                         break;
                     case ERROR:
@@ -514,6 +750,7 @@ public class DmChatActivity extends AppCompatActivity {
                 pendingAttachmentIds.remove(index);
                 pendingAttachmentTypes.remove(index);
             }
+            updateComposerState();
             if (pendingAttachmentIds.isEmpty()) clearAttachmentPreview();
         });
 
@@ -525,8 +762,9 @@ public class DmChatActivity extends AppCompatActivity {
         pendingAttachmentTypes.clear();
         binding.attachmentPreviewBar.setVisibility(View.GONE);
         binding.llAttachmentPreviews.removeAllViews();
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
         binding.btnAttach.setEnabled(true);
+        updateComposerState();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -550,12 +788,12 @@ public class DmChatActivity extends AppCompatActivity {
             mediaRecorder.prepare();
             mediaRecorder.start();
             isRecording = true;
-            recordSeconds = 0;
+            recordTicks = 0;
             recordRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", recordSeconds / 60, recordSeconds % 60));
-                    recordSeconds++;
+                    binding.tilComposer.setHint(String.format("Đang ghi âm... %d:%02d", recordTicks / 60, recordTicks % 60));
+                    recordTicks++;
                     recordHandler.postDelayed(this, 1000);
                 }
             };
@@ -578,9 +816,9 @@ public class DmChatActivity extends AppCompatActivity {
             }
 
             recordHandler.removeCallbacks(recordRunnable);
-            binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+            binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
 
-            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordSeconds >= 1) {
+            if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordTicks >= 1) {
                 uploadVoiceAndSend(audioFile);
             } else {
                 if (audioFile != null && audioFile.exists()) audioFile.delete();
@@ -591,15 +829,33 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void uploadVoiceAndSend(File file) {
         Uri fileUri = Uri.fromFile(file);
+        // Optimistic UI for voice
+        String tempId = "tmp_" + System.currentTimeMillis();
+        DmMessageItem optimisticItem = buildOptimisticItem(tempId, "🎤 Đang gửi tin nhắn thoại…", "VOICE");
+        adapter.appendItem(optimisticItem);
+        scrollToBottom();
+
         mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
             if (result.status == com.example.hubble.data.repository.MediaRepository.UploadResult.Status.SUCCESS) {
                 List<String> attachIds = new ArrayList<>();
                 attachIds.add(result.data.getAttachmentId());
                 dmRepository.sendMessage(channelId, null, "", attachIds, "VOICE", sendResult -> {
-                    if (sendResult.getStatus() == AuthResult.Status.SUCCESS) {
-                        runOnUiThread(() -> appendMessage(sendResult.getData()));
+                    if (sendResult.getStatus() == AuthResult.Status.SUCCESS && sendResult.getData() != null) {
+                        String serverId = sendResult.getData().getId();
+                        if (serverId != null) pendingServerIds.add(serverId);
+                        runOnUiThread(() -> {
+                            DmMessageItem realItem = mapMessage(sendResult.getData());
+                            realItem.setStatus(resolvePostSendStatus(tempId));
+                            adapter.replaceTempItem(tempId, realItem);
+                            if (serverId != null) pendingServerIds.remove(serverId);
+                            scrollToBottom();
+                        });
+                    } else {
+                        runOnUiThread(() -> adapter.removeItemById(tempId));
                     }
                 });
+            } else if (result.status == com.example.hubble.data.repository.MediaRepository.UploadResult.Status.ERROR) {
+                runOnUiThread(() -> adapter.removeItemById(tempId));
             }
         });
     }
@@ -629,12 +885,28 @@ public class DmChatActivity extends AppCompatActivity {
         clearEditMode(false);
         String replyId = replyingToItem != null ? replyingToItem.getId() : null;
 
+        // Optimistic UI
+        String tempId = "tmp_" + System.currentTimeMillis();
+        DmMessageItem optimisticItem = buildOptimisticItem(tempId, content, "TEXT");
+        adapter.appendItem(optimisticItem);
+        scrollToBottom();
+        clearReply();
+
         dmRepository.sendMessage(channelId, replyId, content, new ArrayList<>(), "TEXT", result -> {
             if (result.getData() != null) {
-                runOnUiThread(() -> appendMessage(result.getData()));
+                String serverId = result.getData().getId();
+                if (serverId != null) pendingServerIds.add(serverId);
+                runOnUiThread(() -> {
+                    DmMessageItem realItem = mapMessage(result.getData());
+                    realItem.setStatus(resolvePostSendStatus(tempId));
+                    adapter.replaceTempItem(tempId, realItem);
+                    if (serverId != null) pendingServerIds.remove(serverId);
+                    scrollToBottom();
+                });
+            } else {
+                runOnUiThread(() -> adapter.removeItemById(tempId));
             }
         });
-        clearReply();
     }
 
     private static String encodeMediaContent(String title, String url) {
@@ -656,14 +928,12 @@ public class DmChatActivity extends AppCompatActivity {
                     if (isEmojiPanelVisible) setPanelHeight(keyboardHeight);
                 }
                 if (isEmojiPanelVisible && !pendingShowKeyboard) collapseEmojiPanel();
-                            if (!isKeyboardVisible) {
-                                isKeyboardVisible = true;
-                                setProfileIntroVisible(false);
-                            }
+                if (!isKeyboardVisible) {
+                    isKeyboardVisible = true;
+                }
                 pendingShowKeyboard = false;
-                        } else if (isKeyboardVisible) {
-                            isKeyboardVisible = false;
-                            binding.rvMessages.post(DmChatActivity.this::syncProfileIntroVisibilityWithMessages);
+            } else if (isKeyboardVisible) {
+                isKeyboardVisible = false;
             }
         });
     }
@@ -770,17 +1040,36 @@ public class DmChatActivity extends AppCompatActivity {
             messageType = hasFile ? "FILE" : "IMAGE";
         }
 
-        dmRepository.sendMessage(channelId, replyId, trimmed, pendingAttachmentIds, messageType, result -> {
+        // Optimistic UI: show message immediately with SENDING status
+        String tempId = "tmp_" + System.currentTimeMillis();
+        DmMessageItem optimisticItem = buildOptimisticItem(tempId, trimmed, messageType);
+        adapter.appendItem(optimisticItem);
+        scrollToBottom();
+
+        List<String> attachmentIdsCopy = new ArrayList<>(pendingAttachmentIds);
+        clearReply();
+
+        dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType, result -> {
             if (result.getData() != null) {
+                String serverId = result.getData().getId();
+                if (serverId != null) pendingServerIds.add(serverId);
                 runOnUiThread(() -> {
-                    appendMessage(result.getData());
+                    DmMessageItem realItem = mapMessage(result.getData());
+                    realItem.setStatus(resolvePostSendStatus(tempId));
+                    adapter.replaceTempItem(tempId, realItem);
+                    if (serverId != null) pendingServerIds.remove(serverId);
                     clearAttachmentPreview();
+                    scrollToBottom();
                 });
-            } else if (result.getMessage() != null) {
-                Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+            } else {
+                runOnUiThread(() -> {
+                    adapter.removeItemById(tempId);
+                    if (result.getMessage() != null) {
+                        Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
-        clearReply();
     }
 
     private void loadMessageHistory() {
@@ -792,10 +1081,11 @@ public class DmChatActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     List<DmMessageItem> items = mapMessages(ordered);
                     adapter.setItems(items);
-                    if (!items.isEmpty()) {
-                        binding.rvMessages.scrollToPosition(items.size() - 1);
+                    if (adapter.getItemCount() > 0) {
+                        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
                     }
-                    binding.rvMessages.post(this::syncProfileIntroVisibilityWithMessages);
+                    fetchPeerReadStatusIntoAdapter();
+                    scheduleMarkChannelRead();
                 });
             }
         });
@@ -818,25 +1108,76 @@ public class DmChatActivity extends AppCompatActivity {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         BottomSheetMessageActionsBinding sheet = BottomSheetMessageActionsBinding.inflate(getLayoutInflater());
         dialog.setContentView(sheet.getRoot());
+
         boolean canModify = item != null && item.isMine() && !item.isDeleted();
         sheet.actionEdit.setVisibility(canModify ? View.VISIBLE : View.GONE);
-        sheet.actionUnsend.setVisibility(canModify ? View.VISIBLE : View.GONE);
+        sheet.dividerEditReply.setVisibility(canModify ? View.VISIBLE : View.GONE);
+        sheet.cardUnsend.setVisibility(canModify ? View.VISIBLE : View.GONE);
 
-        View.OnClickListener reactionClick = v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show();
-        sheet.chipReactionOk.setOnClickListener(reactionClick);
-        sheet.chipReactionLike.setOnClickListener(reactionClick);
-        sheet.chipReactionTwo.setOnClickListener(reactionClick);
-        sheet.chipReactionHeart.setOnClickListener(reactionClick);
-        sheet.chipReactionThree.setOnClickListener(reactionClick);
+        View.OnClickListener reactionEmojiClick = v -> {
+            String emoji = null;
+            if (v == sheet.chipReactionOk) emoji = "👌";
+            else if (v == sheet.chipReactionHeart) emoji = "❤️";
+            else if (v == sheet.chipReactionScream) emoji = "😱";
+            else if (v == sheet.chipReactionLike) emoji = "👍";
+            else if (v == sheet.chipReactionMonkey) emoji = "🐒";
+            else if (v == sheet.chipReactionSmile) emoji = "😊";
+            if (emoji != null) {
+                dialog.dismiss();
+                toggleReaction(item.getId(), emoji);
+            }
+        };
+        sheet.chipReactionOk.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionHeart.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionScream.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionLike.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionMonkey.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionSmile.setOnClickListener(reactionEmojiClick);
+        sheet.chipReactionMore.setOnClickListener(v -> {
+            dialog.dismiss();
+            showReactionPicker(item);
+        });
 
+        sheet.actionEdit.setOnClickListener(v -> { dialog.dismiss(); startEditMessage(item); });
         sheet.actionReply.setOnClickListener(v -> { dialog.dismiss(); startReply(item); });
         sheet.actionForward.setOnClickListener(v -> { dialog.dismiss(); showForwardSheet(item); });
         sheet.actionCopyText.setOnClickListener(v -> { dialog.dismiss(); copyMessageText(item); });
-        sheet.actionEdit.setOnClickListener(v -> { dialog.dismiss(); startEditMessage(item); });
+        sheet.actionMarkUnread.setOnClickListener(v -> {
+            dialog.dismiss();
+            Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show();
+        });
+        sheet.actionReactions.setOnClickListener(v -> {
+            dialog.dismiss();
+            showReactionPicker(item);
+        });
         sheet.actionUnsend.setOnClickListener(v -> { dialog.dismiss(); confirmUnsendMessage(item); });
-        sheet.actionPin.setOnClickListener(v -> { dialog.dismiss(); Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show(); });
 
         dialog.show();
+    }
+
+    private void showReactionPicker(DmMessageItem item) {
+        BottomSheetDialog pickerDialog = new BottomSheetDialog(this);
+        com.example.hubble.view.emoji.EmojiPickerView pickerView =
+                new com.example.hubble.view.emoji.EmojiPickerView(this);
+        pickerView.setOnEmojiSelectedListener(emoji -> {
+            pickerDialog.dismiss();
+            toggleReaction(item.getId(), emoji);
+        });
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.55f);
+        container.addView(pickerView, new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, height));
+        pickerDialog.setContentView(container);
+        pickerDialog.show();
+    }
+
+    private void toggleReaction(String messageId, String emoji) {
+        if (messageId == null || emoji == null) return;
+        dmRepository.toggleReaction(messageId, emoji, result -> {
+            if (result.getData() != null) {
+                runOnUiThread(() -> adapter.updateReactions(messageId, result.getData()));
+            }
+        });
     }
 
     private void showForwardSheet(DmMessageItem item) {
@@ -959,7 +1300,10 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void connectStomp() {
         if (TextUtils.isEmpty(channelId)) return;
-        String wsUrl = BuildConfig.BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "ws";
+        // Disconnect any previous client before creating a new one
+        disconnectStomp();
+
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String accessToken = tokenManager.getAccessToken();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;
@@ -976,13 +1320,33 @@ public class DmChatActivity extends AppCompatActivity {
                 createRealtimeOkHttpClient()
         );
         stompClient.withClientHeartbeat(10000).withServerHeartbeat(10000);
+
+        final List<StompHeader> finalConnectHeaders = connectHeaders;
         disposables.add(stompClient.lifecycle()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(event -> {
-                    if (event.getType() == ua.naiksoftware.stomp.dto.LifecycleEvent.Type.OPENED) subscribeToChannel();
+                    switch (event.getType()) {
+                        case OPENED:
+                            subscribeToChannel();
+                            // STOMP does not replay missed messages after disconnect (airplane, etc.).
+                            // Always sync from REST on connect/reconnect so B sees server state and
+                            // sendDeliveryAck() can notify A → "✓✓ Đã nhận".
+                            loadMessageHistory();
+                            sendDeliveryAck();
+                            break;
+                        case CLOSED:
+                        case ERROR:
+                            // Retry connection after a short delay on error/close
+                            uiHandler.postDelayed(() -> {
+                                if (!isFinishing() && !isDestroyed()) connectStomp();
+                            }, 3000);
+                            break;
+                        default:
+                            break;
+                    }
                 }, throwable -> {}));
-        stompClient.connect(connectHeaders);
+        stompClient.connect(finalConnectHeaders);
     }
 
     private OkHttpClient createRealtimeOkHttpClient() {
@@ -1023,20 +1387,267 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void subscribeToChannel() {
         if (TextUtils.isEmpty(channelId) || stompClient == null) return;
+
+        // Subscribe to new messages
         disposables.add(stompClient
                 .topic("/topic/channels/" + channelId)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(stompMessage -> {
-                    MessageDto dto = gson.fromJson(stompMessage.getPayload(), MessageDto.class);
+                    MessageDto dto = parseMessagePayload(stompMessage.getPayload());
                     if (dto == null) return;
-                    runOnUiThread(() -> appendOrUpdateMessage(dto));
+                    appendOrUpdateMessage(dto);
                 }, throwable -> {}));
+
+        // Subscribe to reaction events
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/reactions")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    try {
+                        ReactionEventDto event = gson.fromJson(stompMessage.getPayload(), ReactionEventDto.class);
+                        if (event != null && event.messageId != null && event.reactions != null) {
+                            adapter.updateReactions(event.messageId, event.reactions);
+                        }
+                    } catch (Exception ignored) {}
+                }, throwable -> {}));
+
+        // Subscribe to typing events
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/typing")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    try {
+                        TypingEventDto event = gson.fromJson(stompMessage.getPayload(), TypingEventDto.class);
+                        if (event != null && !TextUtils.equals(event.userId, currentUserId)) {
+                            showTypingIndicator(peerDisplayName);
+                        }
+                    } catch (Exception ignored) {}
+                }, throwable -> {}));
+
+        // Sender-side: receive delivery acks and update to "✓✓ Đã nhận".
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/delivery")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    try {
+                        DeliveryAckDto event = gson.fromJson(stompMessage.getPayload(), DeliveryAckDto.class);
+                        if (event != null && !TextUtils.equals(event.userId, currentUserId)) {
+                            adapter.markAllMineDelivered();
+                        }
+                    } catch (Exception ignored) {}
+                }, throwable -> {}));
+
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/read")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    try {
+                        ReadReceiptDto event = gson.fromJson(stompMessage.getPayload(), ReadReceiptDto.class);
+                        if (event != null && event.readAt != null
+                                && !TextUtils.equals(event.userId, currentUserId)) {
+                            long ms = parseCreatedAtMillis(event.readAt);
+                            if (ms >= 0) {
+                                adapter.applyPeerReadAtMillis(ms);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }, throwable -> {}));
+        disposables.add(stompClient
+                .topic("/topic/channels/" + channelId + "/suggestions")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    android.util.Log.d("SmartReply", "Nhận được payload: " + stompMessage.getPayload());
+                    try {
+                        com.example.hubble.data.model.dm.SmartReplyResponse response =
+                                gson.fromJson(stompMessage.getPayload(), com.example.hubble.data.model.dm.SmartReplyResponse.class);
+
+                        // CHỈ HIỆN GỢI Ý NẾU TIN NHẮN KHÔNG PHẢI DO CHÍNH MÌNH GỬI
+                        if (response != null) {
+                            android.util.Log.d("SmartReply", "Author: " + response.getMessageAuthorId() + ", Me: " + currentUserId);
+                            if (!currentUserId.equals(response.getMessageAuthorId())) {
+                                runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                            }
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("SmartReply", "Lỗi Parse JSON từ Backend: ", e);
+                    }
+                }, throwable -> {
+                    android.util.Log.e("SmartReply", "Lỗi đường truyền Stomp: ", throwable);
+                }));
+    }
+
+    /**
+     * Tells the server to broadcast delivery ack on this channel so the sender's client
+     * can show "✓✓ Đã nhận". Called after (re)connect and after syncing history from REST.
+     */
+    private void sendDeliveryAck() {
+        if (stompClient == null || TextUtils.isEmpty(channelId) || TextUtils.isEmpty(currentUserId)) return;
+        String payload = "{\"userId\":\"" + currentUserId + "\"}";
+        disposables.add(stompClient.send("/app/channels/" + channelId + "/delivered", payload)
+                .subscribeOn(Schedulers.io())
+                .subscribe(() -> {}, throwable -> {}));
+    }
+
+    private void sendTypingEvent() {
+        if (stompClient == null || TextUtils.isEmpty(channelId) || TextUtils.isEmpty(currentUserId)) return;
+        String payload = "{\"userId\":\"" + currentUserId + "\"}";
+        disposables.add(stompClient.send("/app/channels/" + channelId + "/typing", payload)
+                .subscribeOn(Schedulers.io())
+                .subscribe(() -> {}, throwable -> {}));
+    }
+
+    private void showTypingIndicator(String displayName) {
+        uiHandler.removeCallbacks(hideTypingRunnable);
+        binding.tvTypingLabel.setText(getString(R.string.typing_indicator, displayName));
+        if (binding.typingIndicatorBar.getVisibility() != View.VISIBLE) {
+            binding.typingIndicatorBar.setVisibility(View.VISIBLE);
+            startTypingDotsAnimation();
+        }
+        uiHandler.postDelayed(hideTypingRunnable, TYPING_HIDE_DELAY_MS);
+    }
+
+    private void hideTypingIndicator() {
+        binding.typingIndicatorBar.setVisibility(View.GONE);
+        stopTypingDotsAnimation();
+    }
+
+    private void startTypingDotsAnimation() {
+        float bouncePx = 7 * getResources().getDisplayMetrics().density;
+        View[] dots = {binding.typingDot1, binding.typingDot2, binding.typingDot3};
+        for (int i = 0; i < 3; i++) {
+            ObjectAnimator anim = ObjectAnimator.ofFloat(dots[i], "translationY", 0f, -bouncePx, 0f);
+            anim.setDuration(550);
+            anim.setStartDelay(i * 160L);
+            anim.setRepeatCount(ObjectAnimator.INFINITE);
+            anim.setRepeatMode(ObjectAnimator.RESTART);
+            anim.setInterpolator(new AccelerateDecelerateInterpolator());
+            dotAnimators[i] = anim;
+            anim.start();
+        }
+    }
+
+    private void stopTypingDotsAnimation() {
+        for (ObjectAnimator anim : dotAnimators) {
+            if (anim != null) anim.cancel();
+        }
+    }
+
+    private static class TypingEventDto {
+        String userId;
+    }
+
+    private static class ReactionEventDto {
+        String messageId;
+        java.util.List<ReactionDto> reactions;
+    }
+
+    private static class DeliveryAckDto {
+        String userId;
+    }
+
+    private static class ReadReceiptDto {
+        String userId;
+        String readAt;
+    }
+
+    private void fetchPeerReadStatusIntoAdapter() {
+        if (TextUtils.isEmpty(channelId)) return;
+        dmRepository.getPeerReadStatus(channelId, result -> runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (!result.isSuccess() || result.getData() == null) return;
+            String raw = result.getData().getReadAt();
+            if (raw == null || raw.trim().isEmpty()) return;
+            long ms = parseCreatedAtMillis(raw.trim());
+            if (ms >= 0) {
+                adapter.applyPeerReadAtMillis(ms);
+            }
+        }));
+    }
+
+    private void scheduleMarkChannelRead() {
+        if (isFinishing() || isDestroyed()) return;
+        uiHandler.removeCallbacks(flushMarkReadRunnable);
+        uiHandler.postDelayed(flushMarkReadRunnable, 400);
+    }
+
+    private void flushMarkChannelRead() {
+        if (isFinishing() || isDestroyed()) return;
+        if (TextUtils.isEmpty(channelId)) return;
+        String id = adapter.getLatestMessageIdForReadReceipt();
+        if (id == null) return;
+        if (id.equals(lastMarkedReadMessageId)) return;
+        lastMarkedReadMessageId = id;
+        dmRepository.markChannelRead(channelId, id, result -> { });
+    }
+
+    private MessageDto parseMessagePayload(String payload) {
+        if (payload == null) return null;
+        try {
+            StompMessageEvent event = gson.fromJson(payload, StompMessageEvent.class);
+            if (event != null && event.message != null) return event.message;
+        } catch (Exception ignored) {}
+        try {
+            return gson.fromJson(payload, MessageDto.class);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private static class StompMessageEvent {
+        String action;
+        MessageDto message;
     }
 
     private void disconnectStomp() {
+        uiHandler.removeCallbacksAndMessages(null);
         disposables.clear();
-        if (stompClient != null) stompClient.disconnect();
+        if (stompClient != null) {
+            stompClient.disconnect();
+            stompClient = null;
+        }
+    }
+
+    private void scrollToBottom() {
+        if (adapter.getItemCount() > 0) {
+            binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        }
+    }
+
+    /**
+     * Determines the correct status for a message after the HTTP response arrives.
+     * If the optimistic (temp) item was already marked DELIVERED by a delivery ack
+     * that arrived faster than the HTTP response, we keep DELIVERED.
+     * Otherwise, the message is confirmed as SENT (reached the server).
+     */
+    private DmMessageItem.MessageStatus resolvePostSendStatus(String tempId) {
+        DmMessageItem temp = adapter.getItemById(tempId);
+        if (temp != null && temp.getStatus() == DmMessageItem.MessageStatus.DELIVERED) {
+            return DmMessageItem.MessageStatus.DELIVERED;
+        }
+        return DmMessageItem.MessageStatus.SENT;
+    }
+
+    /** Creates an optimistic (pre-send) DmMessageItem with SENDING status. */
+    private DmMessageItem buildOptimisticItem(String tempId, String content, String type) {
+        String time = formatTime(java.time.OffsetDateTime.now().toString());
+        long nowMillis = System.currentTimeMillis();
+        DmMessageItem item = new DmMessageItem(
+                tempId, currentUserName,
+                content != null ? content : "",
+                time, type, nowMillis,
+                true, null
+        );
+        item.setStatus(DmMessageItem.MessageStatus.SENDING);
+        if (replyingToItem != null) {
+            item.setReplyToSenderName(replyingToItem.getSenderName());
+            item.setReplyToContent(replyingToItem.getContent());
+        }
+        return item;
     }
 
     private void appendMessage(MessageDto dto) {
@@ -1045,10 +1656,32 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void appendOrUpdateMessage(MessageDto dto) {
         if (dto == null) return;
+
+        // If this is STOMP echo of our own message that is still in-flight (optimistic
+        // temp item exists), skip it — the HTTP callback will call replaceTempItem.
+        boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
+        if (mine && dto.getId() != null && pendingServerIds.contains(dto.getId())) {
+            return;
+        }
+
         DmMessageItem item = mapMessage(dto);
+
+        if (mine) {
+            // For our own messages arriving via STOMP (e.g. edited, or late echo):
+            // preserve the highest status already set.
+            DmMessageItem existing = adapter.getItemById(item.getId());
+            if (existing != null && existing.getStatus() != null) {
+                item.setStatus(existing.getStatus());
+            } else {
+                // STOMP echo of a message we sent: server confirmed it → SENT
+                item.setStatus(DmMessageItem.MessageStatus.SENT);
+            }
+        }
+        // Peer messages: status stays null (no indicator needed for received messages)
+
         adapter.upsertItem(item);
-        if (adapter.getItemCount() > 0) binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
-        binding.rvMessages.post(this::syncProfileIntroVisibilityWithMessages);
+        scrollToBottom();
+        scheduleMarkChannelRead();
     }
 
     private DmMessageItem mapMessage(MessageDto dto) {
@@ -1064,6 +1697,7 @@ public class DmChatActivity extends AppCompatActivity {
         );
         item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
         item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
+        item.setReactions(dto.getReactions());
         if (!TextUtils.isEmpty(dto.getReplyToId())) {
             DmMessageItem replyItem = adapter.getItemById(dto.getReplyToId());
             if (replyItem != null) {
@@ -1094,6 +1728,7 @@ public class DmChatActivity extends AppCompatActivity {
             );
             item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
             item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
+            item.setReactions(dto.getReactions());
 
             if (!TextUtils.isEmpty(dto.getReplyToId())) {
                 MessageDto replyDto = byId.get(dto.getReplyToId());
@@ -1106,6 +1741,37 @@ public class DmChatActivity extends AppCompatActivity {
             mapped.add(item);
         }
         return mapped;
+    }
+
+    private void showSmartReplies(List<String> suggestions) {
+        if (suggestions == null || suggestions.isEmpty()) {
+            binding.suggestionBar.setVisibility(View.GONE);
+            return;
+        }
+
+        binding.cgSuggestions.removeAllViews();
+        for (String text : suggestions) {
+            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
+            chip.setText(text);
+
+            chip.setChipBackgroundColorResource(R.color.color_surface_elevated);
+
+            chip.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_primary));
+
+            chip.setChipStrokeColorResource(R.color.color_divider);
+            chip.setChipStrokeWidth(1f);
+            chip.setOnClickListener(v -> {
+                binding.etComposer.setText(text);
+                attemptSendMessage();
+                binding.suggestionBar.setVisibility(View.GONE);
+            });
+
+            binding.cgSuggestions.addView(chip);
+        }
+
+        binding.suggestionBar.setVisibility(View.VISIBLE);
+        binding.suggestionBar.setAlpha(0f);
+        binding.suggestionBar.animate().alpha(1f).setDuration(300).start();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1142,7 +1808,7 @@ public class DmChatActivity extends AppCompatActivity {
         clearReply();
         editingItem = item;
         binding.editBar.setVisibility(View.VISIBLE);
-        binding.tilComposer.setHintEnabled(false);
+        binding.etComposer.setHint("");
         String content = item.getContent() == null ? "" : item.getContent();
         binding.etComposer.setText(content);
         binding.etComposer.setSelection(content.length());
@@ -1154,8 +1820,7 @@ public class DmChatActivity extends AppCompatActivity {
         if (editingItem == null) return;
         editingItem = null;
         binding.editBar.setVisibility(View.GONE);
-        binding.tilComposer.setHintEnabled(true);
-        binding.tilComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
         if (clearComposerText) binding.etComposer.setText("");
     }
 

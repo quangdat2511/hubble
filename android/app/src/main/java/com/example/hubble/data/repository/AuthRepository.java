@@ -17,6 +17,7 @@ import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.utils.ThemeSyncManager;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -36,9 +37,10 @@ public class AuthRepository {
 
     public AuthRepository(Context context) {
         this.context = context.getApplicationContext();
-        this.tokenManager = new TokenManager(context);
-        this.apiService = RetrofitClient.getApiService(context); // Khởi tạo
+        this.tokenManager = new TokenManager(this.context);
+        this.apiService = RetrofitClient.getApiService(this.context);
     }
+
     public UserResponse getCurrentUser() {
         return tokenManager.getUser();
     }
@@ -49,20 +51,18 @@ public class AuthRepository {
 
         apiService.loginWithEmail(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
-            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+            public void onResponse(Call<ApiResponse<TokenResponse>> call,
+                                   Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    TokenResponse tokenResponse = response.body().getResult();
-                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
-                    tokenManager.saveUser(tokenResponse.getUser());
-                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                    handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Đăng nhập thất bại")));
+                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Login failed")));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -73,17 +73,18 @@ public class AuthRepository {
 
         apiService.registerWithEmail(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Đăng ký thất bại"));
+                    callback.onResult(AuthResult.error("Registration failed"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -94,20 +95,18 @@ public class AuthRepository {
 
         apiService.verifyEmailOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
-            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+            public void onResponse(Call<ApiResponse<TokenResponse>> call,
+                                   Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    TokenResponse tokenResponse = response.body().getResult();
-                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
-                    tokenManager.saveUser(tokenResponse.getUser());
-                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                    handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error("Mã OTP không hợp lệ"));
+                    callback.onResult(AuthResult.error("Invalid OTP"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -118,20 +117,18 @@ public class AuthRepository {
 
         apiService.loginWithGoogle(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
-            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+            public void onResponse(Call<ApiResponse<TokenResponse>> call,
+                                   Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    TokenResponse tokenResponse = response.body().getResult();
-                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
-                    tokenManager.saveUser(tokenResponse.getUser());
-                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                    handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error("Đăng nhập Google thất bại"));
+                    callback.onResult(AuthResult.error("Google login failed"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -142,17 +139,18 @@ public class AuthRepository {
 
         apiService.forgotPassword(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi gửi email khôi phục"));
+                    callback.onResult(AuthResult.error("Failed to send reset email"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -163,37 +161,40 @@ public class AuthRepository {
 
         apiService.resetPassword(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(AuthResult.success(response.body().getResult()));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi đặt lại mật khẩu"));
+                    callback.onResult(AuthResult.error("Failed to reset password"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
+
     public void sendPhoneOtp(String phoneNumber, RepositoryCallback<String> callback) {
         callback.onResult(AuthResult.loading());
         PhoneSendOtpRequest request = new PhoneSendOtpRequest(phoneNumber);
 
         apiService.sendPhoneOtp(request).enqueue(new Callback<ApiResponse<String>>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
                 if (response.isSuccessful()) {
                     callback.onResult(AuthResult.success("OTP Sent"));
                 } else {
-                    callback.onResult(AuthResult.error("Lỗi gửi OTP"));
+                    callback.onResult(AuthResult.error("Failed to send OTP"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -204,20 +205,18 @@ public class AuthRepository {
 
         apiService.verifyPhoneOtp(request).enqueue(new Callback<ApiResponse<TokenResponse>>() {
             @Override
-            public void onResponse(Call<ApiResponse<TokenResponse>> call, Response<ApiResponse<TokenResponse>> response) {
+            public void onResponse(Call<ApiResponse<TokenResponse>> call,
+                                   Response<ApiResponse<TokenResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
-                    TokenResponse tokenResponse = response.body().getResult();
-                    tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
-                    tokenManager.saveUser(tokenResponse.getUser());
-                    callback.onResult(AuthResult.success(tokenResponse.getUser()));
+                    handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error("Mã OTP không hợp lệ"));
+                    callback.onResult(AuthResult.error("Invalid OTP"));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
-                callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
     }
@@ -227,7 +226,8 @@ public class AuthRepository {
         if (refreshToken != null) {
             apiService.logout(new RefreshTokenRequest(refreshToken)).enqueue(new Callback<ApiResponse<String>>() {
                 @Override
-                public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                public void onResponse(Call<ApiResponse<String>> call,
+                                       Response<ApiResponse<String>> response) {
                 }
 
                 @Override
@@ -236,6 +236,14 @@ public class AuthRepository {
             });
         }
         tokenManager.clear();
+    }
+
+    private void handleAuthenticatedResponse(TokenResponse tokenResponse,
+                                             RepositoryCallback<UserResponse> callback) {
+        tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+        tokenManager.saveUser(tokenResponse.getUser());
+        ThemeSyncManager.syncThemeIfAuthenticated(context,
+                () -> callback.onResult(AuthResult.success(tokenResponse.getUser())));
     }
 
     private <T> String extractErrorMessage(Response<T> response, String fallback) {
@@ -255,7 +263,7 @@ public class AuthRepository {
                 }
             }
         } catch (Exception ignored) {
-            // Ignore parse errors and fall back to default message.
+            // Ignore parse errors and use the fallback.
         }
 
         return fallback;

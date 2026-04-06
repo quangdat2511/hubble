@@ -352,6 +352,14 @@ public class DmDetailsActivity extends AppCompatActivity implements DmSharedCont
             return;
         }
 
+        if (item.isMedia() && !item.isVideo()) {
+            Intent intent = new Intent(this, ImageViewerActivity.class);
+            intent.putExtra(ImageViewerActivity.EXTRA_IMAGE_URL, target);
+            intent.putExtra(ImageViewerActivity.EXTRA_FILE_NAME, item.getResolvedFileName());
+            startActivity(intent);
+            return;
+        }
+
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(Uri.parse(target), resolveMimeType(item));

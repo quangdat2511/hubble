@@ -3,7 +3,6 @@ package com.example.hubble.data.api;
 import android.content.Context;
 import android.os.Build;
 
-import com.example.hubble.BuildConfig;
 import com.example.hubble.utils.TokenManager;
 
 import java.net.InetAddress;
@@ -20,20 +19,21 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
-    private static final String BASE_URL = BuildConfig.BASE_URL;
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
     };
 
     private static Retrofit retrofit = null;
+    private static String retrofitBaseUrl = null;
 
     public static String getBaseUrl() {
-        return BASE_URL;
+        return NetworkConfig.getApiBaseUrl();
     }
 
     private static Retrofit getRetrofit(Context context) {
-        if (retrofit == null) {
+        String baseUrl = NetworkConfig.getApiBaseUrl();
+        if (retrofit == null || !baseUrl.equals(retrofitBaseUrl)) {
             TokenManager tokenManager = new TokenManager(context.getApplicationContext());
 
             Interceptor userAgentInterceptor = chain -> {
@@ -55,11 +55,12 @@ public class RetrofitClient {
                     .build();
 
             retrofit = new Retrofit.Builder()
-                    .baseUrl(BASE_URL)
+                    .baseUrl(baseUrl)
                     .client(okHttpClient)
                     .addConverterFactory(new NullOnEmptyConverterFactory())
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
+            retrofitBaseUrl = baseUrl;
         }
         return retrofit;
     }

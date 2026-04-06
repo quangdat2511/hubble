@@ -1,16 +1,19 @@
 package com.example.hubble.viewmodel.home;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.example.hubble.R;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.server.ChannelEvent;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
@@ -62,6 +65,7 @@ public class MainViewModel extends ViewModel {
 
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
+    private final Context appContext;
     private final String currentUserId;
     private final Gson gson = new Gson();
     private final CompositeDisposable dmRealtimeDisposables = new CompositeDisposable();
@@ -73,6 +77,7 @@ public class MainViewModel extends ViewModel {
 
     private StompClient dmRealtimeClient;
     private boolean dmRealtimeConnected;
+    private volatile boolean dmRealtimeReconnectPending;
 
     private final MutableLiveData<List<ServerItem>> _servers = new MutableLiveData<>();
     public final LiveData<List<ServerItem>> servers = _servers;
@@ -98,12 +103,25 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
     public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
 
+    private final MutableLiveData<Integer> _dmTotalUnread = new MutableLiveData<>(0);
+    public final LiveData<Integer> dmTotalUnread = _dmTotalUnread;
+
+    private final MutableLiveData<Map<String, Integer>> _serverUnreadByServerId = new MutableLiveData<>(new HashMap<>());
+    public final LiveData<Map<String, Integer>> serverUnreadByServerId = _serverUnreadByServerId;
+
     private final Set<String> collapsedCategories = new HashSet<>();
     private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
     private volatile String activeServerId;
 
-    public MainViewModel(DmRepository dmRepository, ServerRepository serverRepository) {
+    // Server channel realtime
+    private volatile String desiredServerChannelServerId = null;
+    private volatile String subscribedServerChannelServerId = null;
+    private Disposable serverChannelTopicDisposable = null;
+
+
+    public MainViewModel(Context appContext, DmRepository dmRepository, ServerRepository serverRepository) {
+        this.appContext = appContext.getApplicationContext();
         this.dmRepository = dmRepository;
         this.serverRepository = serverRepository;
         this.currentUserId = dmRepository.getCurrentUserId();
@@ -179,14 +197,41 @@ public class MainViewModel extends ViewModel {
                     if (serverId.equals(activeServerId)) {
                         _serverChannels.postValue(AuthResult.success(result.getData()));
                     }
+                    postServerUnreadSummaries();
                 }
             });
         }
     }
 
+    private void postServerUnreadSummaries() {
+        List<ServerItem> serverList = _servers.getValue();
+        if (serverList == null) {
+            return;
+        }
+        Map<String, Integer> map = new HashMap<>();
+        for (ServerItem s : serverList) {
+            if (s == null || TextUtils.isEmpty(s.getId())) continue;
+            List<ChannelDto> chs = channelCache.get(s.getId());
+            int sum = 0;
+            if (chs != null) {
+                for (ChannelDto c : chs) {
+                    if (c == null) continue;
+                    Integer u = c.getUnreadCount();
+                    if (u != null && u > 0) {
+                        sum += u;
+                    }
+                }
+            }
+            if (sum > 0) {
+                map.put(s.getId(), Math.min(sum, 9999));
+            }
+        }
+        _serverUnreadByServerId.postValue(map);
+    }
+
     public void openOrCreateDirectChannel(String friendId) {
         if (friendId == null || friendId.trim().isEmpty()) {
-            _openDmState.setValue(AuthResult.error("Có lỗi xảy ra. Vui lòng thử lại."));
+            _openDmState.setValue(AuthResult.error(string(R.string.error_generic)));
             return;
         }
 
@@ -201,6 +246,10 @@ public class MainViewModel extends ViewModel {
 
     public void consumeOpenDmState() {
         _openDmState.setValue(null);
+    }
+
+    public void consumeErrorMessage() {
+        _errorMessage.setValue(null);
     }
 
     public void setServers(List<ServerItem> servers) {
@@ -313,12 +362,14 @@ public class MainViewModel extends ViewModel {
             baseItem.getChannelId(),
             baseItem.getFriendId(),
             baseItem.getDisplayName(),
+            baseItem.getAvatarUrl(),
             baseItem.getLastMessage(),
             baseItem.getTimeLabel(),
             baseItem.isOnline(),
             baseItem.isVerified(),
             baseItem.isSelected(),
             baseItem.isFavorite(),
+            baseItem.getUnreadCount(),
             System.currentTimeMillis()
         );
 
@@ -355,7 +406,7 @@ public class MainViewModel extends ViewModel {
                 channel != null ? channel.getPeerUsername() : null,
                 friend != null ? displayNameOf(friend) : null,
                 channel != null ? channel.getName() : null,
-                "Direct Message"
+                string(R.string.dm_direct_message)
         );
         String peerStatus = coalesce(
                 channel != null ? channel.getPeerStatus() : null,
@@ -368,14 +419,29 @@ public class MainViewModel extends ViewModel {
                 channelId,
                 friendId,
                 displayName,
+                coalesce(
+                        friend != null ? friend.getAvatarUrl() : null,
+                        channel != null ? channel.getPeerAvatarUrl() : null,
+                        null
+                ),
                 "",
                 "",
                 "ONLINE".equalsIgnoreCase(peerStatus),
                 false,
                 false,
                 isFavoriteChannel(channelId),
+                unreadCountFromChannel(channel),
                 0L
         );
+    }
+
+    private int unreadCountFromChannel(ChannelDto channel) {
+        if (channel == null || channel.getUnreadCount() == null) {
+            return 0;
+        }
+        int u = channel.getUnreadCount();
+        if (u < 0) return 0;
+        return Math.min(u, 999);
     }
 
     private void syncDmRealtimeChannels(List<ChannelDto> channels) {
@@ -431,13 +497,21 @@ public class MainViewModel extends ViewModel {
                     if (event.getType() == LifecycleEvent.Type.OPENED) {
                         dmRealtimeConnected = true;
                         syncDmTopicSubscriptions();
+                        subscribeToServerChannelTopic(desiredServerChannelServerId);
+                        // STOMP does not replay missed messages. Pull latest previews from REST
+                        // so B sees new messages on the home list without opening the chat.
+                        refreshDirectMessages();
                     } else if (event.getType() == LifecycleEvent.Type.CLOSED
                             || event.getType() == LifecycleEvent.Type.ERROR) {
                         dmRealtimeConnected = false;
+                        subscribedServerChannelServerId = null;
+                        serverChannelTopicDisposable = null;
                         clearDmTopicSubscriptions();
+                        scheduleDmRealtimeReconnect();
                     }
                 }, throwable -> {
                     dmRealtimeConnected = false;
+                    scheduleDmRealtimeReconnect();
                 }));
 
         dmRealtimeClient.connect(finalConnectHeaders);
@@ -477,6 +551,57 @@ public class MainViewModel extends ViewModel {
                 return fallbackAddresses;
             }
         };
+    }
+
+    /**
+     * After REST sync, tell the server to broadcast delivery acks so senders see "✓✓ Đã nhận"
+     * without the recipient opening DmChatActivity.
+     */
+    private void sendDeliveryAcksForAllDesiredChannels() {
+        if (!dmRealtimeConnected || dmRealtimeClient == null || TextUtils.isEmpty(currentUserId)) {
+            return;
+        }
+        String payload = "{\"userId\":\"" + currentUserId + "\"}";
+        for (String channelId : new HashSet<>(desiredDmChannelIds)) {
+            if (TextUtils.isEmpty(channelId)) {
+                continue;
+            }
+            final String cid = channelId;
+            dmRealtimeDisposables.add(
+                    dmRealtimeClient.send("/app/channels/" + cid + "/delivered", payload)
+                            .subscribeOn(Schedulers.io())
+                            .subscribe(() -> {}, throwable -> {
+                            })
+            );
+        }
+    }
+
+    private void scheduleDmRealtimeReconnect() {
+        if (dmRealtimeReconnectPending || desiredDmChannelIds.isEmpty()) {
+            return;
+        }
+        dmRealtimeReconnectPending = true;
+        Schedulers.io().scheduleDirect(() -> {
+            try {
+                Thread.sleep(3_000);
+            } catch (InterruptedException ignored) {
+            }
+            AndroidSchedulers.mainThread().scheduleDirect(() -> {
+                dmRealtimeReconnectPending = false;
+                dmRealtimeDisposables.clear();
+                if (dmRealtimeClient != null) {
+                    try {
+                        dmRealtimeClient.disconnect();
+                    } catch (Exception ignored) {
+                    }
+                    dmRealtimeClient = null;
+                }
+                dmRealtimeConnected = false;
+                if (!desiredDmChannelIds.isEmpty()) {
+                    ensureDmRealtimeConnected();
+                }
+            });
+        });
     }
 
     private void syncDmTopicSubscriptions() {
@@ -578,17 +703,20 @@ public class MainViewModel extends ViewModel {
                 timeLabel = seededItem.getTimeLabel();
             }
 
+            int seedUnread = currentUserId != null && currentUserId.equals(message.getAuthorId()) ? 0 : 1;
             DmConversationItem inserted = new DmConversationItem(
                     seededItem.getId(),
                     seededItem.getChannelId(),
                     seededItem.getFriendId(),
                     seededItem.getDisplayName(),
+                    seededItem.getAvatarUrl(),
                     previewText,
                     timeLabel,
                     seededItem.isOnline(),
                     seededItem.isVerified(),
                         seededItem.isSelected(),
                         seededItem.isFavorite(),
+                        seedUnread,
                         toEpochMillis(message.getCreatedAt(), seededItem.getLastMessageAtMillis())
             );
 
@@ -605,17 +733,23 @@ public class MainViewModel extends ViewModel {
             timeLabel = currentItem.getTimeLabel();
         }
 
+        int nextUnread = currentItem.getUnreadCount();
+        if (currentUserId == null || !currentUserId.equals(message.getAuthorId())) {
+            nextUnread = Math.min(999, nextUnread + 1);
+        }
         DmConversationItem updated = new DmConversationItem(
                 currentItem.getId(),
                 currentItem.getChannelId(),
                 currentItem.getFriendId(),
                 currentItem.getDisplayName(),
+                currentItem.getAvatarUrl(),
                 previewText,
                 timeLabel,
                 currentItem.isOnline(),
                 currentItem.isVerified(),
                 currentItem.isSelected(),
                 currentItem.isFavorite(),
+                nextUnread,
                 toEpochMillis(message.getCreatedAt(), currentItem.getLastMessageAtMillis())
         );
 
@@ -645,12 +779,12 @@ public class MainViewModel extends ViewModel {
     private String buildRealtimePreview(MessageDto latest, String peerDisplayName) {
         if (Boolean.TRUE.equals(latest.getIsDeleted())) {
             String senderLabel = resolveSenderLabel(currentUserId, latest.getAuthorId(), peerDisplayName);
-            return senderLabel + ": Tin nhắn đã được thu hồi";
+            return senderLabel + ": " + string(R.string.dm_deleted_message);
         }
 
         String preview = latest.getContent();
         if (preview == null || preview.trim().isEmpty()) {
-            preview = "Tin nhắn đa phương tiện";
+            preview = string(R.string.dm_reply_media);
         } else if (preview.startsWith("{gif}")) {
             String body = preview.substring(5);
             int nl = body.indexOf('\n');
@@ -675,6 +809,8 @@ public class MainViewModel extends ViewModel {
         if (conversations.isEmpty()) {
             _dmConversations.postValue(conversations);
             _dmStories.postValue(List.of());
+            _dmTotalUnread.postValue(0);
+            sendDeliveryAcksForAllDesiredChannels();
             return;
         }
 
@@ -704,12 +840,14 @@ public class MainViewModel extends ViewModel {
                             item.getChannelId(),
                             item.getFriendId(),
                             item.getDisplayName(),
+                            item.getAvatarUrl(),
                             previewText,
                             timeLabel,
                             item.isOnline(),
                             item.isVerified(),
                                 item.isSelected(),
                                 item.isFavorite(),
+                                item.getUnreadCount(),
                                 toEpochMillis(latest.getCreatedAt(), item.getLastMessageAtMillis())
                     );
                 } else {
@@ -736,6 +874,7 @@ public class MainViewModel extends ViewModel {
                         }
                     }
                     publishConversations(visibleConversations);
+                    sendDeliveryAcksForAllDesiredChannels();
                 }
             });
         }
@@ -745,6 +884,13 @@ public class MainViewModel extends ViewModel {
         List<DmConversationItem> sorted = sortConversationsByPriority(conversations);
         _dmConversations.postValue(sorted);
         _dmStories.postValue(sorted.subList(0, Math.min(3, sorted.size())));
+        int sum = 0;
+        for (DmConversationItem i : sorted) {
+            if (i != null) {
+                sum += i.getUnreadCount();
+            }
+        }
+        _dmTotalUnread.postValue(Math.max(0, sum));
     }
 
     public void toggleConversationFavorite(DmConversationItem conversation) {
@@ -773,12 +919,14 @@ public class MainViewModel extends ViewModel {
                         item.getChannelId(),
                         item.getFriendId(),
                         item.getDisplayName(),
+                        item.getAvatarUrl(),
                         item.getLastMessage(),
                         item.getTimeLabel(),
                         item.isOnline(),
                         item.isVerified(),
                         item.isSelected(),
                         shouldFavorite,
+                        item.getUnreadCount(),
                         item.getLastMessageAtMillis()
                 ));
             } else {
@@ -858,17 +1006,17 @@ public class MainViewModel extends ViewModel {
             long seconds = Duration.between(then, Instant.now()).getSeconds();
             if (seconds < 0) seconds = 0;
 
-            if (seconds < 60)        return "Bây giờ";
+            if (seconds < 60)        return string(R.string.time_now);
             long mins = seconds / 60;
-            if (mins < 60)           return mins + " phút";
+            if (mins < 60)           return string(R.string.time_minutes, mins);
             long hours = mins / 60;
-            if (hours < 24)          return hours + " giờ";
+            if (hours < 24)          return string(R.string.time_hours, hours);
             long days = hours / 24;
-            if (days < 30)           return days + " ngày";
+            if (days < 30)           return string(R.string.time_days, days);
             long months = days / 30;
-            if (months < 12)         return months + " tháng";
+            if (months < 12)         return string(R.string.time_months, months);
             long years = days / 365;
-            return years + " năm";
+            return string(R.string.time_years, years);
         } catch (Exception ignored) {
             return "";
         }
@@ -876,14 +1024,14 @@ public class MainViewModel extends ViewModel {
 
     private String resolveSenderLabel(String currentUserId, String authorId, String peerDisplayName) {
         if (currentUserId != null && currentUserId.equalsIgnoreCase(authorId)) {
-            return "Bạn";
+            return string(R.string.main_you_sender);
         }
 
         if (peerDisplayName != null && !peerDisplayName.trim().isEmpty()) {
             return peerDisplayName;
         }
 
-        return "Người dùng";
+        return string(R.string.main_unknown_user);
     }
 
     private String displayNameOf(FriendUserDto friend) {
@@ -895,7 +1043,7 @@ public class MainViewModel extends ViewModel {
         if (username != null && !username.trim().isEmpty()) {
             return username;
         }
-        return "Friend";
+        return string(R.string.main_friend_fallback);
     }
 
     private String coalesce(String... values) {
@@ -908,7 +1056,10 @@ public class MainViewModel extends ViewModel {
     }
 
     public void loadServerChannels(String serverId) {
-        if (serverId == null || serverId.trim().isEmpty()) return;
+        if (serverId == null || serverId.trim().isEmpty()) {
+            _serverChannels.postValue(AuthResult.error(string(R.string.invalid_server_error)));
+            return;
+        }
 
         activeServerId = serverId;
 
@@ -923,6 +1074,7 @@ public class MainViewModel extends ViewModel {
                 if (serverId.equals(activeServerId)) {
                     _serverChannels.postValue(AuthResult.success(result.getData()));
                 }
+                postServerUnreadSummaries();
                 return;
             }
             if (result.getStatus() == AuthResult.Status.ERROR && cached == null
@@ -930,6 +1082,100 @@ public class MainViewModel extends ViewModel {
                 _serverChannels.postValue(AuthResult.error(result.getMessage()));
             }
         });
+
+        ensureDmRealtimeConnected();
+        subscribeToServerChannelTopic(serverId);
+    }
+
+    private void subscribeToServerChannelTopic(String serverId) {
+        desiredServerChannelServerId = serverId;
+        if (!dmRealtimeConnected || dmRealtimeClient == null || serverId == null) return;
+        if (serverId.equals(subscribedServerChannelServerId)) return;
+
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
+        subscribedServerChannelServerId = serverId;
+
+        final String sid = serverId;
+        serverChannelTopicDisposable = dmRealtimeClient
+                .topic("/topic/servers/" + sid + "/channels")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(stompMessage -> {
+                    ChannelEvent event = gson.fromJson(stompMessage.getPayload(), ChannelEvent.class);
+                    if (event == null || event.getChannel() == null) return;
+                    ChannelDto channel = event.getChannel();
+                    if (TextUtils.isEmpty(channel.getId())) return;
+                    String type = event.getType();
+                    if ("DELETED".equals(type)) {
+                        onServerChannelDeleted(sid, channel.getId());
+                    } else if ("UPDATED".equals(type)) {
+                        onServerChannelUpdated(sid, channel);
+                    } else {
+                        onServerChannelCreated(sid, channel);
+                    }
+                }, throwable -> {});
+        dmRealtimeDisposables.add(serverChannelTopicDisposable);
+    }
+
+    private void onServerChannelCreated(String serverId, ChannelDto newChannel) {
+        if (Boolean.TRUE.equals(newChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is applied by the server
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        List<ChannelDto> updated = current != null ? new ArrayList<>(current) : new ArrayList<>();
+        for (ChannelDto c : updated) {
+            if (c.getId() != null && c.getId().equals(newChannel.getId())) return;
+        }
+        updated.add(newChannel);
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelUpdated(String serverId, ChannelDto updatedChannel) {
+        if (Boolean.TRUE.equals(updatedChannel.getIsPrivate())) {
+            // For private channels, re-fetch so access control is recalculated
+            loadServerChannels(serverId);
+            return;
+        }
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>(current);
+        boolean found = false;
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).getId() != null && updated.get(i).getId().equals(updatedChannel.getId())) {
+                updated.set(i, updatedChannel);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            updated.add(updatedChannel);
+        }
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
+    }
+
+    private void onServerChannelDeleted(String serverId, String channelId) {
+        List<ChannelDto> current = channelCache.get(serverId);
+        if (current == null) return;
+        List<ChannelDto> updated = new ArrayList<>();
+        for (ChannelDto c : current) {
+            if (!channelId.equals(c.getId())) {
+                updated.add(c);
+            }
+        }
+        channelCache.put(serverId, updated);
+        if (serverId.equals(activeServerId)) {
+            _serverChannels.postValue(AuthResult.success(updated));
+        }
     }
 
     public void toggleCategoryCollapse(String categoryId) {
@@ -950,9 +1196,17 @@ public class MainViewModel extends ViewModel {
         return collapsedCategories;
     }
 
+    private String string(int resId, Object... args) {
+        return appContext.getString(resId, args);
+    }
+
     @Override
     protected void onCleared() {
+        dmRealtimeReconnectPending = false;
         clearDmTopicSubscriptions();
+        if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
+            serverChannelTopicDisposable.dispose();
+        }
         dmRealtimeDisposables.clear();
         if (dmRealtimeClient != null) {
             dmRealtimeClient.disconnect();

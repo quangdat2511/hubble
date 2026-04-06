@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.NotificationRepository;
 import com.example.hubble.databinding.ActivityLoginBinding;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.viewmodel.AuthViewModel;
@@ -122,7 +123,23 @@ public class LoginActivity extends BaseAuthActivity {
     private void observeViewModel() {
         observeAuthResult(authViewModel.loginState,
                 authViewModel::resetLoginState,
-                this::navigateToMain);
+                this::registerDeviceTokenAndNavigate);
+    }
+
+    private void registerDeviceTokenAndNavigate() {
+        // After login succeeds, immediately register device token
+        NotificationRepository notificationRepo = new NotificationRepository(this);
+        com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                .getToken()
+                .addOnSuccessListener(token -> {
+                    android.util.Log.d("LoginActivity", "Got FCM token after login: " + token);
+                    notificationRepo.registerDeviceToken(token);
+                    navigateToMain();
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("LoginActivity", "Failed to get FCM token: " + e.getMessage());
+                    navigateToMain();
+                });
     }
 
     @Override

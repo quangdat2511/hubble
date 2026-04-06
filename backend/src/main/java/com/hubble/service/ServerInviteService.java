@@ -6,6 +6,7 @@ import com.hubble.entity.ServerInvite;
 import com.hubble.entity.ServerMember;
 import com.hubble.entity.User;
 import com.hubble.entity.Server;
+import com.hubble.enums.NotificationType;
 import com.hubble.enums.ServerInviteStatus;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
@@ -34,6 +35,7 @@ public class ServerInviteService {
     ServerMemberRepository serverMemberRepository;
     UserRepository userRepository;
     ServerInviteMapper serverInviteMapper;
+    NotificationService notificationService;
 
     @Transactional
     public ServerInviteResponse inviteUser(UUID inviterId, UUID serverId, ServerInviteRequest request) {
@@ -73,7 +75,19 @@ public class ServerInviteService {
                         .build()
         );
 
-        return serverInviteMapper.toResponse(invite, server, inviter, invitee);
+        ServerInviteResponse response = serverInviteMapper.toResponse(invite, server, inviter, invitee);
+
+        String inviterName = inviter.getDisplayName() != null ? inviter.getDisplayName() : inviter.getUsername();
+        notificationService.dispatchNotification(
+                inviteeId,
+                NotificationType.SERVER_INVITE,
+                serverId.toString(),
+                inviterName + " đã mời bạn tham gia " + server.getName() + ".",
+                false,
+                true
+        );
+
+        return response;
     }
 
     @Transactional

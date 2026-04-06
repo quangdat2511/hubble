@@ -5,6 +5,12 @@ import java.util.List;
 
 public class DmMessageItem {
 
+    public enum MessageStatus {
+        SENDING,
+        SENT,
+        DELIVERED
+    }
+
     private final String id;
     private final String senderName;
     private String content;
@@ -14,11 +20,13 @@ public class DmMessageItem {
     private final boolean mine;
 
     private final List<AttachmentResponse> attachments;
+    private List<ReactionDto> reactions;
 
     private boolean edited;
     private boolean deleted;
     private String replyToSenderName;
     private String replyToContent;
+    private MessageStatus status;
 
     public DmMessageItem(String id, String senderName, String content, String timestamp, boolean mine) {
         this(id, senderName, content, timestamp, "TEXT", -1L, mine, null);
@@ -76,6 +84,26 @@ public class DmMessageItem {
         return type != null && "SYSTEM".equalsIgnoreCase(type);
     }
 
+    public boolean isDateSeparator() {
+        return "DATE_SEPARATOR".equals(type);
+    }
+
+    public static DmMessageItem createDateSeparator(String label) {
+        return new DmMessageItem(null, null, label, null, "DATE_SEPARATOR", -1L, false, null);
+    }
+
+    public boolean isIntro() {
+        return "INTRO".equals(type);
+    }
+
+    /**
+     * Creates the profile intro item that appears as the first item in the chat.
+     * senderName = displayName, timestamp = username, content = description
+     */
+    public static DmMessageItem createIntro(String displayName, String username, String description) {
+        return new DmMessageItem("__intro__", displayName, description, username, "INTRO", -1L, false, null);
+    }
+
     public boolean isMine() {
         return mine;
     }
@@ -119,5 +147,21 @@ public class DmMessageItem {
 
     public boolean hasReply() {
         return replyToSenderName != null && !replyToSenderName.trim().isEmpty();
+    }
+
+    public List<ReactionDto> getReactions() {
+        return reactions != null ? reactions : new ArrayList<>();
+    }
+
+    public void setReactions(List<ReactionDto> reactions) {
+        this.reactions = reactions;
+    }
+
+    public MessageStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MessageStatus status) {
+        this.status = status;
     }
 }

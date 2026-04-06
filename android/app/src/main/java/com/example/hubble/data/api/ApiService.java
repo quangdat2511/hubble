@@ -1,6 +1,5 @@
 package com.example.hubble.data.api;
 
-import okhttp3.MultipartBody;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.EmailVerifyOtpRequest;
 import com.example.hubble.data.model.auth.ForgotPasswordRequest;
@@ -20,15 +19,21 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
+import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.SharedContentPageResponse;
+import com.example.hubble.data.model.dm.PeerReadStatusDto;
+import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UploadResponse;
-
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.PushConfigRequest;
+import com.example.hubble.data.model.settings.PushConfigResponse;
 
 import java.util.List;
 
+import okhttp3.MultipartBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -144,10 +149,24 @@ public interface ApiService {
     );
 
     @POST("/api/friends/requests/{userId}")
-    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(@Header("Authorization") String token, @Path("userId") String userId);
+    Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 
     @POST("api/auth/refresh")
     Call<ApiResponse<TokenResponse>> refreshToken(@Body RefreshTokenRequest request);
+
+    @GET("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> getPushConfig(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/push")
+    Call<ApiResponse<PushConfigResponse>> updatePushConfig(
+            @Header("Authorization") String token,
+            @Body PushConfigRequest request
+    );
 
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
@@ -168,6 +187,19 @@ public interface ApiService {
     Call<ChannelDto> getOrCreateDirectChannel(
             @Header("Authorization") String token,
             @Path("otherUserId") String otherUserId
+    );
+
+    @POST("api/messages/channel/{channelId}/read")
+    Call<ApiResponse<Object>> markChannelRead(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Body MarkChannelReadRequest body
+    );
+
+    @GET("api/messages/channel/{channelId}/peer-read-status")
+    Call<ApiResponse<PeerReadStatusDto>> getPeerReadStatus(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
     );
 
     @GET("api/messages/{channelId}")
@@ -206,6 +238,31 @@ public interface ApiService {
             @Path("messageId") String messageId
     );
 
+    @Multipart
+    @POST("api/users/me/avatar")
+    Call<ApiResponse<UserResponse>> uploadMyAvatar(
+            @Header("Authorization") String token,
+            @Part MultipartBody.Part file
+    );
+
+    @GET("api/users/me/avatar")
+    Call<ApiResponse<AvatarResponse>> getMyAvatar(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/{userId}/avatar")
+    Call<ApiResponse<AvatarResponse>> getUserAvatar(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
+    @PUT("api/messages/{messageId}/reactions")
+    Call<ApiResponse<List<ReactionDto>>> toggleReaction(
+            @Header("Authorization") String token,
+            @Path("messageId") String messageId,
+            @Body java.util.Map<String, String> body
+    );
+
     @PUT("api/users/me")
     Call<ApiResponse<UserResponse>> updateProfile(
             @Header("Authorization") String token,
@@ -215,5 +272,71 @@ public interface ApiService {
     @GET("api/users/me")
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
+    );
+    @PUT("api/settings/theme")
+    Call<ApiResponse<String>> updateTheme(
+            @Header("Authorization") String token,
+            @Query("theme") String theme
+    );
+
+    @GET("api/settings/theme")
+    Call<ApiResponse<String>> getTheme(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/users/me/qr")
+    Call<ApiResponse<String>> getMyQrToken(@Header("Authorization") String token);
+
+    @GET("api/users/scan/qr")
+    Call<ApiResponse<UserResponse>> scanQrProfile(
+            @Header("Authorization") String token,
+            @Query("token") String qrToken
+    );
+
+    @PUT("api/settings/language")
+    Call<ApiResponse<String>> updateLanguage(
+            @Header("Authorization") String token,
+            @Query("locale") String language
+    );
+
+    @GET("api/settings/language")
+    Call<ApiResponse<String>> getLanguage(
+            @Header("Authorization") String token
+    );
+
+
+    @GET("api/notifications")
+    Call<ApiResponse<java.util.List<com.example.hubble.data.model.notify.NotificationResponse>>> getNotifications(
+            @Header("Authorization") String token,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/notifications/unread-count")
+    Call<ApiResponse<Long>> getNotificationUnreadCount(
+            @Header("Authorization") String token
+    );
+
+    @PATCH("api/notifications/{notificationId}/read")
+    Call<ApiResponse<Void>> markNotificationRead(
+            @Header("Authorization") String token,
+            @Path("notificationId") String notificationId
+    );
+
+    @PATCH("api/notifications/read-all")
+    Call<ApiResponse<Void>> markAllNotificationsRead(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/device-tokens")
+    Call<ApiResponse<Void>> registerDeviceToken(
+            @Header("Authorization") String token,
+            @Body java.util.Map<String, String> body
+    );
+
+    @DELETE("api/device-tokens/{fcmToken}")
+    Call<ApiResponse<Void>> removeDeviceToken(
+            @Header("Authorization") String token,
+            @Path("fcmToken") String fcmToken
     );
 }

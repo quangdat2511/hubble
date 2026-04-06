@@ -3,9 +3,12 @@ package com.hubble.service;
 import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.AttachmentResponse;
+import com.hubble.dto.response.DmDeliveryEvent;
 import com.hubble.dto.response.MessageResponse;
+import com.hubble.dto.response.ReactionResponse;
 import com.hubble.dto.response.SharedContentItemResponse;
 import com.hubble.dto.response.SharedContentPageResponse;
+import com.hubble.dto.response.SmartReplyResponse;
 import com.hubble.entity.Attachment;
 import com.hubble.entity.Channel;
 import com.hubble.entity.Message;
@@ -17,7 +20,10 @@ import com.hubble.mapper.MessageMapper;
 import com.hubble.repository.AttachmentRepository;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.ChannelRoleRepository;
+import com.hubble.repository.MemberRoleRepository;
 import com.hubble.repository.MessageRepository;
+import com.hubble.repository.ServerMemberRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,11 +56,18 @@ public class MessageService {
     MessageMapper messageMapper;
     ChannelRepository channelRepository;
     ChannelMemberRepository channelMemberRepository;
+    ChannelRoleRepository channelRoleRepository;
+    ServerMemberRepository serverMemberRepository;
+    MemberRoleRepository memberRoleRepository;
     SimpMessagingTemplate messagingTemplate;
+    SmartReplyService smartReplyService;
+    ReactionService reactionService;
 
     @Transactional(readOnly = true)
     public List<MessageResponse> getMessages(String userId, String channelId, int page, int size) {
-        UUID channelUuid = requireAccessibleChannel(UUID.fromString(userId), channelId);
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID userUuid = UUID.fromString(userId);
+        checkChannelAccess(channelUuid, userUuid);
 
         List<Message> messages = messageRepository
                 .findByChannelIdOrderByCreatedAtDesc(channelUuid, PageRequest.of(page, size))
@@ -82,10 +96,14 @@ public class MessageService {
                         )
                 ));
 
+        Map<UUID, List<ReactionResponse>> reactionsByMessageId =
+                reactionService.getReactionsForMessages(messageIds);
+
         return messages.stream()
                 .map(msg -> {
                     MessageResponse res = messageMapper.toMessageResponse(msg);
                     res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
                     return res;
                 })
                 .toList();
@@ -126,9 +144,8 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(String authorId, CreateMessageRequest request) {
         UUID channelUuid = UUID.fromString(request.getChannelId());
-        if (!channelRepository.existsById(channelUuid)) {
-            throw new AppException(ErrorCode.CHANNEL_NOT_FOUND);
-        }
+        UUID authorUuid = UUID.fromString(authorId);
+        checkChannelAccess(channelUuid, authorUuid);
 
         Message message = Message.builder()
                 .channelId(channelUuid)
@@ -151,6 +168,38 @@ public class MessageService {
                 "/topic/channels/" + request.getChannelId(),
                 response
         );
+
+        // Push a delivery event to every channel member except the sender.
+        // Each recipient's app (even if not in this chat screen) will receive
+        // this on /topic/users/{recipientId}/dm-delivery and send back an ack,
+        // allowing the sender to see "✓✓ Đã nhận" as soon as the message lands
+        // on the recipient's device — not only when they open the chat.
+        DmDeliveryEvent deliveryEvent = DmDeliveryEvent.builder()
+                .channelId(request.getChannelId())
+                .senderId(authorId)
+                .build();
+
+        channelMemberRepository.findAllByChannelId(channelUuid).forEach(member -> {
+            if (!member.getUserId().equals(UUID.fromString(authorId))) {
+                messagingTemplate.convertAndSend(
+                        "/topic/users/" + member.getUserId() + "/dm-delivery",
+                        deliveryEvent
+                );
+            }
+        });
+
+        if ("TEXT".equalsIgnoreCase(request.getType())) {
+            CompletableFuture.runAsync(() -> {
+                List<String> suggestions = smartReplyService.generateSuggestions(saved.getContent());
+
+                if (!suggestions.isEmpty()) {
+                    messagingTemplate.convertAndSend(
+                            "/topic/channels/" + request.getChannelId() + "/suggestions",
+                            new SmartReplyResponse(suggestions, authorId)
+                    );
+                }
+            });
+        }
 
         return response;
     }
@@ -328,6 +377,7 @@ public class MessageService {
 
         MessageResponse res = messageMapper.toMessageResponse(message);
         res.setAttachments(attachments);
+        res.setReactions(reactionService.getReactionsForMessage(message.getId()));
         return res;
     }
 
@@ -345,5 +395,28 @@ public class MessageService {
 
     private String toString(Object value) {
         return value != null ? value.toString() : null;
+    }
+
+    private void checkChannelAccess(UUID channelId, UUID userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+
+        // DM channels (no serverId) and non-private channels are always accessible
+        if (!Boolean.TRUE.equals(channel.getIsPrivate()) || channel.getServerId() == null) return;
+
+        // Check explicit member access
+        if (channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) return;
+
+        // Check role-based access
+        boolean hasRoleAccess = serverMemberRepository.findByServerIdAndUserId(channel.getServerId(), userId)
+                .map(member -> {
+                    List<UUID> roleIds = memberRoleRepository.findRoleIdsByMemberId(member.getId());
+                    return !roleIds.isEmpty() && channelRoleRepository.existsByChannelIdAndRoleIdIn(channelId, roleIds);
+                })
+                .orElse(false);
+
+        if (!hasRoleAccess) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
     }
 }

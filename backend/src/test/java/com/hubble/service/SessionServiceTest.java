@@ -6,8 +6,10 @@ import com.hubble.enums.DeviceType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.UserSessionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,122 +23,101 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class SessionServiceTest {
+public class SessionServiceTest {
 
-   @Mock
-   private UserSessionRepository userSessionRepository;
+    @Mock
+    private UserSessionRepository userSessionRepository;
 
-   @InjectMocks
-   private SessionService sessionService;
+    @InjectMocks
+    private SessionService sessionService;
 
-   @Test
-   void getActiveSessions_Success_WithDeviceType() {
-       UUID userId = UUID.randomUUID();
-       UUID sessionId = UUID.randomUUID();
+    private UUID userId;
+    private UUID sessionId;
 
-       UserSession session = UserSession.builder()
-               .id(sessionId)
-               .userId(userId)
-               .deviceName("iPhone 14 Pro")
-               .deviceType(DeviceType.MOBILE)
-               .ipAddress("192.168.1.100")
-               .isActive(true)
-               .lastActiveAt(LocalDateTime.now())
-               .createdAt(LocalDateTime.now().minusDays(1))
-               .build();
+    @BeforeEach
+    void setUp() {
+        userId = UUID.randomUUID();
+        sessionId = UUID.randomUUID();
+    }
 
-       when(userSessionRepository.findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId))
-               .thenReturn(List.of(session));
+    @Test
+    void getActiveSessions_ReturnsSessionList() {
+        UserSession session1 = UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .deviceName("iPhone 13")
+                .deviceType(DeviceType.MOBILE)
+                .ipAddress("10.0.0.1")
+                .isActive(true)
+                .lastActiveAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .build();
 
-       List<SessionResponse> responses = sessionService.getActiveSessions(userId);
+        UserSession session2 = UserSession.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .deviceName("MacBook Pro")
+                .deviceType(DeviceType.DESKTOP)
+                .ipAddress("10.0.0.2")
+                .isActive(true)
+                .lastActiveAt(LocalDateTime.now().minusDays(1))
+                .createdAt(LocalDateTime.now().minusDays(1))
+                .build();
 
-       assertNotNull(responses);
-       assertEquals(1, responses.size());
-       assertEquals(sessionId, responses.get(0).getId());
-       assertEquals("iPhone 14 Pro", responses.get(0).getDeviceName());
-       assertEquals(DeviceType.MOBILE.name(), responses.get(0).getDeviceType());
-       assertEquals("192.168.1.100", responses.get(0).getIpAddress());
+        when(userSessionRepository.findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId))
+                .thenReturn(List.of(session1, session2));
 
-       verify(userSessionRepository, times(1)).findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId);
-   }
+        List<SessionResponse> responses = sessionService.getActiveSessions(userId);
 
-   @Test
-   void getActiveSessions_Success_WithNullDeviceType() {
-       UUID userId = UUID.randomUUID();
-       UUID sessionId = UUID.randomUUID();
+        assertEquals(2, responses.size());
 
-       UserSession session = UserSession.builder()
-               .id(sessionId)
-               .userId(userId)
-               .deviceName("Unknown Device")
-               .deviceType(null)
-               .ipAddress("10.0.0.1")
-               .isActive(true)
-               .lastActiveAt(LocalDateTime.now())
-               .createdAt(LocalDateTime.now().minusDays(2))
-               .build();
+        assertEquals(sessionId, responses.get(0).getId());
+        assertEquals("iPhone 13", responses.get(0).getDeviceName());
+        assertEquals("MOBILE", responses.get(0).getDeviceType());
 
-       when(userSessionRepository.findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId))
-               .thenReturn(List.of(session));
+        assertEquals("MacBook Pro", responses.get(1).getDeviceName());
+        assertEquals("DESKTOP", responses.get(1).getDeviceType());
+    }
 
-       List<SessionResponse> responses = sessionService.getActiveSessions(userId);
+    @Test
+    void getActiveSessions_NoActiveSessions_ReturnsEmptyList() {
+        when(userSessionRepository.findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId))
+                .thenReturn(List.of());
 
-       assertNotNull(responses);
-       assertEquals(1, responses.size());
-       assertEquals(sessionId, responses.get(0).getId());
-       assertEquals("Unknown Device", responses.get(0).getDeviceName());
-       assertNull(responses.get(0).getDeviceType());
-       assertEquals("10.0.0.1", responses.get(0).getIpAddress());
+        List<SessionResponse> responses = sessionService.getActiveSessions(userId);
 
-       verify(userSessionRepository, times(1)).findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId);
-   }
+        assertTrue(responses.isEmpty());
+    }
 
-   @Test
-   void getActiveSessions_EmptyList_Success() {
-       UUID userId = UUID.randomUUID();
+    @Test
+    void revokeSession_SessionExists_DeactivatesSession() {
+        UserSession session = UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .isActive(true)
+                .build();
 
-       when(userSessionRepository.findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId))
-               .thenReturn(List.of());
+        when(userSessionRepository.findByIdAndUserIdAndIsActiveTrue(sessionId, userId))
+                .thenReturn(Optional.of(session));
 
-       List<SessionResponse> responses = sessionService.getActiveSessions(userId);
+        sessionService.revokeSession(userId, sessionId);
 
-       assertNotNull(responses);
-       assertTrue(responses.isEmpty());
+        ArgumentCaptor<UserSession> sessionCaptor = ArgumentCaptor.forClass(UserSession.class);
+        verify(userSessionRepository).save(sessionCaptor.capture());
 
-       verify(userSessionRepository, times(1)).findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(userId);
-   }
+        UserSession savedSession = sessionCaptor.getValue();
+        assertFalse(savedSession.getIsActive());
+    }
 
-   @Test
-   void revokeSession_Success() {
-       UUID userId = UUID.randomUUID();
-       UUID sessionId = UUID.randomUUID();
+    @Test
+    void revokeSession_SessionNotFoundOrNotActive_ThrowsException() {
+        when(userSessionRepository.findByIdAndUserIdAndIsActiveTrue(sessionId, userId))
+                .thenReturn(Optional.empty());
 
-       UserSession session = UserSession.builder()
-               .id(sessionId)
-               .userId(userId)
-               .isActive(true)
-               .build();
+        AppException exception = assertThrows(AppException.class,
+                () -> sessionService.revokeSession(userId, sessionId));
 
-       when(userSessionRepository.findByIdAndUserIdAndIsActiveTrue(sessionId, userId))
-               .thenReturn(Optional.of(session));
-
-       sessionService.revokeSession(userId, sessionId);
-
-       assertFalse(session.getIsActive());
-       verify(userSessionRepository, times(1)).save(session);
-   }
-
-   @Test
-   void revokeSession_SessionNotFoundOrNotActive_ThrowsAppException() {
-       UUID userId = UUID.randomUUID();
-       UUID sessionId = UUID.randomUUID();
-
-       when(userSessionRepository.findByIdAndUserIdAndIsActiveTrue(sessionId, userId))
-               .thenReturn(Optional.empty());
-
-       AppException exception = assertThrows(AppException.class, () -> sessionService.revokeSession(userId, sessionId));
-
-       assertEquals(ErrorCode.NOT_FOUND, exception.getErrorCode());
-       verify(userSessionRepository, never()).save(any(UserSession.class));
-   }
+        assertEquals(ErrorCode.NOT_FOUND, exception.getErrorCode());
+        verify(userSessionRepository, never()).save(any(UserSession.class));
+    }
 }

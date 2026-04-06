@@ -14,14 +14,29 @@
     android:paddingTop="@dimen/spacing_xs"
     android:paddingBottom="@dimen/spacing_xs">
 
-    <ImageView
-        android:id="@+id/ivChannelIcon"
+    <FrameLayout
         android:layout_width="@dimen/channel_icon_size"
         android:layout_height="@dimen/channel_icon_size"
-        android:layout_marginEnd="@dimen/spacing_sm"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_sound"
-        app:tint="?attr/colorOnSurfaceVariant" />
+        android:layout_marginEnd="@dimen/spacing_sm">
+
+        <ImageView
+            android:id="@+id/ivChannelIcon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_sound"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageView
+            android:id="@+id/ivLockBadge"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_gravity="bottom|end"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_lock_outline"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurface" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/tvChannelName"
@@ -30,5 +45,20 @@
         android:layout_weight="1"
         android:textAppearance="?attr/textAppearanceTitleSmall"
         android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/tvChannelUnreadBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="20dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:background="@drawable/bg_unread_badge_red"
+        android:gravity="center"
+        android:minWidth="20dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
 </LinearLayout>

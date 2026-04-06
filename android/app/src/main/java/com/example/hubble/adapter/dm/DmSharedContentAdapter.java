@@ -15,6 +15,7 @@ import com.example.hubble.data.model.dm.SharedContentItemResponse;
 import com.example.hubble.databinding.ItemDmSharedFileBinding;
 import com.example.hubble.databinding.ItemDmSharedLinkBinding;
 import com.example.hubble.databinding.ItemDmSharedMediaBinding;
+import com.example.hubble.databinding.ItemDmSharedSectionHeaderBinding;
 
 import java.net.URI;
 import java.text.DecimalFormat;
@@ -33,42 +34,43 @@ public class DmSharedContentAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         void onDownloadItem(@NonNull SharedContentItemResponse item);
     }
 
+    public static final int VIEW_TYPE_SECTION_HEADER = 0;
     public static final int VIEW_TYPE_MEDIA = 1;
     public static final int VIEW_TYPE_LINK = 2;
     public static final int VIEW_TYPE_FILE = 3;
 
-    private final List<SharedContentItemResponse> items = new ArrayList<>();
+    private final List<SharedContentItemResponse> dataItems = new ArrayList<>();
+    private final List<DisplayItem> displayItems = new ArrayList<>();
     private final Listener listener;
-    private String activeType = "MEDIA";
 
     public DmSharedContentAdapter(@NonNull Listener listener) {
         this.listener = listener;
     }
 
-    public void setActiveType(@NonNull String activeType) {
-        this.activeType = activeType;
-        notifyDataSetChanged();
-    }
-
     public void replaceItems(@NonNull List<SharedContentItemResponse> newItems) {
-        items.clear();
-        items.addAll(newItems);
+        dataItems.clear();
+        dataItems.addAll(newItems);
+        rebuildDisplayItems();
         notifyDataSetChanged();
     }
 
     public void appendItems(@NonNull List<SharedContentItemResponse> newItems) {
-        int start = items.size();
-        items.addAll(newItems);
-        notifyItemRangeInserted(start, newItems.size());
+        dataItems.addAll(newItems);
+        rebuildDisplayItems();
+        notifyDataSetChanged();
     }
 
     public int getDataItemCount() {
-        return items.size();
+        return dataItems.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        SharedContentItemResponse item = items.get(position);
+        DisplayItem displayItem = displayItems.get(position);
+        if (displayItem.isHeader()) {
+            return VIEW_TYPE_SECTION_HEADER;
+        }
+        SharedContentItemResponse item = displayItem.item;
         if (item.isLink()) {
             return VIEW_TYPE_LINK;
         }
@@ -82,6 +84,9 @@ public class DmSharedContentAdapter extends RecyclerView.Adapter<RecyclerView.Vi
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        if (viewType == VIEW_TYPE_SECTION_HEADER) {
+            return new SectionHeaderViewHolder(ItemDmSharedSectionHeaderBinding.inflate(inflater, parent, false));
+        }
         if (viewType == VIEW_TYPE_LINK) {
             return new LinkViewHolder(ItemDmSharedLinkBinding.inflate(inflater, parent, false));
         }
@@ -93,19 +98,63 @@ public class DmSharedContentAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        SharedContentItemResponse item = items.get(position);
-        if (holder instanceof MediaViewHolder) {
+        DisplayItem displayItem = displayItems.get(position);
+        if (holder instanceof SectionHeaderViewHolder) {
+            ((SectionHeaderViewHolder) holder).bind(displayItem.headerLabel);
+            return;
+        }
+        SharedContentItemResponse item = displayItem.item;
+        if (holder instanceof MediaViewHolder && item != null) {
             ((MediaViewHolder) holder).bind(item);
-        } else if (holder instanceof LinkViewHolder) {
+        } else if (holder instanceof LinkViewHolder && item != null) {
             ((LinkViewHolder) holder).bind(item);
-        } else if (holder instanceof FileViewHolder) {
+        } else if (holder instanceof FileViewHolder && item != null) {
             ((FileViewHolder) holder).bind(item);
         }
     }
 
     @Override
     public int getItemCount() {
-        return items.size();
+        return displayItems.size();
+    }
+
+    private void rebuildDisplayItems() {
+        displayItems.clear();
+        String lastHeader = null;
+        for (SharedContentItemResponse item : dataItems) {
+            String headerLabel = buildSectionHeader(item.getCreatedAt());
+            if (!TextUtils.equals(lastHeader, headerLabel)) {
+                displayItems.add(DisplayItem.header(headerLabel));
+                lastHeader = headerLabel;
+            }
+            displayItems.add(DisplayItem.item(item));
+        }
+    }
+
+    private String buildSectionHeader(String rawDate) {
+        OffsetDateTime offsetDateTime = parseOffsetDateTime(rawDate);
+        if (offsetDateTime != null) {
+            return offsetDateTime.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()));
+        }
+
+        LocalDateTime localDateTime = parseLocalDateTime(rawDate);
+        if (localDateTime != null) {
+            return localDateTime.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()));
+        }
+        return rawDate == null ? "" : rawDate;
+    }
+
+    private final class SectionHeaderViewHolder extends RecyclerView.ViewHolder {
+        private final ItemDmSharedSectionHeaderBinding binding;
+
+        private SectionHeaderViewHolder(ItemDmSharedSectionHeaderBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        private void bind(String title) {
+            binding.tvSectionHeader.setText(title);
+        }
     }
 
     private final class MediaViewHolder extends RecyclerView.ViewHolder {
@@ -223,18 +272,17 @@ public class DmSharedContentAdapter extends RecyclerView.Adapter<RecyclerView.Vi
     }
 
     private String formatDate(String rawDate) {
-        if (TextUtils.isEmpty(rawDate)) {
-            return "";
+        OffsetDateTime offsetDateTime = parseOffsetDateTime(rawDate);
+        if (offsetDateTime != null) {
+            return offsetDateTime.format(DateTimeFormatter.ofPattern("dd MMM • HH:mm", Locale.getDefault()));
         }
-        try {
-            return OffsetDateTime.parse(rawDate).format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()));
-        } catch (Exception ignored) {
-            try {
-                return LocalDateTime.parse(rawDate).format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()));
-            } catch (Exception ignoredAgain) {
-                return rawDate;
-            }
+
+        LocalDateTime localDateTime = parseLocalDateTime(rawDate);
+        if (localDateTime != null) {
+            return localDateTime.format(DateTimeFormatter.ofPattern("dd MMM • HH:mm", Locale.getDefault()));
         }
+
+        return rawDate == null ? "" : rawDate;
     }
 
     private String extractHost(String rawUrl) {
@@ -250,5 +298,49 @@ public class DmSharedContentAdapter extends RecyclerView.Adapter<RecyclerView.Vi
             // fall through
         }
         return rawUrl;
+    }
+
+    private OffsetDateTime parseOffsetDateTime(String rawDate) {
+        if (TextUtils.isEmpty(rawDate)) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(rawDate);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private LocalDateTime parseLocalDateTime(String rawDate) {
+        if (TextUtils.isEmpty(rawDate)) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(rawDate);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static final class DisplayItem {
+        private final String headerLabel;
+        private final SharedContentItemResponse item;
+
+        private DisplayItem(String headerLabel, SharedContentItemResponse item) {
+            this.headerLabel = headerLabel;
+            this.item = item;
+        }
+
+        private static DisplayItem header(String title) {
+            return new DisplayItem(title, null);
+        }
+
+        private static DisplayItem item(SharedContentItemResponse item) {
+            return new DisplayItem(null, item);
+        }
+
+        private boolean isHeader() {
+            return item == null;
+        }
     }
 }

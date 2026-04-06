@@ -64,9 +64,11 @@
     <string name="error_empty_name">Vui lòng nhập tên hiển thị</string>
     <string name="error_empty_otp">Vui lòng nhập đầy đủ mã OTP</string>
     <string name="error_generic">Có lỗi xảy ra. Vui lòng thử lại.</string>
+    <string name="error_invalid_otp">Mã OTP không hợp lệ</string>
+    <string name="error_password_weak">Mật khẩu phải chứa ít nhất 1 chữ cái, 1 chữ số và 1 ký tự đặc biệt</string>
 
     <!-- Main / Home -->
-    <string name="nav_home">Trang chủ</string>
+    <string name="nav_home">Trang Chủ</string>
     <string name="nav_notifications">Các Thông Báo</string>
     <string name="nav_me">Bạn</string>
     <string name="main_add_server">Thêm máy chủ</string>
@@ -86,6 +88,17 @@
     <string name="notifications_title">Các Thông Báo</string>
     <string name="notifications_empty">Không có thông báo mới</string>
     <string name="cd_notifications_more">Thêm tùy chọn thông báo</string>
+    <string name="friend_requests_section_label">LỜI MỜI KẾT BẠN</string>
+    <string name="friend_request_respond_success">Đã phản hồi lời mời kết bạn</string>
+    <string name="notification_ignore">Bỏ qua</string>
+    <string name="notification_recent_activity">Hoạt động gần đây</string>
+    <string name="notification_friend_request_text">%1$s đã gửi cho bạn lời mời kết bạn.</string>
+    <string name="notification_server_invite_text">%1$s đã mời bạn tham gia %2$s.</string>
+    <string name="notification_friend_accepted_text">%1$s đã chấp nhận lời mời kết bạn của bạn.</string>
+    <string name="notification_channel_name">Thông báo Hubble</string>
+    <string name="notification_channel_desc">Thông báo từ ứng dụng Hubble</string>
+    <string name="notification_system_section">Thông báo hệ thống</string>
+    <string name="notification_mark_all_read">Đánh dấu tất cả đã đọc</string>
 
     <!-- Me / Profile screen -->
     <string name="me_title">Bạn</string>
@@ -105,25 +118,34 @@
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
+    <string name="me_qr_section_title">QR</string>
     <string name="me_notes">Ghi chú (chỉ hiển thị cho bạn)</string>
+    <string name="me_avatar_hint">Chọn ảnh, cắt vuông và cập nhật ảnh đại diện</string>
+    <string name="me_avatar_uploading">Đang tải ảnh đại diện...</string>
+    <string name="me_avatar_error_read">Không thể đọc ảnh được chọn</string>
+    <string name="me_avatar_error_upload">Tải ảnh đại diện thất bại</string>
+    <string name="me_avatar_updated">Đã cập nhật ảnh đại diện</string>
+    <string name="me_avatar_picker_title">Chọn ảnh đại diện</string>
     <string name="me_outgoing_requests">Lời mời đã gửi</string>
     <string name="me_blocked_users">Người dùng đã chặn</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
+    <string name="cd_edit_avatar">Chỉnh ảnh đại diện</string>
     <string name="cd_online_status">Trực tuyến</string>
 
     <!-- Settings screen -->
-    <string name="settings_title">Cài đặt</string>
-    <string name="settings_section_app">Ứng Dụng</string>
+    <string name="settings_title">Cài Đặt</string>
+    <string name="settings_section_app">Ứng dụng</string>
     <string name="settings_section_support">Hỗ trợ</string>
-    <string name="settings_section_info">Có Gì Mới</string>
+    <string name="settings_section_info">Có gì mới</string>
     <string name="settings_language">Ngôn ngữ</string>
-    <string name="settings_notifications">Các Thông Báo</string>
+    <string name="settings_notifications">Các thông báo</string>
     <string name="settings_appearance">Giao diện</string>
     <string name="settings_advanced">Nâng cao</string>
+    <string name="settings_sessions">Quản lý thiết bị và phiên</string>
     <string name="settings_support">Hỗ trợ</string>
-    <string name="settings_changelog">Có Gì Mới</string>
-    <string name="settings_logout">Đăng Xuất</string>
+    <string name="settings_changelog">Có gì mới</string>
+    <string name="settings_logout">Đăng xuất</string>
     <string name="settings_logout_confirm_title">Đăng xuất</string>
     <string name="settings_logout_confirm_message">Bạn có chắc chắn muốn đăng xuất?</string>
     <string name="settings_logout_confirm_yes">Đăng xuất</string>
@@ -186,7 +208,8 @@
     <string name="dm_me">Bạn</string>
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
-    <string name="dm_message_hint">Nhắn tin cho %1$s</string>
+    <string name="typing_indicator">%1$s đang nhập…</string>
+    <string name="dm_message_hint">Nhắn tin @%1$s</string>
     <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>
     <string name="dm_send_demo_hint">MVP UI: đã nhận thao tác gửi tin nhắn</string>
@@ -252,6 +275,8 @@
     <string name="no">Không</string>
     <string name="empty_message_error">Vui lòng nhập nội dung tin nhắn</string>
     <string name="pin_message">Ghim tin nhắn</string>
+    <string name="mark_unread">Đánh dấu chưa đọc</string>
+    <string name="reactions">Reactions</string>
     <string name="reply_to">Trả lời %1$s</string>
     <string name="reply_cancel">Hủy trả lời</string>
     <string name="cd_reply_cancel">Hủy trả lời tin nhắn</string>
@@ -262,6 +287,10 @@
     <string name="copied_message_text">Đã sao chép nội dung tin nhắn</string>
     <string name="forward_sent_count">Đã chuyển tiếp %1$d cuộc trò chuyện</string>
     <string name="forward_no_target">Hãy chọn ít nhất một nơi nhận</string>
+    <string name="msg_status_sending">⏱ Đang gửi…</string>
+    <string name="msg_status_sent">✓ Đã gửi</string>
+    <string name="msg_status_delivered">✓✓ Đã nhận</string>
+    <string name="msg_status_read">✓✓ Đã xem</string>
     <string name="message_edited">đã chỉnh sửa</string>
     <string name="message_edited_suffix"> (%1$s)</string>
     <string name="editing_message">Đang chỉnh sửa tin nhắn</string>
@@ -270,7 +299,98 @@
     <string name="dm_media">Tệp đa phương tiện</string>
     <string name="save">Lưu</string>
     <string name="cancel">Hủy</string>
+    <string name="language_title">Ngôn ngữ</string>
+    <string name="language_switch_label">Tiếng Việt</string>
+    <string name="language_current_en">Hiện tại: Tiếng Anh</string>
+    <string name="language_current_vi">Hiện tại: Tiếng Việt</string>
+    <string name="settings_saved">Đã lưu cài đặt</string>
+    <string name="language_status_label">Chọn ngôn ngữ hiển thị cho ứng dụng.</string>
+    <string name="language_option_en">English</string>
+    <string name="language_option_vi">Tiếng Việt</string>
+    <string name="add_friend_title">Thêm bạn</string>
+    <string name="add_friend_search_hint">Nhập username</string>
+    <string name="pending_requests_title">Lời mời đang chờ</string>
+    <string name="session_management_title">Thiết bị của bạn</string>
+    <string name="friend_action_add">Thêm</string>
+    <string name="attachment_file">Tệp đính kèm</string>
+    <string name="dm_official">Chính thức</string>
+    <string name="profile_updated">Cập nhật hồ sơ thành công</string>
+    <string name="session_logout_device_title">Đăng xuất thiết bị</string>
+    <string name="session_logout_device_message">Bạn có chắc muốn đăng xuất khỏi thiết bị %1$s?</string>
+    <string name="session_revoke_success">Đã đăng xuất thiết bị thành công</string>
+    <string name="friend_request_sent">Đã gửi lời mời thành công!</string>
+    <string name="blocked_user_unblocked">Đã bỏ chặn thành công!</string>
+    <string name="pending_requests_processed">Đã xử lý lời mời!</string>
+    <string name="outgoing_request_cancelled">Đã hủy lời mời!</string>
+    <string name="session_unknown_device">Thiết bị không xác định</string>
+    <string name="session_unknown_value">Không xác định</string>
+    <string name="emoji_results">Kết quả</string>
+    <string name="home_open_channel">Mở kênh: %1$s</string>
+    <string name="dm_untitled_file">Tệp không tên</string>
+    <string name="dm_file_type_pdf">Tài liệu PDF</string>
+    <string name="dm_file_type_word">Tài liệu Word</string>
+    <string name="dm_file_type_excel">Bảng tính Excel</string>
+    <string name="dm_file_type_presentation">Bài thuyết trình</string>
+    <string name="dm_file_type_archive">Tệp nén</string>
+    <string name="dm_file_type_text">Tệp văn bản</string>
+    <string name="dm_open_file_error">Không thể mở tệp này</string>
+    <string name="dm_download_description">Đang tải tệp đính kèm...</string>
+    <string name="dm_download_started">Bắt đầu tải %1$s...</string>
+    <string name="dm_download_error">Lỗi khi tải tệp: %1$s</string>
+    <string name="dm_deleted_message">Tin nhắn đã được thu hồi</string>
+    <string name="dm_reply_media">Tệp đa phương tiện</string>
+    <string name="realtime_not_logged_in">Bạn chưa đăng nhập</string>
+    <string name="realtime_parse_error">Không thể phân tích sự kiện realtime</string>
+    <string name="realtime_disconnected">Realtime bị ngắt: %1$s</string>
+    <string name="main_you_sender">Bạn</string>
+    <string name="main_unknown_user">Người dùng</string>
+    <string name="main_friend_fallback">Bạn bè</string>
+    <string name="dm_direct_message">Tin nhắn trực tiếp</string>
+    <string name="invalid_server_error">Máy chủ không hợp lệ</string>
+    <string name="error_not_logged_in">Bạn chưa đăng nhập</string>
+    <string name="error_unauthorized">Không được phép</string>
+    <string name="error_network">Lỗi mạng: %1$s</string>
+    <string name="error_network_unknown">Không xác định</string>
+    <string name="friend_search_error">Lỗi tìm kiếm</string>
+    <string name="friend_request_send_error">Không thể gửi lời mời</string>
+    <string name="friend_list_load_error">Lỗi tải danh sách</string>
+    <string name="friend_accept_error">Lỗi chấp nhận</string>
+    <string name="friend_action_error">Không thể thực hiện thao tác này</string>
+    <string name="friend_block_error">Lỗi chặn người dùng</string>
+    <string name="friend_unblock_error">Lỗi bỏ chặn</string>
+    <string name="dm_friends_load_error">Không tải được danh sách bạn bè</string>
+    <string name="dm_list_load_error">Không tải được danh sách DM</string>
+    <string name="dm_channel_create_error">Không tạo được kênh DM</string>
+    <string name="dm_messages_load_error">Không tải được tin nhắn</string>
+    <string name="dm_send_error">Không gửi được tin nhắn</string>
+    <string name="dm_edit_error">Không chỉnh sửa được tin nhắn</string>
+    <string name="dm_unsend_error">Không thu hồi được tin nhắn</string>
+    <string name="auth_session_expired">Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.</string>
+    <string name="server_create_error">Tạo máy chủ thất bại</string>
+    <string name="server_list_load_error">Không tải được danh sách máy chủ</string>
+    <string name="server_channels_load_error">Không tải được danh sách kênh</string>
+    <string name="connection_error">Lỗi kết nối: %1$s</string>
+    <string name="session_list_error">Không thể lấy danh sách phiên</string>
+    <string name="session_revoke_error">Không thể đăng xuất thiết bị</string>
+    <string name="profile_load_error">Tải hồ sơ thất bại</string>
+    <string name="profile_update_error">Cập nhật thất bại</string>
+    <string name="time_now">Bây giờ</string>
+    <string name="time_minutes">%1$d phút</string>
+    <string name="time_hours">%1$d giờ</string>
+    <string name="time_days">%1$d ngày</string>
+    <string name="time_months">%1$d tháng</string>
+    <string name="time_years">%1$d năm</string>
 
+    <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
+    <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>
+    <string name="settings_notifications_enable_summary">Nhận cảnh báo khi có tin nhắn và hoạt động mới</string>
+    <string name="settings_notifications_sound_title">Âm thanh thông báo</string>
+    <string name="settings_notifications_sound_summary">Phát âm thanh khi có thông báo mới</string>
+    <string name="settings_notifications_sound_disabled_summary">Bật thông báo đẩy để dùng tùy chọn này</string>
+    <string name="settings_notifications_saved">Đã cập nhật cài đặt thông báo</string>
+    <string name="settings_notifications_status_off">Thông báo đang tắt</string>
+    <string name="settings_notifications_status_on_silent">Đang bật, không âm thanh</string>
+    <string name="settings_notifications_status_on_sound">Đang bật, có âm thanh</string>
     <!-- Server Settings -->
     <string name="server_settings_title">Cài đặt máy chủ</string>
     <string name="server_settings_section_overview">TỔNG QUAN</string>
@@ -311,8 +431,8 @@
     <string name="server_profile_more">Thêm</string>
     <string name="server_profile_upgrade">Nâng Cấp</string>
     <string name="server_profile_notifications">Các Thông Báo</string>
-    <string name="server_profile_invite_people_short">Lời mời</string>
-    <string name="server_profile_create_channel">Tạo kênh</string>
+    <string name="server_profile_invite_people_short">Lời Mời</string>
+    <string name="server_profile_create_channel">Tạo Kênh</string>
     <string name="server_profile_create_category">Tạo Danh Mục</string>
     <string name="server_profile_create_event">Tạo Sự kiện</string>
     <string name="server_profile_mark_as_read">Đánh Dấu Đã Đọc</string>
@@ -507,4 +627,144 @@
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
     <string name="role_detail_delete">Xóa Vai Trò</string>
+
+    <!--    QR-->
+    <string name="me_qr_title">Mã QR hồ sơ</string>
+    <string name="me_qr_hint">Người khác có thể quét mã này để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_view_full">Mở QR toàn màn hình</string>
+    <string name="me_qr_unavailable">Không tạo được mã QR lúc này.</string>
+    <string name="me_qr_toolbar_title">QR của bạn</string>
+    <string name="me_qr_opening_hint">Chia sẻ mã này để người khác quét và thêm bạn nhanh hơn.</string>
+    <string name="me_qr_scan_title">Hồ sơ được quét</string>
+    <string name="me_qr_add_friend">Gửi lời mời kết bạn</string>
+    <string name="me_qr_request_sent">Đã gửi lời mời kết bạn.</string>
+    <string name="me_qr_loading">Đang tải hồ sơ từ QR...</string>
+    <string name="me_qr_invalid">QR không hợp lệ hoặc đã hết hạn.</string>
+    <string name="me_qr_empty">Chưa nhận được dữ liệu QR.</string>
+    <string name="me_qr_you">Đây là bạn</string>
+    <string name="me_qr_save_png">Lưu QR thành PNG</string>
+    <string name="me_qr_saved">Đã lưu mã QR: %1$s</string>
+    <string name="me_qr_save_failed">Không lưu được mã QR.</string>
+    <string name="me_qr_save_unavailable">QR chưa tải xong để lưu.</string>
+    <string name="me_qr_scan_button">Quét QR</string>
+    <string name="me_qr_hub_title">QR</string>
+    <string name="me_qr_hub_subtitle">Chọn cách bạn muốn dùng QR.</string>
+    <string name="me_qr_get_button">QR của tôi</string>
+    <string name="me_qr_get_hint">Hiển thị mã QR của bạn để người khác quét.</string>
+    <string name="me_qr_scan_hint">Đưa mã QR vào khung để mở hồ sơ và gửi lời mời kết bạn.</string>
+    <string name="me_qr_camera_denied">Bạn cần cấp quyền camera để quét mã QR.</string>
+    <string name="me_qr_loading_title">Đang xác nhận mã QR</string>
+    <string name="me_qr_result_badge">Đã quét thành công</string>
+    <string name="me_qr_result_subtitle">Thông tin hồ sơ đã được tải. Hãy kiểm tra lại trước khi tiếp tục.</string>
+    <string name="me_qr_username_label">Tên người dùng</string>
+    <string name="me_qr_user_tag_label">Thẻ người dùng</string>
+    <string name="me_qr_user_id_label">ID người dùng</string>
+    <string name="me_qr_status_label">Trạng thái</string>
+    <string name="me_qr_retry">Thử lại</string>
+    <string name="me_qr_action_loading">Đang xử lý…</string>
+    <string name="me_qr_error_invalid_title">QR không hợp lệ</string>
+    <string name="me_qr_error_not_found_title">Không tìm thấy người dùng</string>
+    <string name="me_qr_error_not_found_message">Không tìm thấy người dùng tương ứng với mã QR này.</string>
+    <string name="me_qr_error_network_title">Không thể kết nối</string>
+    <string name="me_qr_error_network_message">Kiểm tra kết nối mạng rồi thử quét lại.</string>
+    <string name="me_qr_error_generic_title">Không tải được hồ sơ</string>
+    <string name="me_qr_status_online">Đang hoạt động</string>
+    <string name="me_qr_status_idle">Rảnh</string>
+    <string name="me_qr_status_dnd">Không làm phiền</string>
+    <string name="me_qr_status_offline">Ngoại tuyến</string>
+    <string name="me_qr_status_unknown">Chưa rõ</string>
+
+    <!-- Create Channel -->
+    <string name="create_channel_title">Tạo kênh</string>
+    <string name="create_channel_create">Tạo</string>
+    <string name="create_channel_next">Tiếp theo</string>
+    <string name="create_channel_skip">Bỏ qua</string>
+    <string name="create_channel_name_label">Tên kênh</string>
+    <string name="create_channel_default_name">Kênh mới</string>
+    <string name="create_channel_type_label">Loại kênh</string>
+    <string name="create_channel_type_text">Văn bản</string>
+    <string name="create_channel_type_text_desc">Đăng hình ảnh, ảnh động, sticker, ý kiến, và chơi chữ</string>
+    <string name="create_channel_type_voice">Giọng nói</string>
+    <string name="create_channel_type_voice_desc">Cùng gặp mặt bằng gọi thoại, video, và chia sẻ màn hình</string>
+    <string name="create_channel_private">Kênh riêng</string>
+    <string name="create_channel_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="create_channel_add_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="create_channel_search_hint">Tìm kiếm vai trò và thành viên</string>
+    <string name="create_channel_section_roles">Vai trò</string>
+    <string name="create_channel_section_members">Thành viên</string>
+    <string name="create_channel_success">Tạo kênh thành công!</string>
+
+    <!-- Create Category -->
+    <string name="create_category_title">Tạo danh mục</string>
+    <string name="create_category_name_label">Tên danh mục</string>
+    <string name="create_category_default_name">Danh mục mới</string>
+    <string name="create_category_private">Danh mục riêng</string>
+    <string name="create_category_private_note">Nếu đặt danh mục ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể xem danh mục này. Các kênh đã liên kết trong danh mục này cũng sẽ tự động được chuyển sang trạng thái riêng tư.</string>
+
+    <!-- Channel Profile Bottom Sheet -->
+    <string name="channel_profile_invite">Lời Mời</string>
+    <string name="channel_profile_copy_link">Sao Chép Link</string>
+    <string name="channel_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="channel_profile_notifications">Cài Đặt Thông Báo</string>
+    <string name="channel_profile_edit">Chỉnh Sửa Kênh</string>
+    <string name="channel_profile_duplicate">Trùng Lập Kênh</string>
+
+    <!-- Duplicate Channel -->
+    <string name="duplicate_channel_title">Trùng lập kênh</string>
+    <string name="duplicate_channel_name_label">Tên kênh</string>
+    <string name="duplicate_channel_note">Một kênh mới sẽ được tạo ra với cùng quyền hạn, giới hạn người dùng và bitrate như #%s.</string>
+
+    <!-- Channel Settings -->
+    <string name="channel_settings_title">Cài đặt kênh</string>
+    <string name="channel_settings_name_label">TÊN KÊNH</string>
+    <string name="channel_settings_topic_label">CHỦ ĐỀ KÊNH</string>
+    <string name="channel_settings_topic_hint">Thêm chủ đề</string>
+    <string name="channel_settings_category">Danh mục</string>
+    <string name="channel_settings_uncategorized">Không có danh mục</string>
+    <string name="channel_settings_permissions">Quyền hạn</string>
+    <string name="channel_settings_notifications">Các thông báo</string>
+    <string name="channel_settings_pinned">Tin nhắn đã ghim</string>
+    <string name="channel_settings_delete">Xóa kênh</string>
+    <string name="channel_settings_delete_confirm_title">Xóa kênh</string>
+    <string name="channel_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa #%s? Thao tác này không thể hoàn tác.</string>
+    <string name="channel_settings_saved">Đã lưu thay đổi</string>
+    <string name="channel_settings_deleted">Kênh đã được xóa</string>
+
+    <!-- Change Category -->
+    <string name="change_category_title">Danh Mục</string>
+
+    <!-- Channel Permissions -->
+    <string name="channel_permissions_title">Quyền Hạn Kênh</string>
+    <string name="channel_permissions_private">Kênh Riêng</string>
+    <string name="channel_permissions_private_note">Nếu đặt kênh ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể nhìn thấy kênh này.</string>
+    <string name="channel_permissions_add">Thêm thành viên hoặc vai trò</string>
+    <string name="channel_permissions_section_roles">VAI TRÒ</string>
+    <string name="channel_permissions_section_members">THÀNH VIÊN</string>
+    <string name="channel_permissions_remove_confirm_title">Xóa quyền truy cập</string>
+    <string name="channel_permissions_remove_member_confirm">Xóa quyền truy cập của %s khỏi kênh này?</string>
+    <string name="channel_permissions_remove_role_confirm">Xóa vai trò %s khỏi kênh này?</string>
+
+    <!-- Add Channel Access -->
+    <string name="add_channel_access_title">Thêm thành viên hoặc vai trò</string>
+    <string name="add_channel_access_search_hint">Tìm Kiếm Vai Trò Và Thành Viên</string>
+    <string name="add_channel_access_section_roles">Vai trò</string>
+    <string name="add_channel_access_section_members">Thành viên</string>
+
+    <!-- Category Profile Bottom Sheet -->
+    <string name="category_profile_invite">Lời Mời</string>
+    <string name="category_profile_mark_read">Đánh Dấu Đã Đọc</string>
+    <string name="category_profile_mute">Tắt Âm Danh Mục</string>
+    <string name="category_profile_notifications">Cài Đặt Thông Báo</string>
+    <string name="category_profile_edit">Chỉnh Sửa Danh Mục</string>
+    <string name="category_profile_create_channel">Tạo Kênh</string>
+
+    <!-- Category Settings -->
+    <string name="category_settings_title">Cài đặt danh mục</string>
+    <string name="category_settings_name_label">TÊN DANH MỤC</string>
+    <string name="category_settings_name_empty">Tên danh mục không được để trống</string>
+    <string name="category_settings_permissions">Quyền truy cập danh mục</string>
+    <string name="category_settings_permissions_desc">Tùy chỉnh ai có thể xem danh mục này và các kênh bên trong bằng cách thêm thành viên hoặc vai trò.</string>
+    <string name="category_settings_delete">Xóa mục</string>
+    <string name="category_settings_delete_confirm_title">Xóa danh mục</string>
+    <string name="category_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa %s? Các kênh trong danh mục sẽ không bị xóa.</string>
 </resources>

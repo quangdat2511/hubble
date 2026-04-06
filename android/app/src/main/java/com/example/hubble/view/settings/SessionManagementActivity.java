@@ -9,6 +9,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.example.hubble.R;
 import com.example.hubble.adapter.settings.SessionAdapter;
 import com.example.hubble.data.repository.SessionRepository;
 import com.example.hubble.databinding.ActivitySessionManagementBinding;
@@ -57,13 +58,15 @@ public class SessionManagementActivity extends AppCompatActivity {
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
         adapter = new SessionAdapter(session -> {
+            String deviceName = session.getDeviceName() != null && !session.getDeviceName().trim().isEmpty()
+                    ? session.getDeviceName()
+                    : getString(R.string.session_unknown_device);
             new MaterialAlertDialogBuilder(this)
-                    .setTitle("Đăng xuất thiết bị")
-                    .setMessage("Bạn có chắc muốn đăng xuất khỏi thiết bị " + session.getDeviceName() + "?")
-                    .setPositiveButton("Đăng xuất", (dialog, which) -> {
-                        viewModel.revokeSession(session.getId());
-                    })
-                    .setNegativeButton("Hủy", null)
+                    .setTitle(R.string.session_logout_device_title)
+                    .setMessage(getString(R.string.session_logout_device_message, deviceName))
+                    .setPositiveButton(R.string.settings_logout_confirm_yes, (dialog, which) ->
+                            viewModel.revokeSession(session.getId()))
+                    .setNegativeButton(R.string.cancel, null)
                     .show();
         });
 
@@ -95,7 +98,7 @@ public class SessionManagementActivity extends AppCompatActivity {
             } else {
                 binding.progressBar.setVisibility(View.GONE);
                 if (result.isSuccess()) {
-                    Snackbar.make(binding.getRoot(), "Đã đăng xuất thiết bị thành công", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(binding.getRoot(), R.string.session_revoke_success, Snackbar.LENGTH_SHORT).show();
                     viewModel.fetchSessions();
                 } else if (result.isError()) {
                     Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();

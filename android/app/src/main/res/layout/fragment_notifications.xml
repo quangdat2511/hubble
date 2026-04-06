@@ -50,30 +50,125 @@
         android:visibility="gone"
         app:trackCornerRadius="0dp" />
 
-    <!-- Pending invites section label -->
-    <TextView
-        android:id="@+id/tvInvitesSectionLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_md"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:layout_marginBottom="@dimen/spacing_sm"
-        android:text="@string/invite_section_pending_label"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
-
-    <!-- Pending invites list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvPendingInvites"
+    <!-- Scrollable notifications content -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
         android:overScrollMode="never"
-        android:paddingTop="@dimen/spacing_xs"
-        android:paddingBottom="@dimen/spacing_md"
-        android:visibility="gone" />
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Pending friend requests (no section header, like Discord) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFriendRequests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:visibility="gone" />
+
+            <!-- Pending server invites (no section header) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPendingInvites"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:visibility="gone" />
+
+            <!-- Divider before Recent Activity (only when both sections above + activity exist) -->
+            <View
+                android:id="@+id/dividerRecentActivity"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/colorOutline"
+                android:visibility="gone" />
+
+            <!-- Recent Activity section label -->
+            <TextView
+                android:id="@+id/tvRecentActivityLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:layout_marginEnd="@dimen/spacing_md"
+                android:layout_marginBottom="@dimen/spacing_sm"
+                android:text="@string/notification_recent_activity"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
+            <!-- Recent Activity list -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvRecentActivity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:paddingBottom="@dimen/spacing_md"
+                android:visibility="gone" />
+
+            <View
+                android:id="@+id/dividerSystemNotifications"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/colorOutline"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/layoutSystemNotificationsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/spacing_md"
+                android:paddingEnd="@dimen/spacing_md"
+                android:paddingTop="@dimen/spacing_md"
+                android:paddingBottom="@dimen/spacing_sm"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/notification_system_section"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMarkAllRead"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/notification_mark_all_read"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSystemNotifications"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:paddingBottom="@dimen/spacing_md"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
     <!-- Empty state -->
     <LinearLayout

@@ -16,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,23 +24,39 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.AttachmentResponse;
 import com.example.hubble.data.model.dm.DmMessageItem;
-import com.example.hubble.databinding.ItemDmMessageOtherBinding;
+import com.example.hubble.data.model.dm.ReactionDto;
+import com.example.hubble.databinding.ItemDmDateSeparatorBinding;
+import com.example.hubble.databinding.ItemDmMessageBinding;
+import com.example.hubble.databinding.ItemDmProfileIntroBinding;
+import com.google.android.material.chip.Chip;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.InAppMessageUtils;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public static final String GIF_PREFIX = "{gif}";
     public static final String STICKER_PREFIX = "{sticker}";
 
-    private static final int TYPE_OTHER = 2;
+    private static final int TYPE_INTRO = 0;
+    private static final int TYPE_DATE = 1;
+    private static final int TYPE_MESSAGE = 2;
     private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
     private final List<DmMessageItem> items = new ArrayList<>();
+
+    @Nullable
+    private DmMessageItem introItem = null;
 
     @Nullable
     private String currentUserAvatarUrl;
@@ -49,6 +64,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private String peerAvatarUrl;
     @Nullable
     private OnMessageLongClickListener onMessageLongClickListener;
+    @Nullable
+    private OnReactionClickListener onReactionClickListener;
+    @Nullable
+    private String currentUserId;
+
+    /** Peer's last_read boundary (server time), millis; -1 = unknown */
+    private long peerLastReadAtMillis = -1L;
 
     private static MediaPlayer currentMediaPlayer;
     private static ImageView currentPlayButton;
@@ -57,6 +79,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     public interface OnMessageLongClickListener {
         void onMessageLongClick(@NonNull DmMessageItem item, @NonNull View anchorView);
+    }
+
+    public interface OnReactionClickListener {
+        void onReactionClick(@NonNull DmMessageItem item, @NonNull String emoji);
     }
 
     public static boolean isGif(String content) {
@@ -96,34 +122,116 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     public void setItems(List<DmMessageItem> newItems) {
+        peerLastReadAtMillis = -1L;
         items.clear();
         if (newItems != null) {
+            String lastDateKey = null;
             for (DmMessageItem item : newItems) {
-                if (item != null && !item.isDeleted()) {
-                    items.add(item);
+                if (item == null || item.isDeleted()) continue;
+                String dateKey = getDateKey(item.getCreatedAtMillis());
+                if (dateKey != null && !dateKey.equals(lastDateKey)) {
+                    items.add(DmMessageItem.createDateSeparator(formatDateLabel(item.getCreatedAtMillis())));
+                    lastDateKey = dateKey;
                 }
+                items.add(item);
             }
         }
         notifyDataSetChanged();
     }
 
+    private static String getDateKey(long millis) {
+        if (millis < 0) return null;
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(millis);
+        return cal.get(Calendar.YEAR) + "-" + cal.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private static String formatDateLabel(long millis) {
+        if (millis < 0) return "";
+        Calendar msgCal = Calendar.getInstance();
+        msgCal.setTimeInMillis(millis);
+        Calendar today = Calendar.getInstance();
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
+
+        if (isSameDay(msgCal, today)) return "Today";
+        if (isSameDay(msgCal, yesterday)) return "Yesterday";
+        SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH);
+        return sdf.format(new Date(millis));
+    }
+
+    private static boolean isSameDay(Calendar a, Calendar b) {
+        return a.get(Calendar.YEAR) == b.get(Calendar.YEAR)
+                && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
+    }
+
     public void appendItem(DmMessageItem item) {
         if (item == null || item.isDeleted()) return;
+
+        // Before inserting: record the current last-mine index so we can rebind it
+        // after the new item is added (it will no longer be "last mine" and must hide
+        // its status indicator, which RecyclerView won't do automatically).
+        int prevLastMineIdx = -1;
+        if (item.isMine()) {
+            for (int i = items.size() - 1; i >= 0; i--) {
+                DmMessageItem prev = items.get(i);
+                if (!prev.isDateSeparator() && !prev.isIntro() && prev.isMine()) {
+                    prevLastMineIdx = i;
+                    break;
+                }
+            }
+        }
+
+        String newDateKey = getDateKey(item.getCreatedAtMillis());
+        if (newDateKey != null) {
+            String lastDateKey = null;
+            for (int i = items.size() - 1; i >= 0; i--) {
+                DmMessageItem prev = items.get(i);
+                if (!prev.isDateSeparator()) {
+                    lastDateKey = getDateKey(prev.getCreatedAtMillis());
+                    break;
+                }
+            }
+            if (!newDateKey.equals(lastDateKey)) {
+                items.add(DmMessageItem.createDateSeparator(formatDateLabel(item.getCreatedAtMillis())));
+                notifyItemInserted(items.size() - 1 + introOffset());
+            }
+        }
         items.add(item);
-        notifyItemInserted(items.size() - 1);
+        notifyItemInserted(items.size() - 1 + introOffset());
+
+        // Force-rebind the previous last-mine so it hides its status indicator.
+        // Without this, RecyclerView reuses the cached ViewHolder which still has
+        // tvStatus visible from when that item was last mine.
+        if (prevLastMineIdx >= 0) {
+            notifyItemChanged(prevLastMineIdx + introOffset());
+        }
     }
 
     public void upsertItem(DmMessageItem item) {
         if (item == null || item.getId() == null) return;
         for (int i = 0; i < items.size(); i++) {
             DmMessageItem old = items.get(i);
+            if (old.isDateSeparator()) continue;
             if (item.getId().equals(old.getId())) {
                 if (item.isDeleted()) {
+                    // If deleted item was last mine, the new last mine must be rebound
+                    boolean wasLastMine = old.isMine() && isLastMineMessageAt(i);
                     items.remove(i);
-                    notifyItemRemoved(i);
+                    notifyItemRemoved(i + introOffset());
+                    if (wasLastMine) {
+                        // Find new last mine and notify it
+                        for (int j = items.size() - 1; j >= 0; j--) {
+                            DmMessageItem prev = items.get(j);
+                            if (!prev.isDateSeparator() && !prev.isIntro() && prev.isMine()) {
+                                notifyItemChanged(j + introOffset());
+                                break;
+                            }
+                        }
+                    }
                 } else {
                     items.set(i, item);
-                    notifyItemChanged(i);
+                    notifyItemChanged(i + introOffset());
                 }
                 return;
             }
@@ -133,8 +241,26 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
     }
 
+    public void setIntroItem(@Nullable DmMessageItem intro) {
+        this.introItem = intro;
+        notifyDataSetChanged();
+    }
+
+    /** Offset to convert items-list index → adapter position. */
+    private int introOffset() {
+        return introItem != null ? 1 : 0;
+    }
+
     public void setOnMessageLongClickListener(@Nullable OnMessageLongClickListener listener) {
         this.onMessageLongClickListener = listener;
+    }
+
+    public void setOnReactionClickListener(@Nullable OnReactionClickListener listener) {
+        this.onReactionClickListener = listener;
+    }
+
+    public void setCurrentUserId(@Nullable String userId) {
+        this.currentUserId = userId;
     }
 
     public void setParticipantAvatarUrls(@Nullable String currentUserAvatarUrl, @Nullable String peerAvatarUrl) {
@@ -144,51 +270,200 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     @Nullable
-    public DmMessageItem getItem(int position) {
-        if (position < 0 || position >= items.size()) return null;
-        return items.get(position);
+    public DmMessageItem getItem(int adapterPosition) {
+        if (introItem != null) {
+            if (adapterPosition == 0) return introItem;
+            adapterPosition--;
+        }
+        if (adapterPosition < 0 || adapterPosition >= items.size()) return null;
+        return items.get(adapterPosition);
     }
 
     @Nullable
     public DmMessageItem getItemById(String id) {
         if (id == null) return null;
         for (DmMessageItem item : items) {
-            if (id.equals(item.getId())) return item;
+            if (!item.isDateSeparator() && id.equals(item.getId())) return item;
         }
         return null;
+    }
+
+    public void updateReactions(@NonNull String messageId, @NonNull List<ReactionDto> reactions) {
+        for (int i = 0; i < items.size(); i++) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator()) continue;
+            if (messageId.equals(item.getId())) {
+                item.setReactions(reactions);
+                notifyItemChanged(i + introOffset());
+                return;
+            }
+        }
     }
 
     public void removeItemById(@Nullable String id) {
         if (id == null) return;
         for (int i = 0; i < items.size(); i++) {
-            if (id.equals(items.get(i).getId())) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator()) continue;
+            if (id.equals(item.getId())) {
+                boolean wasLastMine = item.isMine() && isLastMineMessageAt(i);
                 items.remove(i);
-                notifyItemRemoved(i);
+                notifyItemRemoved(i + introOffset());
+                // If the removed item was last mine, rebind the new last mine
+                if (wasLastMine) {
+                    for (int j = items.size() - 1; j >= 0; j--) {
+                        DmMessageItem prev = items.get(j);
+                        if (!prev.isDateSeparator() && !prev.isIntro() && prev.isMine()) {
+                            notifyItemChanged(j + introOffset());
+                            break;
+                        }
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * Removes the optimistic temp item (by tempId) and upserts the confirmed
+     * real item. Handles the STOMP echo race: if the real item was already
+     * inserted via STOMP, upsertItem will update it in place.
+     */
+    public void replaceTempItem(@NonNull String tempId, @NonNull DmMessageItem realItem) {
+        removeItemById(tempId);
+        upsertItem(realItem);
+    }
+
+    /**
+     * Marks all in-flight mine messages (SENDING or SENT) as DELIVERED.
+     * Called when the peer's device receives messages (delivery ack via STOMP).
+     */
+    public void markAllMineDelivered() {
+        int lastMineIdx = -1;
+        for (int i = 0; i < items.size(); i++) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator() || item.isIntro()) continue;
+            if (item.isMine()) {
+                DmMessageItem.MessageStatus s = item.getStatus();
+                if (s == DmMessageItem.MessageStatus.SENDING || s == DmMessageItem.MessageStatus.SENT) {
+                    item.setStatus(DmMessageItem.MessageStatus.DELIVERED);
+                    lastMineIdx = i;
+                }
+            }
+        }
+        if (lastMineIdx >= 0) {
+            notifyItemChanged(lastMineIdx + introOffset());
+        }
+    }
+
+    /**
+     * Updates the peer read-receipt boundary: messages at or before this time may show "Đã xem".
+     */
+    public void applyPeerReadAtMillis(long millis) {
+        if (millis < 0) return;
+        if (millis <= peerLastReadAtMillis) return;
+        peerLastReadAtMillis = millis;
+        notifyLastMineMessageChanged();
+    }
+
+    /**
+     * Latest chat message id (by list order) suitable for mark-read; skips temp optimistic ids.
+     */
+    @Nullable
+    public String getLatestMessageIdForReadReceipt() {
+        for (int i = items.size() - 1; i >= 0; i--) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator() || item.isIntro() || item.isDeleted()) continue;
+            String id = item.getId();
+            if (id == null || id.startsWith("tmp_")) continue;
+            return id;
+        }
+        return null;
+    }
+
+    private void notifyLastMineMessageChanged() {
+        for (int i = items.size() - 1; i >= 0; i--) {
+            DmMessageItem item = items.get(i);
+            if (!item.isDateSeparator() && !item.isIntro() && item.isMine()) {
+                notifyItemChanged(i + introOffset());
+                return;
+            }
+        }
+    }
+
+    /** Updates the status of a single message by id. */
+    public void updateMessageStatus(@NonNull String id, @NonNull DmMessageItem.MessageStatus status) {
+        for (int i = 0; i < items.size(); i++) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator()) continue;
+            if (id.equals(item.getId())) {
+                item.setStatus(status);
+                notifyItemChanged(i + introOffset());
                 return;
             }
         }
     }
 
     @Override
+    public int getItemCount() {
+        return introOffset() + items.size();
+    }
+
+    @Override
     public int getItemViewType(int position) {
-        return TYPE_OTHER;
+        if (introItem != null && position == 0) return TYPE_INTRO;
+        DmMessageItem item = items.get(position - introOffset());
+        if (item.isDateSeparator()) return TYPE_DATE;
+        return TYPE_MESSAGE;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        return new OtherHolder(ItemDmMessageOtherBinding.inflate(inflater, parent, false), onMessageLongClickListener);
+        if (viewType == TYPE_INTRO) {
+            return new IntroHolder(ItemDmProfileIntroBinding.inflate(inflater, parent, false));
+        }
+        if (viewType == TYPE_DATE) {
+            return new DateSeparatorHolder(ItemDmDateSeparatorBinding.inflate(inflater, parent, false));
+        }
+        return new MessageRowHolder(ItemDmMessageBinding.inflate(inflater, parent, false),
+                onMessageLongClickListener, onReactionClickListener);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        DmMessageItem item = items.get(position);
-        DmMessageItem previous = position > 0 ? items.get(position - 1) : null;
+        if (holder instanceof IntroHolder) {
+            ((IntroHolder) holder).bind(introItem, peerAvatarUrl);
+            return;
+        }
+        int rawPos = position - introOffset();
+        DmMessageItem item = items.get(rawPos);
+        if (holder instanceof DateSeparatorHolder) {
+            ((DateSeparatorHolder) holder).bind(item.getContent());
+            return;
+        }
+        DmMessageItem previous = rawPos > 0 ? items.get(rawPos - 1) : null;
+        if (previous != null && previous.isDateSeparator()) previous = null;
         boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
+        boolean isLastMine = item.isMine() && isLastMineMessageAt(rawPos);
+        String rowAvatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
 
-        String avatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
-        ((OtherHolder) holder).bind(item, !groupedWithPrevious, avatarUrl);
+        if (holder instanceof MessageRowHolder) {
+            ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl, currentUserId,
+                    isLastMine, peerLastReadAtMillis);
+        }
+    }
+
+    /** Returns true if no mine message exists after rawPos in items list. */
+    private boolean isLastMineMessageAt(int rawPos) {
+        for (int i = rawPos + 1; i < items.size(); i++) {
+            DmMessageItem next = items.get(i);
+            if (!next.isDateSeparator() && !next.isIntro() && next.isMine()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean shouldGroupWithPrevious(@Nullable DmMessageItem current, @Nullable DmMessageItem previous) {
@@ -204,17 +479,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     private boolean isGroupableUserMessage(@Nullable DmMessageItem item) {
-        return item != null && !item.isDeleted() && !item.isSystemMessage();
+        return item != null && !item.isDeleted() && !item.isSystemMessage() && !item.isDateSeparator();
     }
 
     private static boolean safeEquals(@Nullable String a, @Nullable String b) {
         if (a == null) return b == null;
         return a.equals(b);
-    }
-
-    @Override
-    public int getItemCount() {
-        return items.size();
     }
 
     private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
@@ -229,7 +499,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         for (AttachmentResponse att : attachments) {
             String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
-            String url = att.getUrl() == null ? "" : att.getUrl().replace("localhost", "10.0.2.2");
+            String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
 
             if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
                 View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
@@ -245,7 +515,19 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         .error(android.R.drawable.ic_menu_report_image)
                         .into(ivMedia);
 
-                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+//                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+                mediaView.setOnClickListener(v -> {
+                    if (mimeType.startsWith("image/")) {
+                        // Nếu là ảnh -> Mở giao diện xem ảnh đen thui siêu xịn
+                        Intent intent = new Intent(container.getContext(), com.example.hubble.view.dm.ImageViewerActivity.class);
+                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_IMAGE_URL, url);
+                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_FILE_NAME, att.getFilename());
+                        container.getContext().startActivity(intent);
+                    } else {
+                        // Nếu là video -> Vẫn dùng trình duyệt ngoài như cũ
+                        openAttachment(container.getContext(), url, mimeType);
+                    }
+                });
                 container.addView(mediaView);
 
             } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
@@ -263,7 +545,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
                 TextView tvFileType = fileView.findViewById(R.id.tvFileType);
                 ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
-                String fileName = att.getFilename() != null ? att.getFilename() : "Tệp không tên";
+                Context context = container.getContext();
+                String fileName = att.getFilename() != null
+                        ? att.getFilename()
+                        : context.getString(R.string.dm_untitled_file);
 
                 String safeFileName = fileName;
                 if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -276,31 +561,31 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String lowerName = fileName.toLowerCase();
 
                 if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
-                    tvFileType.setText("Tài liệu PDF");
+                    tvFileType.setText(R.string.dm_file_type_pdf);
                     ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
                 }
                 else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
-                    tvFileType.setText("Tài liệu Word");
+                    tvFileType.setText(R.string.dm_file_type_word);
                     ivFileIcon.setImageResource(R.drawable.ic_file_docx);
                 }
                 else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
-                    tvFileType.setText("Bảng tính Excel");
+                    tvFileType.setText(R.string.dm_file_type_excel);
                     ivFileIcon.setImageResource(R.drawable.ic_file_excel);
                 }
                 else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
-                    tvFileType.setText("Bài thuyết trình");
+                    tvFileType.setText(R.string.dm_file_type_presentation);
                     ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
                 }
                 else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
-                    tvFileType.setText("Tệp nén");
+                    tvFileType.setText(R.string.dm_file_type_archive);
                     ivFileIcon.setImageResource(R.drawable.ic_file_zip);
                 }
                 else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
-                    tvFileType.setText("Tệp văn bản");
+                    tvFileType.setText(R.string.dm_file_type_text);
                     ivFileIcon.setImageResource(R.drawable.ic_file_text);
                 }
                 else {
-                    tvFileType.setText("Tệp đính kèm");
+                    tvFileType.setText(R.string.attachment_file);
                     ivFileIcon.setImageResource(R.drawable.ic_file_generic);
                 }
 
@@ -399,7 +684,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(browserIntent);
             } catch (Exception ex) {
-                Toast.makeText(context, "Không thể mở tệp này", Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_open_file_error));
             }
         }
     }
@@ -407,10 +692,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static void downloadFile(Context context, String url, String fileName) {
         if (url == null || url.isEmpty()) return;
 
-        String finalUrl = url;
-        if (finalUrl.contains("localhost")) {
-            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
-        }
+        String finalUrl = NetworkConfig.resolveUrl(url);
 
         String safeFileName = fileName;
         if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
@@ -420,7 +702,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
             request.setTitle(safeFileName);
-            request.setDescription("Đang tải tệp đính kèm...");
+            request.setDescription(context.getString(R.string.dm_download_description));
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
@@ -433,61 +715,118 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
                 downloadManager.enqueue(request);
-                Toast.makeText(context, "Bắt đầu tải " + safeFileName + "...", Toast.LENGTH_SHORT).show();
+                InAppMessageUtils.show(context, context.getString(R.string.dm_download_started, safeFileName));
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(context, "Lỗi khi tải tệp: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);
+            InAppMessageUtils.show(context, context.getString(R.string.dm_download_error, message));
         }
     }
 
+    static class IntroHolder extends RecyclerView.ViewHolder {
+        private final ItemDmProfileIntroBinding b;
 
-    static class OtherHolder extends RecyclerView.ViewHolder {
-        private final ItemDmMessageOtherBinding b;
+        IntroHolder(ItemDmProfileIntroBinding binding) {
+            super(binding.getRoot());
+            this.b = binding;
+        }
+
+        void bind(@Nullable DmMessageItem intro, @Nullable String avatarUrl) {
+            if (intro == null) return;
+            b.tvIntroDisplayName.setText(intro.getSenderName());
+            b.tvIntroUsername.setText(intro.getTimestamp());
+            b.tvIntroDesc.setText(intro.getContent());
+            bindAvatar(avatarUrl, intro.getSenderName());
+        }
+
+        private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {
+            int avatarSize = b.ivIntroAvatar.getLayoutParams() != null
+                    ? b.ivIntroAvatar.getLayoutParams().width
+                    : b.ivIntroAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            b.ivIntroAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String resolvedAvatarUrl = NetworkConfig.resolveUrl(avatarUrl);
+            boolean hasAvatar = resolvedAvatarUrl != null && !resolvedAvatarUrl.trim().isEmpty();
+
+            Glide.with(b.ivIntroAvatar.getContext()).clear(b.ivIntroAvatar);
+            if (!hasAvatar) {
+                b.ivIntroAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            b.ivIntroAvatar.setImageDrawable(null);
+            Glide.with(b.ivIntroAvatar.getContext())
+                    .load(resolvedAvatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(b.ivIntroAvatar);
+        }
+    }
+
+    static class DateSeparatorHolder extends RecyclerView.ViewHolder {
+        private final ItemDmDateSeparatorBinding b;
+
+        DateSeparatorHolder(ItemDmDateSeparatorBinding binding) {
+            super(binding.getRoot());
+            this.b = binding;
+        }
+
+        void bind(String label) {
+            b.tvDateLabel.setText(label);
+        }
+    }
+
+    /**
+     * Discord-style row: avatar + name + time on the left; content flows in one column for everyone.
+     */
+    static class MessageRowHolder extends RecyclerView.ViewHolder {
+        private final ItemDmMessageBinding b;
         @Nullable
         private final OnMessageLongClickListener onMessageLongClickListener;
+        @Nullable
+        private final OnReactionClickListener onReactionClickListener;
 
-        OtherHolder(ItemDmMessageOtherBinding binding, @Nullable OnMessageLongClickListener onMessageLongClickListener) {
+        MessageRowHolder(ItemDmMessageBinding binding,
+                         @Nullable OnMessageLongClickListener onMessageLongClickListener,
+                         @Nullable OnReactionClickListener onReactionClickListener) {
             super(binding.getRoot());
             this.b = binding;
             this.onMessageLongClickListener = onMessageLongClickListener;
+            this.onReactionClickListener = onReactionClickListener;
         }
 
-        void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl) {
+        void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
+                  @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
-
-            if (b.headerRow != null) {
-                b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
-            } else {
-                if (b.tvName != null) b.tvName.setVisibility(showHeader ? View.VISIBLE : View.GONE);
-                if (b.tvTime != null) b.tvTime.setVisibility(showHeader ? View.VISIBLE : View.GONE);
-            }
+            b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
 
             if (showHeader) {
-                Glide.with(b.ivAvatar.getContext())
-                        .load(avatarUrl)
-                        .placeholder(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .error(com.example.hubble.R.mipmap.ic_launcher_round)
-                        .circleCrop()
-                        .into(b.ivAvatar);
+                bindAvatar(avatarUrl, item.getSenderName());
             }
 
+            int topMargin = showHeader || item.hasReply() ? dp(2) : dp(0);
             try {
-                if (b.cardOther.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-                    ConstraintLayout.LayoutParams textParams = (ConstraintLayout.LayoutParams) b.cardOther.getLayoutParams();
-                    textParams.topMargin = showHeader ? dp(2) : dp(0);
-                    b.cardOther.setLayoutParams(textParams);
+                if (b.cardMessage.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams p = (ConstraintLayout.LayoutParams) b.cardMessage.getLayoutParams();
+                    p.topMargin = topMargin;
+                    b.cardMessage.setLayoutParams(p);
                 }
                 if (b.ivMedia.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-                    ConstraintLayout.LayoutParams mediaParams = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
-                    mediaParams.topMargin = showHeader ? dp(2) : dp(0);
-                    b.ivMedia.setLayoutParams(mediaParams);
+                    ConstraintLayout.LayoutParams p = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
+                    p.topMargin = topMargin;
+                    b.ivMedia.setLayoutParams(p);
                 }
-            } catch (Exception ignored) {}
-
-            String content = item.getContent();
+            } catch (Exception ignored) {
+            }
 
             if (item.hasReply()) {
                 b.replyQuoteContainer.setVisibility(View.VISIBLE);
@@ -495,7 +834,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String replyContent = item.getReplyToContent();
                 if (isMedia(replyContent)) {
                     String title = extractMediaTitle(replyContent);
-                    b.tvReplyQuoteContent.setText(title != null ? title : "Media");
+                    b.tvReplyQuoteContent.setText(title != null ? title : b.getRoot().getContext().getString(R.string.dm_reply_media));
                 } else {
                     b.tvReplyQuoteContent.setText(replyContent);
                 }
@@ -503,20 +842,22 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 b.replyQuoteContainer.setVisibility(View.GONE);
             }
 
+            String content = item.getContent();
+
             if (isMedia(content)) {
-                b.cardOther.setVisibility(View.GONE);
+                b.cardMessage.setVisibility(View.GONE);
                 b.ivMedia.setVisibility(View.VISIBLE);
-                String url = extractMediaUrl(content);
+                String url = NetworkConfig.resolveUrl(extractMediaUrl(content));
                 Glide.with(b.ivMedia.getContext())
                         .asGif()
                         .load(url)
                         .into(b.ivMedia);
             } else {
-                b.cardOther.setVisibility(View.VISIBLE);
+                b.cardMessage.setVisibility(View.VISIBLE);
                 b.ivMedia.setVisibility(View.GONE);
                 Glide.with(b.ivMedia.getContext()).clear(b.ivMedia);
                 if (item.isDeleted()) {
-                    b.tvMessage.setText("Tin nhắn đã được thu hồi");
+                    b.tvMessage.setText(R.string.dm_deleted_message);
                     b.tvEdited.setVisibility(View.GONE);
                 } else {
                     if (content != null && !content.isEmpty()) {
@@ -531,6 +872,43 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
             loadAttachments(b.llAttachments, item.getAttachments());
 
+            bindReactions(item, currentUserId);
+
+            DmMessageItem.MessageStatus status = item.getStatus();
+            if (item.isMine() && isLastMine && status != null) {
+                b.tvStatus.setVisibility(View.VISIBLE);
+                Context ctx = b.getRoot().getContext();
+                boolean seenByPeer = peerLastReadAtMillis >= 0
+                        && item.getCreatedAtMillis() >= 0
+                        && item.getCreatedAtMillis() <= peerLastReadAtMillis
+                        && status != DmMessageItem.MessageStatus.SENDING;
+                if (seenByPeer) {
+                    b.tvStatus.setText(ctx.getString(R.string.msg_status_read));
+                    b.tvStatus.setAlpha(0.90f);
+                    b.tvStatus.setTextColor(ctx.getColor(R.color.color_primary));
+                } else {
+                    switch (status) {
+                        case SENDING:
+                            b.tvStatus.setText(ctx.getString(R.string.msg_status_sending));
+                            b.tvStatus.setAlpha(0.55f);
+                            b.tvStatus.setTextColor(ctx.getColor(R.color.color_text_secondary));
+                            break;
+                        case SENT:
+                            b.tvStatus.setText(ctx.getString(R.string.msg_status_sent));
+                            b.tvStatus.setAlpha(0.65f);
+                            b.tvStatus.setTextColor(ctx.getColor(R.color.color_text_secondary));
+                            break;
+                        case DELIVERED:
+                            b.tvStatus.setText(ctx.getString(R.string.msg_status_delivered));
+                            b.tvStatus.setAlpha(0.90f);
+                            b.tvStatus.setTextColor(ctx.getColor(R.color.color_primary));
+                            break;
+                    }
+                }
+            } else {
+                b.tvStatus.setVisibility(View.GONE);
+            }
+
             b.getRoot().setOnLongClickListener(v -> {
                 if (onMessageLongClickListener != null) {
                     onMessageLongClickListener.onMessageLongClick(item, v);
@@ -540,8 +918,87 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             });
         }
 
+        private void bindReactions(DmMessageItem item, @Nullable String currentUserId) {
+            List<ReactionDto> reactions = item.getReactions();
+            b.reactionContainer.removeAllViews();
+            if (reactions == null || reactions.isEmpty()) {
+                b.reactionContainer.setVisibility(View.GONE);
+                return;
+            }
+            b.reactionContainer.setVisibility(View.VISIBLE);
+            Context ctx = b.getRoot().getContext();
+
+            for (ReactionDto r : reactions) {
+                boolean iReacted = currentUserId != null && r.getUserIds().contains(currentUserId);
+
+                Chip chip = new Chip(ctx);
+                chip.setText(r.getEmoji() + "  " + r.getCount());
+                chip.setTextSize(13f);
+                chip.setChipMinHeight(dp(28));
+                chip.setChipCornerRadius(dp(14));
+                chip.setChipStartPadding(dp(6));
+                chip.setChipEndPadding(dp(6));
+                chip.setTextStartPadding(0);
+                chip.setTextEndPadding(0);
+                chip.setIconStartPadding(0);
+                chip.setIconEndPadding(0);
+                chip.setChipIconVisible(false);
+                chip.setCheckedIconVisible(false);
+                chip.setEnsureMinTouchTargetSize(false);
+
+                if (iReacted) {
+                    chip.setChipBackgroundColorResource(R.color.color_primary_dark);
+                    chip.setChipStrokeColorResource(R.color.color_primary);
+                    chip.setChipStrokeWidth(dp(1));
+                    chip.setTextColor(ctx.getColor(R.color.color_text_primary));
+                } else {
+                    chip.setChipBackgroundColorResource(R.color.color_surface_elevated);
+                    chip.setChipStrokeColorResource(R.color.color_divider);
+                    chip.setChipStrokeWidth(dp(1));
+                    chip.setTextColor(ctx.getColor(R.color.color_text_secondary));
+                }
+
+                chip.setOnClickListener(v -> {
+                    if (onReactionClickListener != null) {
+                        onReactionClickListener.onReactionClick(item, r.getEmoji());
+                    }
+                });
+
+                b.reactionContainer.addView(chip);
+            }
+        }
+
         private int dp(int value) {
             return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
+        }
+
+        private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {
+            int avatarSize = b.ivAvatar.getLayoutParams() != null
+                    ? b.ivAvatar.getLayoutParams().width
+                    : b.ivAvatar.getWidth();
+            android.graphics.drawable.Drawable avatarFallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(
+                            b.ivAvatar.getContext(),
+                            displayName,
+                            avatarSize
+                    );
+
+            String resolvedAvatarUrl = NetworkConfig.resolveUrl(avatarUrl);
+            boolean hasAvatar = resolvedAvatarUrl != null && !resolvedAvatarUrl.trim().isEmpty();
+
+            Glide.with(b.ivAvatar.getContext()).clear(b.ivAvatar);
+            if (!hasAvatar) {
+                b.ivAvatar.setImageDrawable(avatarFallback);
+                return;
+            }
+
+            b.ivAvatar.setImageDrawable(null);
+            Glide.with(b.ivAvatar.getContext())
+                    .load(resolvedAvatarUrl)
+                    .error(avatarFallback)
+                    .fallback(avatarFallback)
+                    .circleCrop()
+                    .into(b.ivAvatar);
         }
     }
 }

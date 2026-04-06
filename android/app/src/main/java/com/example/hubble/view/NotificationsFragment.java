@@ -12,24 +12,50 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hubble.R;
+import com.example.hubble.adapter.friend.FriendRequestAdapter;
+import com.example.hubble.adapter.friend.NotificationActivityAdapter;
+import com.example.hubble.adapter.notify.SystemNotificationAdapter;
 import com.example.hubble.adapter.server.PendingInviteAdapter;
-import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.dm.FriendRequestResponse;
+import com.example.hubble.data.model.notify.NotificationResponse;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.FriendRepository;
+import com.example.hubble.data.repository.NotificationRepository;
 import com.example.hubble.data.repository.ServerInviteRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.FragmentNotificationsBinding;
+import com.example.hubble.view.settings.SettingsActivity;
+import com.example.hubble.viewmodel.FriendViewModel;
+import com.example.hubble.viewmodel.FriendViewModelFactory;
+import com.example.hubble.viewmodel.NotificationViewModel;
+import com.example.hubble.viewmodel.NotificationViewModelFactory;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.viewmodel.server.ServerInviteViewModel;
 import com.example.hubble.viewmodel.server.ServerInviteViewModelFactory;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class NotificationsFragment extends Fragment {
 
     private FragmentNotificationsBinding binding;
-    private ServerInviteViewModel viewModel;
-    private PendingInviteAdapter adapter;
+    private ServerInviteViewModel inviteViewModel;
+    private FriendViewModel friendViewModel;
+    private NotificationViewModel notificationViewModel;
+    private PendingInviteAdapter inviteAdapter;
+    private FriendRequestAdapter friendRequestAdapter;
+    private NotificationActivityAdapter activityAdapter;
+    private SystemNotificationAdapter systemNotificationAdapter;
+
+    private boolean invitesLoaded = false;
+    private boolean friendRequestsLoaded = false;
+    private boolean hasInvites = false;
+    private boolean hasFriendRequests = false;
+    private boolean hasRecentActivity = false;
+    private boolean hasSystemNotifications = false;
 
     @Nullable
     @Override
@@ -44,83 +70,234 @@ public class NotificationsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // ViewModel scoped to this fragment
-        ServerInviteRepository repo = new ServerInviteRepository(requireContext());
-        viewModel = new ViewModelProvider(this,
-                new ServerInviteViewModelFactory(repo))
+        inviteViewModel = new ViewModelProvider(this,
+                new ServerInviteViewModelFactory(new ServerInviteRepository(requireContext())))
                 .get(ServerInviteViewModel.class);
 
-        // MainViewModel scoped to the activity — used to refresh the server list
+        friendViewModel = new ViewModelProvider(this,
+                new FriendViewModelFactory(new FriendRepository(requireContext())))
+                .get(FriendViewModel.class);
+
+        notificationViewModel = new ViewModelProvider(this,
+                new NotificationViewModelFactory(new NotificationRepository(requireContext())))
+                .get(NotificationViewModel.class);
+
         MainViewModel mainViewModel = new ViewModelProvider(requireActivity(),
                 new MainViewModelFactory(
+                        requireContext(),
                         new DmRepository(requireContext()),
                         new ServerRepository(requireContext())))
                 .get(MainViewModel.class);
 
-        // More options button (existing)
         binding.btnNotificationsMore.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
+                startActivity(SettingsActivity.createIntent(requireContext(), true)));
 
-        // Pending invites RecyclerView
-        adapter = new PendingInviteAdapter(new PendingInviteAdapter.OnInviteActionListener() {
+        setupRecyclerViews();
+        observeFriendRequests();
+        observeInvites(mainViewModel);
+        observeRecentActivity();
+        observeSystemNotifications();
+
+        binding.progressBar.setVisibility(View.VISIBLE);
+        friendViewModel.fetchIncomingRequests();
+        inviteViewModel.loadMyInvites();
+        friendViewModel.fetchOutgoingRequests();
+        notificationViewModel.loadNotifications(0, 20);
+        notificationViewModel.loadUnreadCount();
+    }
+
+    private void setupRecyclerViews() {
+        friendRequestAdapter = new FriendRequestAdapter(new FriendRequestAdapter.OnRequestListener() {
+            @Override
+            public void onAccept(FriendRequestResponse request) {
+                friendViewModel.acceptRequest(request.getId());
+            }
+
+            @Override
+            public void onDecline(FriendRequestResponse request) {
+                friendViewModel.declineRequest(request.getId());
+            }
+        });
+        binding.rvFriendRequests.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvFriendRequests.setAdapter(friendRequestAdapter);
+
+        inviteAdapter = new PendingInviteAdapter(new PendingInviteAdapter.OnInviteActionListener() {
             @Override
             public void onAccept(ServerInviteResponse invite) {
-                viewModel.acceptInvite(invite.getId());
+                inviteViewModel.acceptInvite(invite.getId());
             }
 
             @Override
             public void onDecline(ServerInviteResponse invite) {
-                viewModel.declineInvite(invite.getId());
+                inviteViewModel.declineInvite(invite.getId());
             }
         });
         binding.rvPendingInvites.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.rvPendingInvites.setAdapter(adapter);
+        binding.rvPendingInvites.setAdapter(inviteAdapter);
 
-        // Observe pending invites
-        viewModel.getMyInvitesState().observe(getViewLifecycleOwner(), result -> {
-            if (result == null) return;
-            binding.progressBar.setVisibility(result.isLoading() ? View.VISIBLE : View.GONE);
+        activityAdapter = new NotificationActivityAdapter();
+        binding.rvRecentActivity.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvRecentActivity.setAdapter(activityAdapter);
 
-            if (result.isSuccess()) {
-                boolean empty = result.getData() == null || result.getData().isEmpty();
-                binding.layoutEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-                binding.tvInvitesSectionLabel.setVisibility(empty ? View.GONE : View.VISIBLE);
-                binding.rvPendingInvites.setVisibility(empty ? View.GONE : View.VISIBLE);
-                if (!empty) adapter.submitList(result.getData());
-            } else if (result.isError()) {
-                binding.layoutEmpty.setVisibility(View.VISIBLE);
-                binding.tvInvitesSectionLabel.setVisibility(View.GONE);
-                binding.rvPendingInvites.setVisibility(View.GONE);
+        systemNotificationAdapter = new SystemNotificationAdapter();
+        systemNotificationAdapter.setListener(notification -> {
+            if (!Boolean.TRUE.equals(notification.getIsRead())) {
+                notificationViewModel.markAsRead(notification.getId());
             }
         });
+        binding.rvSystemNotifications.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvSystemNotifications.setAdapter(systemNotificationAdapter);
 
-        // Observe accept/decline result
-        viewModel.getRespondState().observe(getViewLifecycleOwner(), result -> {
+        binding.btnMarkAllRead.setOnClickListener(v -> notificationViewModel.markAllAsRead());
+    }
+
+    private void observeFriendRequests() {
+        friendViewModel.incomingRequests.observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isLoading()) return;
+
+            friendRequestsLoaded = true;
+            if (result.isSuccess()) {
+                List<FriendRequestResponse> requests = result.getData();
+                hasFriendRequests = requests != null && !requests.isEmpty();
+                binding.rvFriendRequests.setVisibility(hasFriendRequests ? View.VISIBLE : View.GONE);
+                if (hasFriendRequests) friendRequestAdapter.setRequests(requests);
+            } else {
+                hasFriendRequests = false;
+                binding.rvFriendRequests.setVisibility(View.GONE);
+            }
+            updateLoadingAndEmptyState();
+        });
+
+        friendViewModel.actionState.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
             if (result.isSuccess()) {
                 Snackbar.make(binding.getRoot(),
-                        getString(R.string.invite_respond_success), Snackbar.LENGTH_SHORT).show();
-                viewModel.consumeRespondState();
+                        getString(R.string.friend_request_respond_success), Snackbar.LENGTH_SHORT).show();
+                friendViewModel.resetActionState();
+                friendViewModel.fetchIncomingRequests();
             } else if (result.isError()) {
                 Snackbar.make(binding.getRoot(),
                         result.getMessage() != null ? result.getMessage()
                                 : getString(R.string.error_generic),
                         Snackbar.LENGTH_SHORT).show();
-                viewModel.consumeRespondState();
+                friendViewModel.resetActionState();
+            }
+        });
+    }
+
+    private void observeInvites(MainViewModel mainViewModel) {
+        inviteViewModel.getMyInvitesState().observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isLoading()) return;
+
+            invitesLoaded = true;
+            if (result.isSuccess()) {
+                hasInvites = result.getData() != null && !result.getData().isEmpty();
+                binding.rvPendingInvites.setVisibility(hasInvites ? View.VISIBLE : View.GONE);
+                if (hasInvites) inviteAdapter.submitList(result.getData());
+            } else {
+                hasInvites = false;
+                binding.rvPendingInvites.setVisibility(View.GONE);
+            }
+            updateLoadingAndEmptyState();
+        });
+
+        inviteViewModel.getRespondState().observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+            if (result.isSuccess()) {
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.invite_respond_success), Snackbar.LENGTH_SHORT).show();
+                inviteViewModel.consumeRespondState();
+            } else if (result.isError()) {
+                Snackbar.make(binding.getRoot(),
+                        result.getMessage() != null ? result.getMessage()
+                                : getString(R.string.error_generic),
+                        Snackbar.LENGTH_SHORT).show();
+                inviteViewModel.consumeRespondState();
             }
         });
 
-        // When an invite is accepted → reload the server list visible in HomeFragment
-        viewModel.getAcceptSuccessEvent().observe(getViewLifecycleOwner(), accepted -> {
+        inviteViewModel.getAcceptSuccessEvent().observe(getViewLifecycleOwner(), accepted -> {
             if (accepted == null || !accepted) return;
             mainViewModel.refreshServers();
-            viewModel.consumeAcceptSuccessEvent();
+            inviteViewModel.consumeAcceptSuccessEvent();
+        });
+    }
+
+    private void observeRecentActivity() {
+        friendViewModel.outgoingRequests.observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isLoading()) return;
+
+            if (result.isSuccess() && result.getData() != null) {
+                List<FriendRequestResponse> accepted = new ArrayList<>();
+                for (FriendRequestResponse req : result.getData()) {
+                    if ("ACCEPTED".equalsIgnoreCase(req.getStatus())) {
+                        accepted.add(req);
+                    }
+                }
+                hasRecentActivity = !accepted.isEmpty();
+                boolean hasPending = hasFriendRequests || hasInvites;
+                binding.dividerRecentActivity.setVisibility(
+                        (hasPending && hasRecentActivity) ? View.VISIBLE : View.GONE);
+                binding.tvRecentActivityLabel.setVisibility(hasRecentActivity ? View.VISIBLE : View.GONE);
+                binding.rvRecentActivity.setVisibility(hasRecentActivity ? View.VISIBLE : View.GONE);
+                if (hasRecentActivity) activityAdapter.setItems(accepted);
+            } else {
+                hasRecentActivity = false;
+                binding.dividerRecentActivity.setVisibility(View.GONE);
+                binding.tvRecentActivityLabel.setVisibility(View.GONE);
+                binding.rvRecentActivity.setVisibility(View.GONE);
+            }
+
+            boolean hasPending = hasFriendRequests || hasInvites;
+            binding.dividerRecentActivity.setVisibility(
+                    (hasPending && hasRecentActivity) ? View.VISIBLE : View.GONE);
+            updateScrollContentVisibility();
+        });
+    }
+
+    private void observeSystemNotifications() {
+        notificationViewModel.notifications.observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isLoading()) return;
+
+            if (result.isSuccess()) {
+                List<NotificationResponse> notifications = result.getData();
+                hasSystemNotifications = notifications != null && !notifications.isEmpty();
+                boolean hasOther = hasFriendRequests || hasInvites || hasRecentActivity;
+                binding.dividerSystemNotifications.setVisibility(
+                        (hasOther && hasSystemNotifications) ? View.VISIBLE : View.GONE);
+                binding.layoutSystemNotificationsHeader.setVisibility(
+                        hasSystemNotifications ? View.VISIBLE : View.GONE);
+                binding.rvSystemNotifications.setVisibility(
+                        hasSystemNotifications ? View.VISIBLE : View.GONE);
+                if (hasSystemNotifications) systemNotificationAdapter.setItems(notifications);
+            } else {
+                hasSystemNotifications = false;
+                binding.dividerSystemNotifications.setVisibility(View.GONE);
+                binding.layoutSystemNotificationsHeader.setVisibility(View.GONE);
+                binding.rvSystemNotifications.setVisibility(View.GONE);
+            }
+            updateScrollContentVisibility();
         });
 
-        // Initial load (show loading while we wait)
-        binding.progressBar.setVisibility(View.VISIBLE);
-        viewModel.loadMyInvites();
+        notificationViewModel.markReadState.observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+            if (result.isSuccess()) {
+                notificationViewModel.resetMarkReadState();
+            }
+        });
+    }
+
+    private void updateLoadingAndEmptyState() {
+        if (!friendRequestsLoaded || !invitesLoaded) return;
+
+        binding.progressBar.setVisibility(View.GONE);
+        updateScrollContentVisibility();
+    }
+
+    private void updateScrollContentVisibility() {
+        boolean hasAny = hasFriendRequests || hasInvites || hasRecentActivity || hasSystemNotifications;
+        binding.layoutEmpty.setVisibility(hasAny ? View.GONE : View.VISIBLE);
+        binding.scrollContent.setVisibility(hasAny ? View.VISIBLE : View.GONE);
     }
 
     @Override

@@ -1,20 +1,27 @@
 package com.example.hubble.view;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.hubble.BuildConfig;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.NotificationRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.databinding.ActivityMainBinding;
@@ -22,14 +29,24 @@ import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.base.BaseAuthActivity;
 import com.example.hubble.view.home.HomeFragment;
 import com.example.hubble.view.me.MeFragment;
+import com.google.android.material.badge.BadgeDrawable;
 import com.example.hubble.viewmodel.AuthViewModel;
 import com.example.hubble.viewmodel.AuthViewModelFactory;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends BaseAuthActivity {
 
     private ActivityMainBinding binding;
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+                if (result) {
+                    android.util.Log.d("MainActivity", "POST_NOTIFICATIONS permission granted");
+                } else {
+                    android.util.Log.w("MainActivity", "POST_NOTIFICATIONS permission denied");
+                }
+            });
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -65,27 +82,59 @@ public class MainActivity extends BaseAuthActivity {
             return;
         }
 
+        // Request POST_NOTIFICATIONS permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("MainActivity", "Requesting POST_NOTIFICATIONS permission");
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
         // Connect server-event WebSocket for real-time updates (kick, etc.)
         TokenManager tokenManager = new TokenManager(this);
         if (tokenManager.getUser() != null) {
             ServerEventWebSocketManager.getInstance().connect(
-                    BuildConfig.BASE_URL,
+                    NetworkConfig.getApiBaseUrl(),
                     tokenManager.getUser().getId(),
                     tokenManager.getAccessToken()
             );
+
+            NotificationRepository notificationRepo = new NotificationRepository(this);
+            FirebaseMessaging.getInstance().getToken().addOnSuccessListener(notificationRepo::registerDeviceToken);
         }
 
         // Pre-create MainViewModel so HomeFragment can share it
-        new ViewModelProvider(this,
-            new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+        MainViewModel mainViewModel = new ViewModelProvider(this,
+            new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
             .get(MainViewModel.class);
+
+        mainViewModel.dmTotalUnread.observe(this, count -> {
+            int total = count != null ? count : 0;
+            BadgeDrawable badge = binding.bottomNav.getOrCreateBadge(R.id.nav_home);
+            if (total <= 0) {
+                badge.setVisible(false);
+            } else {
+                badge.setVisible(true);
+                badge.setNumber(Math.min(total, 99));
+                badge.setBackgroundColor(ContextCompat.getColor(this, R.color.discord_nav_home_badge_blue));
+                badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
+            }
+        });
 
         setupBottomNavigation();
 
         // Load default fragment on first launch
         if (savedInstanceState == null) {
-            switchFragment(new HomeFragment());
-            binding.bottomNav.setSelectedItemId(R.id.nav_home);
+            // Check if navigating from notification
+            String navigateTo = getIntent().getStringExtra("navigateTo");
+            if ("notifications".equals(navigateTo)) {
+                switchFragment(new NotificationsFragment());
+                binding.bottomNav.setSelectedItemId(R.id.nav_notifications);
+            } else {
+                switchFragment(new HomeFragment());
+                binding.bottomNav.setSelectedItemId(R.id.nav_home);
+            }
         }
     }
 
@@ -118,14 +167,13 @@ public class MainActivity extends BaseAuthActivity {
                 .replace(R.id.fragmentContainer, fragment);
         tx.commit();
     }
-
     @Override
     protected void onResume() {
         super.onResume();
         // Refresh server list when returning from ServerSettingsActivity
         // (e.g. after icon update/delete) — MainViewModel is scoped to this activity
         MainViewModel mainViewModel = new ViewModelProvider(this,
-                new MainViewModelFactory(new DmRepository(this), new ServerRepository(this)))
+                new MainViewModelFactory(this, new DmRepository(this), new ServerRepository(this)))
                 .get(MainViewModel.class);
         mainViewModel.refreshServers();
     }

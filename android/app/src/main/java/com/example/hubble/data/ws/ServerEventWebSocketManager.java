@@ -2,6 +2,7 @@ package com.example.hubble.data.ws;
 
 import android.util.Log;
 
+import com.example.hubble.data.model.notify.NotificationResponse;
 import com.example.hubble.data.model.server.ServerEventNotification;
 
 import org.json.JSONException;
@@ -29,6 +30,11 @@ public class ServerEventWebSocketManager {
 
     private final PublishSubject<ServerEventNotification> eventSubject = PublishSubject.create();
 
+    // Emits {channelId} whenever a DM message is delivered to this user's device.
+    // DmChatActivity observes this to mark the sender's messages as DELIVERED.
+    private final PublishSubject<String> dmDeliverySubject = PublishSubject.create();
+    private final PublishSubject<NotificationResponse> notificationSubject = PublishSubject.create();
+
     private String savedBaseUrl;
     private String savedUserId;
     private String savedToken;
@@ -49,6 +55,18 @@ public class ServerEventWebSocketManager {
 
     public Observable<ServerEventNotification> getEvents() {
         return eventSubject.hide();
+    }
+
+    /**
+     * Emits the channelId every time a DM message arrives on THIS user's device
+     * (even when not in the chat screen).  The sender will see "✓✓ Đã nhận".
+     */
+    public Observable<String> getDmDeliveryEvents() {
+        return dmDeliverySubject.hide();
+    }
+
+    public Observable<NotificationResponse> getNotificationEvents() {
+        return notificationSubject.hide();
     }
 
     public void connect(String baseUrl, String userId, String token) {
@@ -112,6 +130,12 @@ public class ServerEventWebSocketManager {
     }
 
     private void subscribeToUserTopic() {
+        subscribeToServerEvents();
+        subscribeToDmDelivery();
+        subscribeToNotifications();
+    }
+
+    private void subscribeToServerEvents() {
         String topic = "/topic/users/" + savedUserId + "/server-events";
         Log.d(TAG, "Subscribing to " + topic);
 
@@ -132,6 +156,79 @@ public class ServerEventWebSocketManager {
                         }
                     },
                     t -> Log.e(TAG, "Topic subscription error", t)
+                )
+        );
+    }
+
+    /**
+     * Subscribes to DM delivery events pushed by the server when a DM message
+     * is saved.  When a delivery event arrives, we send an ack back to the
+     * channel's delivery topic — so the SENDER sees "✓✓ Đã nhận" as soon as
+     * this user's device receives the message, regardless of which screen they
+     * are on.
+     */
+    private void subscribeToDmDelivery() {
+        String topic = "/topic/users/" + savedUserId + "/dm-delivery";
+        Log.d(TAG, "Subscribing to DM delivery topic: " + topic);
+
+        disposables.add(
+            stompClient.topic(topic)
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                    stompMessage -> {
+                        try {
+                            JSONObject json = new JSONObject(stompMessage.getPayload());
+                            String channelId = json.optString("channelId", "");
+                            String senderId  = json.optString("senderId", "");
+                            if (channelId.isEmpty() || senderId.isEmpty()) return;
+
+                            Log.d(TAG, "DM delivery ack for channel " + channelId);
+
+                            // Emit to any observer (e.g. DmChatActivity)
+                            dmDeliverySubject.onNext(channelId);
+
+                            // Also send the ack back via STOMP so the sender's
+                            // app marks the message DELIVERED immediately.
+                            String ackPayload = "{\"userId\":\"" + savedUserId + "\"}";
+                            disposables.add(
+                                stompClient.send(
+                                        "/app/channels/" + channelId + "/delivered",
+                                        ackPayload
+                                )
+                                .subscribeOn(Schedulers.io())
+                                .subscribe(() -> {}, t -> Log.e(TAG, "Delivery ack send error", t))
+                            );
+                        } catch (JSONException e) {
+                            Log.e(TAG, "Failed to parse dm-delivery event", e);
+                        }
+                    },
+                    t -> Log.e(TAG, "DM delivery subscription error", t)
+                )
+        );
+    }
+
+    private void subscribeToNotifications() {
+        String topic = "/topic/users/" + savedUserId + "/notifications";
+        Log.d(TAG, "Subscribing to notifications topic: " + topic);
+
+        disposables.add(
+            stompClient.topic(topic)
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                    stompMessage -> {
+                        try {
+                            com.google.gson.Gson gson = new com.google.gson.Gson();
+                            NotificationResponse notification = gson.fromJson(
+                                    stompMessage.getPayload(), NotificationResponse.class);
+                            if (notification != null) {
+                                Log.d(TAG, "Notification received: " + notification.getType());
+                                notificationSubject.onNext(notification);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to parse notification", e);
+                        }
+                    },
+                    t -> Log.e(TAG, "Notification subscription error", t)
                 )
         );
     }
