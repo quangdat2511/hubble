@@ -45,7 +45,8 @@
             android:focusable="true"
             android:padding="6dp"
             android:src="@drawable/ic_download"
-            android:tint="?attr/colorOnSurface" />
+            android:tint="?attr/colorOnSurface"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
