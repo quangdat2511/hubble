@@ -244,6 +244,15 @@
     <string name="dm_gallery_empty_links_subtitle">Các liên kết trong cuộc trò chuyện này sẽ xuất hiện ở đây khi được gửi.</string>
     <string name="dm_gallery_empty_files_title">Chưa có tệp nào được chia sẻ</string>
     <string name="dm_gallery_empty_files_subtitle">Tài liệu và các tệp đính kèm khác trong cuộc trò chuyện này sẽ xuất hiện ở đây.</string>
+    <string name="dm_gallery_empty_filtered_title">Không có mục nào khớp với bộ lọc này</string>
+    <string name="dm_gallery_empty_filtered_subtitle">Hãy thử loại nội dung khác hoặc tiếp tục cuộn để xem thêm mục đã chia sẻ.</string>
+    <string name="dm_gallery_filter_all">Tất cả</string>
+    <string name="dm_gallery_filter_images">Ảnh</string>
+    <string name="dm_gallery_filter_videos">Video</string>
+    <string name="dm_gallery_filter_documents">Tài liệu</string>
+    <string name="dm_gallery_filter_audio">Âm thanh</string>
+    <string name="dm_gallery_filter_archives">Tệp nén</string>
+    <string name="dm_gallery_filter_other">Khác</string>
     <string name="dm_gallery_link_item_hint">Nhấn để mở liên kết gốc.</string>
     <string name="dm_gallery_fallback_shared_item">Mục đã chia sẻ</string>
     <string name="dm_gallery_fallback_shared_media">Ảnh hoặc video đã chia sẻ</string>
