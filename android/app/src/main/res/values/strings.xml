@@ -224,7 +224,6 @@
     <string name="cd_call">Gọi thoại</string>
     <string name="cd_video">Gọi video</string>
     <string name="dm_gallery_tab_media">Đa phương tiện</string>
-    <string name="dm_gallery_tab_pinned">Đã ghim</string>
     <string name="dm_gallery_tab_links">Liên kết</string>
     <string name="dm_gallery_tab_files">Tệp</string>
     <string name="dm_gallery_summary">Mọi ảnh, video, liên kết và tệp bạn đã chia sẻ với %1$s đều ở đây.</string>
@@ -241,8 +240,6 @@
     <string name="dm_gallery_error_generic">Không thể tải tổng quan cuộc trò chuyện này.</string>
     <string name="dm_gallery_empty_media_title">Chưa có ảnh hoặc video nào</string>
     <string name="dm_gallery_empty_media_subtitle">Ảnh và video trong cuộc trò chuyện này sẽ xuất hiện ở đây.</string>
-    <string name="dm_gallery_empty_pinned_title">Chưa có tin nhắn ghim nào</string>
-    <string name="dm_gallery_empty_pinned_subtitle">Tin nhắn đã ghim trong cuộc trò chuyện này sẽ xuất hiện ở đây khi có nội dung được ghim.</string>
     <string name="dm_gallery_empty_links_title">Chưa có liên kết nào được chia sẻ</string>
     <string name="dm_gallery_empty_links_subtitle">Các liên kết trong cuộc trò chuyện này sẽ xuất hiện ở đây khi được gửi.</string>
     <string name="dm_gallery_empty_files_title">Chưa có tệp nào được chia sẻ</string>
@@ -255,15 +252,11 @@
     <string name="dm_gallery_filter_documents">Tài liệu</string>
     <string name="dm_gallery_filter_audio">Âm thanh</string>
     <string name="dm_gallery_filter_archives">Tệp nén</string>
-    <string name="dm_gallery_filter_messages">Tin nhắn</string>
     <string name="dm_gallery_filter_other">Khác</string>
     <string name="dm_gallery_link_item_hint">Nhấn để mở liên kết gốc.</string>
-    <string name="dm_gallery_pinned_badge">Đã ghim</string>
     <string name="dm_gallery_fallback_shared_item">Mục đã chia sẻ</string>
-    <string name="dm_gallery_fallback_attachment">Tệp đính kèm</string>
     <string name="dm_gallery_fallback_shared_media">Ảnh hoặc video đã chia sẻ</string>
     <string name="dm_gallery_fallback_shared_link">Liên kết đã chia sẻ</string>
-    <string name="dm_gallery_fallback_pinned_message">Tin nhắn đã ghim</string>
 
     <string name="new_message_title">Tin nhắn mới</string>
     <string name="new_message_search_hint">Đến: Tìm bạn bè</string>

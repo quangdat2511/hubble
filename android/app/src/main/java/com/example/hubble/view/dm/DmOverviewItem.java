@@ -10,15 +10,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.hubble.R;
-import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.data.api.NetworkConfig;
-import com.example.hubble.data.model.dm.AttachmentResponse;
-import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.SharedContentItemResponse;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 
@@ -28,8 +23,7 @@ public final class DmOverviewItem {
         IMAGE,
         VIDEO,
         LINK,
-        FILE,
-        TEXT
+        FILE
     }
 
     private final String stableId;
@@ -42,7 +36,6 @@ public final class DmOverviewItem {
     private final String contentType;
     private final long sizeBytes;
     private final String createdAt;
-    private final boolean pinned;
 
     private DmOverviewItem(
             @NonNull String stableId,
@@ -54,8 +47,7 @@ public final class DmOverviewItem {
             @Nullable String previewUrl,
             @Nullable String contentType,
             long sizeBytes,
-            @Nullable String createdAt,
-            boolean pinned
+            @Nullable String createdAt
     ) {
         this.stableId = stableId;
         this.messageId = messageId;
@@ -67,7 +59,6 @@ public final class DmOverviewItem {
         this.contentType = contentType;
         this.sizeBytes = sizeBytes;
         this.createdAt = createdAt;
-        this.pinned = pinned;
     }
 
     @NonNull
@@ -99,115 +90,8 @@ public final class DmOverviewItem {
                 safePreviewUrl,
                 item.getContentType(),
                 item.getSizeBytes(),
-                item.getCreatedAt(),
-                false
+                item.getCreatedAt()
         );
-    }
-
-    @NonNull
-    public static List<DmOverviewItem> fromPinnedMessage(@NonNull Context context, @NonNull MessageDto message) {
-        List<DmOverviewItem> items = new ArrayList<>();
-        if (!Boolean.TRUE.equals(message.getIsPinned())) {
-            return items;
-        }
-
-        List<AttachmentResponse> attachments = message.getAttachments();
-        if (!attachments.isEmpty()) {
-            for (int index = 0; index < attachments.size(); index++) {
-                AttachmentResponse attachment = attachments.get(index);
-                if (attachment == null) {
-                    continue;
-                }
-                Kind kind = classifyAttachment(attachment.getContentType(), null);
-                String safeUrl = NetworkConfig.resolveUrl(attachment.getUrl());
-                String title = firstNonBlank(
-                        attachment.getFilename(),
-                        context.getString(R.string.dm_gallery_fallback_attachment)
-                );
-                String supportingText = kind == Kind.FILE
-                        ? buildFileMeta(attachment.getContentType(), attachment.getSizeBytes())
-                        : message.getContent();
-                items.add(new DmOverviewItem(
-                        buildStableId("pinned-attachment", message.getId(), attachment.getId(), String.valueOf(index)),
-                        message.getId(),
-                        kind,
-                        title,
-                        supportingText,
-                        safeUrl,
-                        safeUrl,
-                        attachment.getContentType(),
-                        attachment.getSizeBytes(),
-                        message.getCreatedAt(),
-                        true
-                ));
-            }
-            return items;
-        }
-
-        String content = message.getContent();
-        if (TextUtils.isEmpty(content)) {
-            return items;
-        }
-
-        if (DmMessageAdapter.isMedia(content)) {
-            String mediaUrl = NetworkConfig.resolveUrl(DmMessageAdapter.extractMediaUrl(content));
-            String mediaTitle = firstNonBlank(
-                    DmMessageAdapter.extractMediaTitle(content),
-                    context.getString(R.string.dm_gallery_fallback_shared_media)
-            );
-            items.add(new DmOverviewItem(
-                    buildStableId("pinned-media", message.getId(), mediaTitle),
-                    message.getId(),
-                    Kind.IMAGE,
-                    mediaTitle,
-                    content,
-                    mediaUrl,
-                    mediaUrl,
-                    "image/*",
-                    0L,
-                    message.getCreatedAt(),
-                    true
-            ));
-            return items;
-        }
-
-        String firstUrl = extractFirstUrl(content);
-        if (!TextUtils.isEmpty(firstUrl)) {
-            String safeUrl = NetworkConfig.resolveUrl(firstUrl);
-            items.add(new DmOverviewItem(
-                    buildStableId("pinned-link", message.getId(), safeUrl),
-                    message.getId(),
-                    Kind.LINK,
-                    firstNonBlank(
-                            extractHost(safeUrl),
-                            safeUrl,
-                            context.getString(R.string.dm_gallery_fallback_shared_link)
-                    ),
-                    content,
-                    safeUrl,
-                    safeUrl,
-                    "text/html",
-                    0L,
-                    message.getCreatedAt(),
-                    true
-            ));
-            return items;
-        }
-
-        items.add(new DmOverviewItem(
-                buildStableId("pinned-text", message.getId()),
-                message.getId(),
-                Kind.TEXT,
-                context.getString(R.string.dm_gallery_fallback_pinned_message),
-                content,
-                null,
-                null,
-                "text/plain",
-                0L,
-                message.getCreatedAt(),
-                true
-        ));
-        return items;
     }
 
     @NonNull
@@ -259,10 +143,6 @@ public final class DmOverviewItem {
         return createdAt;
     }
 
-    public boolean isPinned() {
-        return pinned;
-    }
-
     public boolean isMedia() {
         return kind == Kind.IMAGE || kind == Kind.VIDEO;
     }
@@ -277,10 +157,6 @@ public final class DmOverviewItem {
 
     public boolean isFile() {
         return kind == Kind.FILE;
-    }
-
-    public boolean isText() {
-        return kind == Kind.TEXT;
     }
 
     public boolean isOpenable() {
