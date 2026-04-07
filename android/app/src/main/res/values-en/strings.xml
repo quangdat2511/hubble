@@ -269,6 +269,8 @@
     <string name="dm_gallery_download_success">%1$s saved to Downloads</string>
     <string name="dm_gallery_download_failed">Could not start the download</string>
     <string name="dm_gallery_download_failed_with_reason">Download failed: %1$s</string>
+    <string name="dm_gallery_download_duplicate">This item is already downloading</string>
+    <string name="dm_gallery_download_unsupported">This item can\'t be downloaded here</string>
     <string name="dm_gallery_open_failed">Unable to open this item</string>
     <string name="dm_gallery_error_generic">Could not load this conversation overview.</string>
     <string name="dm_gallery_empty_media_title">No shared media yet</string>
@@ -288,6 +290,7 @@
     <string name="dm_gallery_filter_other">Other</string>
     <string name="dm_gallery_link_item_hint">Tap to open the original link.</string>
     <string name="dm_gallery_fallback_shared_item">Shared item</string>
+    <string name="dm_gallery_fallback_attachment">Attachment</string>
     <string name="dm_gallery_fallback_shared_media">Shared media</string>
     <string name="dm_gallery_fallback_shared_link">Shared link</string>
     <string name="save">Save</string>

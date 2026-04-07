@@ -3,7 +3,6 @@ package com.example.hubble.view.dm;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Patterns;
 import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
@@ -15,7 +14,6 @@ import com.example.hubble.data.model.dm.SharedContentItemResponse;
 
 import java.net.URI;
 import java.util.Locale;
-import java.util.regex.Matcher;
 
 public final class DmOverviewItem {
 
@@ -163,6 +161,10 @@ public final class DmOverviewItem {
         return !TextUtils.isEmpty(url);
     }
 
+    public boolean isDownloadable() {
+        return !isLink() && !TextUtils.isEmpty(url);
+    }
+
     @NonNull
     private static Kind classifyAttachment(@Nullable String contentType, @Nullable String fallbackType) {
         String normalizedContentType = contentType == null ? "" : contentType.trim().toLowerCase(Locale.US);
@@ -211,22 +213,6 @@ public final class DmOverviewItem {
             unitIndex++;
         }
         return String.format(Locale.US, size >= 10 ? "%.0f %s" : "%.1f %s", size, units[unitIndex]);
-    }
-
-    @Nullable
-    private static String extractFirstUrl(@Nullable String text) {
-        if (TextUtils.isEmpty(text)) {
-            return null;
-        }
-        Matcher matcher = Patterns.WEB_URL.matcher(text);
-        if (!matcher.find()) {
-            return null;
-        }
-        String match = matcher.group();
-        if (TextUtils.isEmpty(match)) {
-            return null;
-        }
-        return URLUtil.guessUrl(match);
     }
 
     @Nullable

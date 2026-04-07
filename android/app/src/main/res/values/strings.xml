@@ -236,6 +236,8 @@
     <string name="dm_gallery_download_success">Đã lưu %1$s vào mục Tải xuống</string>
     <string name="dm_gallery_download_failed">Không thể bắt đầu tải xuống</string>
     <string name="dm_gallery_download_failed_with_reason">Tải xuống thất bại: %1$s</string>
+    <string name="dm_gallery_download_duplicate">Mục này đang được tải xuống</string>
+    <string name="dm_gallery_download_unsupported">Không thể tải mục này tại đây</string>
     <string name="dm_gallery_open_failed">Không thể mở mục này</string>
     <string name="dm_gallery_error_generic">Không thể tải tổng quan cuộc trò chuyện này.</string>
     <string name="dm_gallery_empty_media_title">Chưa có ảnh hoặc video nào</string>
@@ -255,6 +257,7 @@
     <string name="dm_gallery_filter_other">Khác</string>
     <string name="dm_gallery_link_item_hint">Nhấn để mở liên kết gốc.</string>
     <string name="dm_gallery_fallback_shared_item">Mục đã chia sẻ</string>
+    <string name="dm_gallery_fallback_attachment">Tệp đính kèm</string>
     <string name="dm_gallery_fallback_shared_media">Ảnh hoặc video đã chia sẻ</string>
     <string name="dm_gallery_fallback_shared_link">Liên kết đã chia sẻ</string>
 
