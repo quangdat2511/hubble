@@ -24,13 +24,17 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOverviewAdapter.RowItem, RecyclerView.ViewHolder> {
 
     public interface Listener {
         void onOpenItem(@NonNull DmOverviewItem item);
+
+        void onDownloadItem(@NonNull DmOverviewItem item);
     }
 
     public static final int VIEW_TYPE_SECTION_HEADER = 0;
@@ -53,6 +57,7 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
 
     private final Listener listener;
     private int contentItemCount = 0;
+    private final Set<String> downloadingIds = new HashSet<>();
 
     public DmConversationOverviewAdapter(@NonNull Listener listener) {
         super(DIFF_CALLBACK);
@@ -67,6 +72,14 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
 
     public int getContentItemCount() {
         return contentItemCount;
+    }
+
+    public void setDownloadingIds(@NonNull Set<String> itemIds) {
+        downloadingIds.clear();
+        downloadingIds.addAll(itemIds);
+        if (!getCurrentList().isEmpty()) {
+            notifyItemRangeChanged(0, getCurrentList().size());
+        }
     }
 
     public GridLayoutManager.SpanSizeLookup createSpanSizeLookup() {
@@ -243,7 +256,10 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
             binding.tvMediaLabel.setText(item.getTitle());
             binding.tvMediaDate.setText(formatDate(item.getCreatedAt()));
             binding.ivVideoBadge.setVisibility(item.isVideo() ? View.VISIBLE : View.GONE);
-            binding.btnDownloadMedia.setVisibility(View.GONE);
+            boolean downloading = downloadingIds.contains(item.getStableId());
+            binding.btnDownloadMedia.setVisibility(item.isDownloadable() ? View.VISIBLE : View.GONE);
+            binding.btnDownloadMedia.setEnabled(!downloading);
+            binding.btnDownloadMedia.setAlpha(downloading ? 0.45f : 1f);
 
             Glide.with(binding.ivMediaThumb.getContext())
                     .load(item.getPreviewUrl())
@@ -253,6 +269,7 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
                     .into(binding.ivMediaThumb);
 
             binding.getRoot().setOnClickListener(v -> listener.onOpenItem(item));
+            binding.btnDownloadMedia.setOnClickListener(v -> listener.onDownloadItem(item));
         }
     }
 
@@ -288,8 +305,12 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
             binding.tvFileMeta.setText(item.getSupportingText());
             binding.tvFileDate.setText(formatDate(item.getCreatedAt()));
             binding.ivFileIcon.setImageResource(resolveFileIcon(item));
-            binding.btnDownloadFile.setVisibility(View.GONE);
+            boolean downloading = downloadingIds.contains(item.getStableId());
+            binding.btnDownloadFile.setVisibility(item.isDownloadable() ? View.VISIBLE : View.GONE);
+            binding.btnDownloadFile.setEnabled(!downloading);
+            binding.btnDownloadFile.setAlpha(downloading ? 0.45f : 1f);
             binding.getRoot().setOnClickListener(v -> listener.onOpenItem(item));
+            binding.btnDownloadFile.setOnClickListener(v -> listener.onDownloadItem(item));
         }
     }
 

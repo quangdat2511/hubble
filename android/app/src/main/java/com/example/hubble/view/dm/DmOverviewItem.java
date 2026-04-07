@@ -271,6 +271,10 @@ public final class DmOverviewItem {
         return !TextUtils.isEmpty(url);
     }
 
+    public boolean isDownloadable() {
+        return !isLink() && !isText() && !TextUtils.isEmpty(url);
+    }
+
     @NonNull
     private static Kind classifyAttachment(@Nullable String contentType, @Nullable String fallbackType) {
         String normalizedContentType = contentType == null ? "" : contentType.trim().toLowerCase(Locale.US);
