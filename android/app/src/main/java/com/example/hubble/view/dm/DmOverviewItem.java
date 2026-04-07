@@ -1,5 +1,6 @@
 package com.example.hubble.view.dm;
 
+import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Patterns;
@@ -8,6 +9,7 @@ import android.webkit.URLUtil;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmMessageAdapter;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.AttachmentResponse;
@@ -69,11 +71,15 @@ public final class DmOverviewItem {
     }
 
     @NonNull
-    public static DmOverviewItem fromSharedContent(@NonNull SharedContentItemResponse item) {
+    public static DmOverviewItem fromSharedContent(@NonNull Context context, @NonNull SharedContentItemResponse item) {
         Kind kind = classifyAttachment(item.getContentType(), item.getType());
         String safeUrl = NetworkConfig.resolveUrl(item.getUrl());
         String safePreviewUrl = NetworkConfig.resolveUrl(item.getPreviewUrl());
-        String title = firstNonBlank(item.getResolvedFileName(), extractHost(safeUrl), "Shared item");
+        String title = firstNonBlank(
+                item.getResolvedFileName(),
+                extractHost(safeUrl),
+                context.getString(R.string.dm_gallery_fallback_shared_item)
+        );
         String supportingText;
         if (kind == Kind.LINK) {
             supportingText = firstNonBlank(item.getMessageContent(), item.getUrl());
@@ -99,7 +105,7 @@ public final class DmOverviewItem {
     }
 
     @NonNull
-    public static List<DmOverviewItem> fromPinnedMessage(@NonNull MessageDto message) {
+    public static List<DmOverviewItem> fromPinnedMessage(@NonNull Context context, @NonNull MessageDto message) {
         List<DmOverviewItem> items = new ArrayList<>();
         if (!Boolean.TRUE.equals(message.getIsPinned())) {
             return items;
@@ -114,7 +120,10 @@ public final class DmOverviewItem {
                 }
                 Kind kind = classifyAttachment(attachment.getContentType(), null);
                 String safeUrl = NetworkConfig.resolveUrl(attachment.getUrl());
-                String title = firstNonBlank(attachment.getFilename(), "Attachment");
+                String title = firstNonBlank(
+                        attachment.getFilename(),
+                        context.getString(R.string.dm_gallery_fallback_attachment)
+                );
                 String supportingText = kind == Kind.FILE
                         ? buildFileMeta(attachment.getContentType(), attachment.getSizeBytes())
                         : message.getContent();
@@ -142,7 +151,10 @@ public final class DmOverviewItem {
 
         if (DmMessageAdapter.isMedia(content)) {
             String mediaUrl = NetworkConfig.resolveUrl(DmMessageAdapter.extractMediaUrl(content));
-            String mediaTitle = firstNonBlank(DmMessageAdapter.extractMediaTitle(content), "Shared media");
+            String mediaTitle = firstNonBlank(
+                    DmMessageAdapter.extractMediaTitle(content),
+                    context.getString(R.string.dm_gallery_fallback_shared_media)
+            );
             items.add(new DmOverviewItem(
                     buildStableId("pinned-media", message.getId(), mediaTitle),
                     message.getId(),
@@ -166,7 +178,11 @@ public final class DmOverviewItem {
                     buildStableId("pinned-link", message.getId(), safeUrl),
                     message.getId(),
                     Kind.LINK,
-                    firstNonBlank(extractHost(safeUrl), safeUrl, "Shared link"),
+                    firstNonBlank(
+                            extractHost(safeUrl),
+                            safeUrl,
+                            context.getString(R.string.dm_gallery_fallback_shared_link)
+                    ),
                     content,
                     safeUrl,
                     safeUrl,
@@ -182,7 +198,7 @@ public final class DmOverviewItem {
                 buildStableId("pinned-text", message.getId()),
                 message.getId(),
                 Kind.TEXT,
-                "Pinned message",
+                context.getString(R.string.dm_gallery_fallback_pinned_message),
                 content,
                 null,
                 null,
