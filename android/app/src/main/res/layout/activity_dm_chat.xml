@@ -24,9 +24,9 @@
         android:id="@+id/headerInfo"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="52dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="52dp"
         android:paddingEnd="12dp"
         app:layout_constraintEnd_toStartOf="@+id/headerActions"
         app:layout_constraintStart_toStartOf="parent"
@@ -80,7 +80,7 @@
                 android:layout_marginStart="4dp"
                 android:contentDescription="@null"
                 android:src="@drawable/ic_chevron_right"
-                android:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
         </LinearLayout>
 
