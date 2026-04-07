@@ -24,7 +24,6 @@ import com.example.hubble.adapter.dm.DmConversationOverviewAdapter;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
-import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.SharedContentItemResponse;
 import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.repository.DmRepository;
@@ -50,7 +49,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     private static final String EXTRA_USERNAME = "extra_username";
     private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     private static final int SHARED_CONTENT_PAGE_SIZE = 24;
-    private static final int PINNED_SCAN_PAGE_SIZE = 40;
 
     private static final String FILTER_ALL = "ALL";
     private static final String FILTER_IMAGE = "IMAGE";
@@ -59,10 +57,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     private static final String FILTER_AUDIO = "AUDIO";
     private static final String FILTER_ARCHIVE = "ARCHIVE";
     private static final String FILTER_OTHER = "OTHER";
-    private static final String FILTER_MEDIA = "MEDIA";
-    private static final String FILTER_LINK = "LINK";
-    private static final String FILTER_FILE = "FILE";
-    private static final String FILTER_MESSAGE = "MESSAGE";
 
     private ActivityDmDetailsBinding binding;
     private DmRepository dmRepository;
@@ -320,12 +314,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             int requestedPage = state.nextPage;
             dmRepository.getSharedContent(channelId, currentTab.getRequestType(), requestedPage, SHARED_CONTENT_PAGE_SIZE,
                     result -> runOnUiThread(() -> handleSharedContentResult(result, currentTab, requestedPage)));
-            return;
         }
-
-        int requestedPage = state.nextPage;
-        dmRepository.getMessages(channelId, requestedPage, PINNED_SCAN_PAGE_SIZE,
-                result -> runOnUiThread(() -> handlePinnedMessagesResult(result, requestedPage)));
     }
 
     private void handleSharedContentResult(AuthResult<SharedContentPageResponse> result,
@@ -364,37 +353,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
         }
 
         handleLoadFailure(tab, state, result.getMessage());
-    }
-
-    private void handlePinnedMessagesResult(AuthResult<List<MessageDto>> result, int requestedPage) {
-        TabState state = getCurrentState();
-        state.isLoading = false;
-        binding.progressInitial.setVisibility(View.GONE);
-        binding.progressLoadMore.setVisibility(View.GONE);
-
-        if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-            List<MessageDto> messages = result.getData();
-            for (MessageDto message : messages) {
-                if (message == null) {
-                    continue;
-                }
-                state.items.addAll(DmOverviewItem.fromPinnedMessage(this, message));
-            }
-
-            state.nextPage = requestedPage + 1;
-            state.hasMore = messages.size() >= PINNED_SCAN_PAGE_SIZE;
-            state.hasLoaded = true;
-
-            if (shouldContinueLoadingForFilter(state)) {
-                requestNextPage();
-                return;
-            }
-
-            renderCurrentState();
-            return;
-        }
-
-        handleLoadFailure(currentTab, state, result.getMessage());
     }
 
     private void handleLoadFailure(@NonNull DmDetailsTab sourceTab, @NonNull TabState state, @Nullable String message) {
@@ -490,14 +448,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             filterOptions.add(new FilterOption(FILTER_AUDIO, R.string.dm_gallery_filter_audio));
             filterOptions.add(new FilterOption(FILTER_ARCHIVE, R.string.dm_gallery_filter_archives));
             filterOptions.add(new FilterOption(FILTER_OTHER, R.string.dm_gallery_filter_other));
-            return filterOptions;
-        }
-
-        if (currentTab == DmDetailsTab.PINNED) {
-            filterOptions.add(new FilterOption(FILTER_MEDIA, R.string.dm_gallery_tab_media));
-            filterOptions.add(new FilterOption(FILTER_LINK, R.string.dm_gallery_tab_links));
-            filterOptions.add(new FilterOption(FILTER_FILE, R.string.dm_gallery_tab_files));
-            filterOptions.add(new FilterOption(FILTER_MESSAGE, R.string.dm_gallery_filter_messages));
         }
         return filterOptions;
     }
@@ -543,14 +493,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
                 return item.getKind() == DmOverviewItem.Kind.IMAGE;
             case FILTER_VIDEO:
                 return item.getKind() == DmOverviewItem.Kind.VIDEO;
-            case FILTER_MEDIA:
-                return item.isMedia();
-            case FILTER_LINK:
-                return item.isLink();
-            case FILTER_FILE:
-                return item.isFile();
-            case FILTER_MESSAGE:
-                return item.isText();
             case FILTER_DOCUMENT:
             case FILTER_AUDIO:
             case FILTER_ARCHIVE:
@@ -622,7 +564,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     @Override
     public void onOpenItem(@NonNull DmOverviewItem item) {
         String target = item.getUrl();
-        if (TextUtils.isEmpty(target) || item.isText()) {
+        if (TextUtils.isEmpty(target)) {
             Snackbar.make(binding.getRoot(), R.string.dm_gallery_open_failed, Snackbar.LENGTH_SHORT).show();
             return;
         }

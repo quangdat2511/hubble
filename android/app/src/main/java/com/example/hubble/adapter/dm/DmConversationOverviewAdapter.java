@@ -17,7 +17,6 @@ import com.example.hubble.databinding.ItemDmSharedFileBinding;
 import com.example.hubble.databinding.ItemDmSharedLinkBinding;
 import com.example.hubble.databinding.ItemDmSharedMediaBinding;
 import com.example.hubble.databinding.ItemDmSharedSectionHeaderBinding;
-import com.example.hubble.databinding.ItemDmSharedTextBinding;
 import com.example.hubble.view.dm.DmOverviewItem;
 
 import java.time.LocalDateTime;
@@ -41,7 +40,6 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
     public static final int VIEW_TYPE_MEDIA = 1;
     public static final int VIEW_TYPE_LINK = 2;
     public static final int VIEW_TYPE_FILE = 3;
-    public static final int VIEW_TYPE_TEXT = 4;
 
     private static final DiffUtil.ItemCallback<RowItem> DIFF_CALLBACK = new DiffUtil.ItemCallback<RowItem>() {
         @Override
@@ -115,9 +113,6 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
         if (viewType == VIEW_TYPE_FILE) {
             return new FileViewHolder(ItemDmSharedFileBinding.inflate(inflater, parent, false));
         }
-        if (viewType == VIEW_TYPE_TEXT) {
-            return new TextViewHolder(ItemDmSharedTextBinding.inflate(inflater, parent, false));
-        }
         return new MediaViewHolder(ItemDmSharedMediaBinding.inflate(inflater, parent, false));
     }
 
@@ -137,8 +132,6 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
             ((LinkViewHolder) holder).bind(rowItem.item);
         } else if (holder instanceof FileViewHolder) {
             ((FileViewHolder) holder).bind(rowItem.item);
-        } else if (holder instanceof TextViewHolder) {
-            ((TextViewHolder) holder).bind(rowItem.item);
         }
     }
 
@@ -314,24 +307,6 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
         }
     }
 
-    private final class TextViewHolder extends RecyclerView.ViewHolder {
-        private final ItemDmSharedTextBinding binding;
-
-        private TextViewHolder(ItemDmSharedTextBinding binding) {
-            super(binding.getRoot());
-            this.binding = binding;
-        }
-
-        private void bind(DmOverviewItem item) {
-            binding.tvPinnedTitle.setText(item.isPinned()
-                    ? binding.getRoot().getContext().getString(R.string.dm_gallery_pinned_badge)
-                    : item.getTitle());
-            binding.tvPinnedBody.setText(item.getSupportingText());
-            binding.tvPinnedDate.setText(formatDate(item.getCreatedAt()));
-            binding.getRoot().setOnClickListener(null);
-        }
-    }
-
     static final class RowItem {
         private final String stableId;
         private final int viewType;
@@ -350,13 +325,11 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
         }
 
         private static RowItem item(DmOverviewItem item) {
-            int viewType = VIEW_TYPE_TEXT;
+            int viewType = VIEW_TYPE_FILE;
             if (item.isMedia()) {
                 viewType = VIEW_TYPE_MEDIA;
             } else if (item.isLink()) {
                 viewType = VIEW_TYPE_LINK;
-            } else if (item.isFile()) {
-                viewType = VIEW_TYPE_FILE;
             }
             return new RowItem(item.getStableId(), viewType, null, item);
         }
@@ -400,8 +373,7 @@ public class DmConversationOverviewAdapter extends ListAdapter<DmConversationOve
                     && TextUtils.equals(left.getPreviewUrl(), right.getPreviewUrl())
                     && TextUtils.equals(left.getContentType(), right.getContentType())
                     && TextUtils.equals(left.getCreatedAt(), right.getCreatedAt())
-                    && left.getSizeBytes() == right.getSizeBytes()
-                    && left.isPinned() == right.isPinned();
+                    && left.getSizeBytes() == right.getSizeBytes();
         }
     }
 }
