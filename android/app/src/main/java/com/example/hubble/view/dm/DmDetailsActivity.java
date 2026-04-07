@@ -303,7 +303,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             List<DmOverviewItem> mappedItems = new ArrayList<>();
             for (SharedContentItemResponse response : page.getItems()) {
                 if (response != null) {
-                    mappedItems.add(DmOverviewItem.fromSharedContent(response));
+                    mappedItems.add(DmOverviewItem.fromSharedContent(this, response));
                 }
             }
             state.items.addAll(mappedItems);
@@ -339,7 +339,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
                 if (message == null) {
                     continue;
                 }
-                state.items.addAll(DmOverviewItem.fromPinnedMessage(message));
+                state.items.addAll(DmOverviewItem.fromPinnedMessage(this, message));
             }
 
             state.nextPage = requestedPage + 1;
