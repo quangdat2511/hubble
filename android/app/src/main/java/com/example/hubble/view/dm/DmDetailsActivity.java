@@ -24,12 +24,14 @@ import com.example.hubble.data.model.dm.SharedContentItemResponse;
 import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.databinding.ActivityDmDetailsBinding;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class DmDetailsActivity extends AppCompatActivity implements DmConversationOverviewAdapter.Listener {
@@ -40,6 +42,18 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     private static final int SHARED_CONTENT_PAGE_SIZE = 24;
     private static final int PINNED_SCAN_PAGE_SIZE = 40;
+
+    private static final String FILTER_ALL = "ALL";
+    private static final String FILTER_IMAGE = "IMAGE";
+    private static final String FILTER_VIDEO = "VIDEO";
+    private static final String FILTER_DOCUMENT = "DOCUMENT";
+    private static final String FILTER_AUDIO = "AUDIO";
+    private static final String FILTER_ARCHIVE = "ARCHIVE";
+    private static final String FILTER_OTHER = "OTHER";
+    private static final String FILTER_MEDIA = "MEDIA";
+    private static final String FILTER_LINK = "LINK";
+    private static final String FILTER_FILE = "FILE";
+    private static final String FILTER_MESSAGE = "MESSAGE";
 
     private ActivityDmDetailsBinding binding;
     private DmRepository dmRepository;
@@ -52,6 +66,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     private String peerAvatarUrl;
     private DmDetailsTab currentTab = DmDetailsTab.MEDIA;
     private final Map<DmDetailsTab, TabState> tabStates = new EnumMap<>(DmDetailsTab.class);
+    private boolean isUpdatingFilterChips = false;
 
     public static Intent createIntent(Context context, String channelId, String displayName,
                                       String username, String avatarUrl) {
@@ -80,6 +95,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
         setupToolbar();
         setupHeader();
         setupTabs();
+        setupFilters();
         setupRecyclerView();
         binding.btnRetry.setOnClickListener(v -> refreshContent(true));
 
@@ -106,13 +122,21 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
                     .setTag(tab.getTag()));
             tabStates.put(tab, new TabState());
         }
+        updateFilterChips();
 
         binding.tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 currentTab = DmDetailsTab.fromTag(tab.getTag());
                 bindPeerHeader();
+                updateFilterChips();
                 renderCurrentState();
+                if (getCurrentState().hasLoaded && shouldContinueLoadingForFilter(getCurrentState())) {
+                    getCurrentState().isLoading = true;
+                    binding.progressLoadMore.setVisibility(View.VISIBLE);
+                    requestNextPage();
+                    return;
+                }
                 if (!getCurrentState().hasLoaded) {
                     refreshContent(true);
                 }
@@ -126,6 +150,30 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
                 binding.rvSharedContent.smoothScrollToPosition(0);
+            }
+        });
+    }
+
+    private void setupFilters() {
+        binding.chipGroupContentFilters.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (isUpdatingFilterChips || checkedIds.isEmpty()) {
+                return;
+            }
+            Chip selectedChip = group.findViewById(checkedIds.get(0));
+            if (selectedChip == null || selectedChip.getTag() == null) {
+                return;
+            }
+            TabState state = getCurrentState();
+            String selectedFilter = selectedChip.getTag().toString();
+            if (TextUtils.equals(state.activeFilter, selectedFilter)) {
+                return;
+            }
+            state.activeFilter = selectedFilter;
+            renderCurrentState();
+            if (shouldContinueLoadingForFilter(state)) {
+                state.isLoading = true;
+                binding.progressLoadMore.setVisibility(View.VISIBLE);
+                requestNextPage();
             }
         });
     }
@@ -147,7 +195,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
                 }
                 int lastVisible = layoutManager.findLastVisibleItemPosition();
                 if (lastVisible >= adapter.getItemCount() - 6) {
-                    loadNextPage();
+                    requestNextPage();
                 }
             }
         });
@@ -216,27 +264,32 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
 
         state.isLoading = true;
         state.errorMessage = null;
+        requestNextPage();
+    }
+
+    private void requestNextPage() {
+        TabState state = getCurrentState();
+        if (state.isLoading && !state.hasLoaded) {
+            // allow initial request
+        } else if (state.isLoading && state.hasLoaded && !state.hasMore) {
+            return;
+        }
 
         if (currentTab.usesSharedContentEndpoint()) {
             int requestedPage = state.nextPage;
             dmRepository.getSharedContent(channelId, currentTab.getRequestType(), requestedPage, SHARED_CONTENT_PAGE_SIZE,
-                    result -> runOnUiThread(() -> handleSharedContentResult(result, reset, currentTab, requestedPage)));
+                    result -> runOnUiThread(() -> handleSharedContentResult(result, currentTab, requestedPage)));
             return;
         }
 
-        loadPinnedMessages(reset);
+        int requestedPage = state.nextPage;
+        dmRepository.getMessages(channelId, requestedPage, PINNED_SCAN_PAGE_SIZE,
+                result -> runOnUiThread(() -> handlePinnedMessagesResult(result, requestedPage)));
     }
 
-    private void loadNextPage() {
-        TabState currentState = getCurrentState();
-        if (currentState.isLoading || !currentState.hasMore) {
-            return;
-        }
-        refreshContent(false);
-    }
-
-    private void handleSharedContentResult(AuthResult<SharedContentPageResponse> result, boolean reset,
-                                           @NonNull DmDetailsTab tab, int requestedPage) {
+    private void handleSharedContentResult(AuthResult<SharedContentPageResponse> result,
+                                           @NonNull DmDetailsTab tab,
+                                           int requestedPage) {
         TabState state = tabStates.get(tab);
         if (state == null) {
             return;
@@ -253,40 +306,34 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
                     mappedItems.add(DmOverviewItem.fromSharedContent(response));
                 }
             }
-            if (reset) {
-                state.items.clear();
-            }
             state.items.addAll(mappedItems);
             state.nextPage = requestedPage + 1;
             state.hasMore = page.hasMore();
             state.hasLoaded = true;
+
+            if (tab == currentTab && shouldContinueLoadingForFilter(state)) {
+                state.isLoading = true;
+                binding.progressLoadMore.setVisibility(View.VISIBLE);
+                requestNextPage();
+                return;
+            }
+
             if (tab == currentTab) {
                 renderCurrentState();
             }
             return;
         }
 
-        handleLoadFailure(state, reset, result.getMessage());
+        handleLoadFailure(tab, state, result.getMessage());
     }
 
-    private void loadPinnedMessages(boolean reset) {
-        TabState state = getCurrentState();
-        int requestedPage = state.nextPage;
-        dmRepository.getMessages(channelId, requestedPage, PINNED_SCAN_PAGE_SIZE,
-                result -> runOnUiThread(() -> handlePinnedMessagesResult(result, reset, requestedPage)));
-    }
-
-    private void handlePinnedMessagesResult(AuthResult<List<MessageDto>> result, boolean reset, int requestedPage) {
+    private void handlePinnedMessagesResult(AuthResult<List<MessageDto>> result, int requestedPage) {
         TabState state = getCurrentState();
         state.isLoading = false;
         binding.progressInitial.setVisibility(View.GONE);
         binding.progressLoadMore.setVisibility(View.GONE);
 
         if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-            if (reset) {
-                state.items.clear();
-            }
-
             List<MessageDto> messages = result.getData();
             for (MessageDto message : messages) {
                 if (message == null) {
@@ -299,9 +346,10 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             state.hasMore = messages.size() >= PINNED_SCAN_PAGE_SIZE;
             state.hasLoaded = true;
 
-            if (state.items.isEmpty() && state.hasMore) {
+            if (shouldContinueLoadingForFilter(state)) {
                 state.isLoading = true;
-                loadPinnedMessages(false);
+                binding.progressLoadMore.setVisibility(View.VISIBLE);
+                requestNextPage();
                 return;
             }
 
@@ -309,14 +357,18 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             return;
         }
 
-        handleLoadFailure(state, reset, result.getMessage());
+        handleLoadFailure(currentTab, state, result.getMessage());
     }
 
-    private void handleLoadFailure(@NonNull TabState state, boolean reset, @Nullable String message) {
+    private void handleLoadFailure(@NonNull DmDetailsTab sourceTab, @NonNull TabState state, @Nullable String message) {
         state.isLoading = false;
         state.errorMessage = message != null ? message : getString(R.string.dm_gallery_error_generic);
-        if (!reset && !state.items.isEmpty()) {
+        if (sourceTab != currentTab) {
+            return;
+        }
+        if (!state.items.isEmpty()) {
             Snackbar.make(binding.getRoot(), state.errorMessage, Snackbar.LENGTH_LONG).show();
+            renderCurrentState();
             return;
         }
         showErrorState(state.errorMessage);
@@ -324,23 +376,31 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
 
     private void renderCurrentState() {
         TabState state = getCurrentState();
-        binding.progressInitial.setVisibility(state.isLoading && state.items.isEmpty() ? View.VISIBLE : View.GONE);
-        binding.progressLoadMore.setVisibility(state.isLoading && !state.items.isEmpty() ? View.VISIBLE : View.GONE);
-        if (!TextUtils.isEmpty(state.errorMessage) && state.items.isEmpty()) {
+        updateFilterChips();
+        List<DmOverviewItem> filteredItems = getFilteredItems(state);
+
+        binding.progressInitial.setVisibility(state.isLoading && filteredItems.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.progressLoadMore.setVisibility(state.isLoading && !filteredItems.isEmpty() ? View.VISIBLE : View.GONE);
+
+        if (!TextUtils.isEmpty(state.errorMessage) && filteredItems.isEmpty()) {
             showErrorState(state.errorMessage);
             return;
         }
-        adapter.submitOverviewItems(new ArrayList<>(state.items));
-        showContentState();
+
+        adapter.submitOverviewItems(filteredItems);
+        showContentState(filteredItems.isEmpty(), hasActiveFilter(state));
     }
 
-    private void showContentState() {
-        boolean isEmpty = adapter.getContentItemCount() == 0;
+    private void showContentState(boolean isEmpty, boolean hasActiveFilter) {
         binding.rvSharedContent.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
         binding.layoutEmptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.layoutErrorState.setVisibility(View.GONE);
-        binding.tvEmptyTitle.setText(currentTab.getEmptyTitleResId());
-        binding.tvEmptySubtitle.setText(currentTab.getEmptySubtitleResId());
+        binding.tvEmptyTitle.setText(hasActiveFilter
+                ? R.string.dm_gallery_empty_filtered_title
+                : currentTab.getEmptyTitleResId());
+        binding.tvEmptySubtitle.setText(hasActiveFilter
+                ? R.string.dm_gallery_empty_filtered_subtitle
+                : currentTab.getEmptySubtitleResId());
     }
 
     private void showErrorState(String message) {
@@ -350,6 +410,165 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
         binding.tvErrorMessage.setText(message);
         binding.progressInitial.setVisibility(View.GONE);
         binding.progressLoadMore.setVisibility(View.GONE);
+    }
+
+    private void updateFilterChips() {
+        List<FilterOption> filterOptions = getFilterOptionsForCurrentTab();
+        boolean showFilters = filterOptions.size() > 1;
+        binding.contentFiltersContainer.setVisibility(showFilters ? View.VISIBLE : View.GONE);
+        binding.chipGroupContentFilters.removeAllViews();
+
+        if (!showFilters) {
+            getCurrentState().activeFilter = FILTER_ALL;
+            return;
+        }
+
+        isUpdatingFilterChips = true;
+        for (FilterOption option : filterOptions) {
+            Chip chip = new Chip(this);
+            chip.setText(option.labelResId);
+            chip.setTag(option.key);
+            chip.setCheckable(true);
+            chip.setClickable(true);
+            chip.setChecked(TextUtils.equals(getCurrentState().activeFilter, option.key));
+            binding.chipGroupContentFilters.addView(chip);
+        }
+        isUpdatingFilterChips = false;
+    }
+
+    @NonNull
+    private List<FilterOption> getFilterOptionsForCurrentTab() {
+        List<FilterOption> filterOptions = new ArrayList<>();
+        filterOptions.add(new FilterOption(FILTER_ALL, R.string.dm_gallery_filter_all));
+
+        if (currentTab == DmDetailsTab.MEDIA) {
+            filterOptions.add(new FilterOption(FILTER_IMAGE, R.string.dm_gallery_filter_images));
+            filterOptions.add(new FilterOption(FILTER_VIDEO, R.string.dm_gallery_filter_videos));
+            return filterOptions;
+        }
+
+        if (currentTab == DmDetailsTab.FILES) {
+            filterOptions.add(new FilterOption(FILTER_DOCUMENT, R.string.dm_gallery_filter_documents));
+            filterOptions.add(new FilterOption(FILTER_AUDIO, R.string.dm_gallery_filter_audio));
+            filterOptions.add(new FilterOption(FILTER_ARCHIVE, R.string.dm_gallery_filter_archives));
+            filterOptions.add(new FilterOption(FILTER_OTHER, R.string.dm_gallery_filter_other));
+            return filterOptions;
+        }
+
+        if (currentTab == DmDetailsTab.PINNED) {
+            filterOptions.add(new FilterOption(FILTER_MEDIA, R.string.dm_gallery_tab_media));
+            filterOptions.add(new FilterOption(FILTER_LINK, R.string.dm_gallery_tab_links));
+            filterOptions.add(new FilterOption(FILTER_FILE, R.string.dm_gallery_tab_files));
+            filterOptions.add(new FilterOption(FILTER_MESSAGE, R.string.dm_gallery_filter_messages));
+        }
+        return filterOptions;
+    }
+
+    @NonNull
+    private List<DmOverviewItem> getFilteredItems(@NonNull TabState state) {
+        if (!hasActiveFilter(state)) {
+            return new ArrayList<>(state.items);
+        }
+        List<DmOverviewItem> filteredItems = new ArrayList<>();
+        for (DmOverviewItem item : state.items) {
+            if (matchesFilter(item, state.activeFilter)) {
+                filteredItems.add(item);
+            }
+        }
+        return filteredItems;
+    }
+
+    private boolean shouldContinueLoadingForFilter(@NonNull TabState state) {
+        return currentTab == getCurrentTabFromState(state)
+                && hasActiveFilter(state)
+                && state.hasMore
+                && getFilteredItems(state).isEmpty();
+    }
+
+    @NonNull
+    private DmDetailsTab getCurrentTabFromState(@NonNull TabState state) {
+        for (Map.Entry<DmDetailsTab, TabState> entry : tabStates.entrySet()) {
+            if (entry.getValue() == state) {
+                return entry.getKey();
+            }
+        }
+        return currentTab;
+    }
+
+    private boolean hasActiveFilter(@NonNull TabState state) {
+        return !TextUtils.isEmpty(state.activeFilter) && !FILTER_ALL.equalsIgnoreCase(state.activeFilter);
+    }
+
+    private boolean matchesFilter(@NonNull DmOverviewItem item, @NonNull String filterKey) {
+        switch (filterKey) {
+            case FILTER_IMAGE:
+                return item.getKind() == DmOverviewItem.Kind.IMAGE;
+            case FILTER_VIDEO:
+                return item.getKind() == DmOverviewItem.Kind.VIDEO;
+            case FILTER_MEDIA:
+                return item.isMedia();
+            case FILTER_LINK:
+                return item.isLink();
+            case FILTER_FILE:
+                return item.isFile();
+            case FILTER_MESSAGE:
+                return item.isText();
+            case FILTER_DOCUMENT:
+            case FILTER_AUDIO:
+            case FILTER_ARCHIVE:
+            case FILTER_OTHER:
+                return item.isFile() && TextUtils.equals(resolveFileSubtype(item), filterKey);
+            default:
+                return true;
+        }
+    }
+
+    @NonNull
+    private String resolveFileSubtype(@NonNull DmOverviewItem item) {
+        String contentType = item.getContentType() == null ? "" : item.getContentType().toLowerCase(Locale.US);
+        String fileName = item.getTitle().toLowerCase(Locale.US);
+
+        if (contentType.startsWith("audio/")
+                || fileName.endsWith(".mp3")
+                || fileName.endsWith(".wav")
+                || fileName.endsWith(".m4a")
+                || fileName.endsWith(".aac")
+                || fileName.endsWith(".ogg")) {
+            return FILTER_AUDIO;
+        }
+
+        if (contentType.contains("zip")
+                || contentType.contains("rar")
+                || contentType.contains("7z")
+                || fileName.endsWith(".zip")
+                || fileName.endsWith(".rar")
+                || fileName.endsWith(".7z")
+                || fileName.endsWith(".tar")
+                || fileName.endsWith(".gz")) {
+            return FILTER_ARCHIVE;
+        }
+
+        if (contentType.startsWith("text/")
+                || contentType.contains("pdf")
+                || contentType.contains("word")
+                || contentType.contains("document")
+                || contentType.contains("excel")
+                || contentType.contains("spreadsheet")
+                || contentType.contains("powerpoint")
+                || contentType.contains("presentation")
+                || fileName.endsWith(".pdf")
+                || fileName.endsWith(".doc")
+                || fileName.endsWith(".docx")
+                || fileName.endsWith(".xls")
+                || fileName.endsWith(".xlsx")
+                || fileName.endsWith(".ppt")
+                || fileName.endsWith(".pptx")
+                || fileName.endsWith(".txt")
+                || fileName.endsWith(".csv")) {
+            return FILTER_DOCUMENT;
+        }
+
+        return FILTER_OTHER;
     }
 
     @NonNull
@@ -429,6 +648,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
         private boolean hasMore = true;
         private boolean isLoading = false;
         private boolean hasLoaded = false;
+        private String activeFilter = FILTER_ALL;
         @Nullable
         private String errorMessage;
 
@@ -438,7 +658,18 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             hasMore = true;
             isLoading = false;
             hasLoaded = false;
+            activeFilter = FILTER_ALL;
             errorMessage = null;
+        }
+    }
+
+    private static final class FilterOption {
+        private final String key;
+        private final int labelResId;
+
+        private FilterOption(String key, int labelResId) {
+            this.key = key;
+            this.labelResId = labelResId;
         }
     }
 }

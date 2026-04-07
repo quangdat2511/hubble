@@ -247,6 +247,16 @@
     <string name="dm_gallery_empty_links_subtitle">Links from your conversation will show up here once they are sent.</string>
     <string name="dm_gallery_empty_files_title">No shared files yet</string>
     <string name="dm_gallery_empty_files_subtitle">Documents and other attachments from this DM will appear here.</string>
+    <string name="dm_gallery_empty_filtered_title">No shared items match this filter</string>
+    <string name="dm_gallery_empty_filtered_subtitle">Try another content type or keep scrolling for more shared items.</string>
+    <string name="dm_gallery_filter_all">All</string>
+    <string name="dm_gallery_filter_images">Images</string>
+    <string name="dm_gallery_filter_videos">Videos</string>
+    <string name="dm_gallery_filter_documents">Documents</string>
+    <string name="dm_gallery_filter_audio">Audio</string>
+    <string name="dm_gallery_filter_archives">Archives</string>
+    <string name="dm_gallery_filter_messages">Messages</string>
+    <string name="dm_gallery_filter_other">Other</string>
     <string name="dm_gallery_link_item_hint">Tap to open the original link.</string>
     <string name="dm_gallery_pinned_badge">Pinned</string>
 
