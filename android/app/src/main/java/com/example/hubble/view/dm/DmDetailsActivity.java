@@ -19,7 +19,6 @@ import com.example.hubble.adapter.dm.DmConversationOverviewAdapter;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
-import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.SharedContentItemResponse;
 import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.repository.DmRepository;
@@ -39,7 +38,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     private static final String EXTRA_USERNAME = "extra_username";
     private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     private static final int SHARED_CONTENT_PAGE_SIZE = 24;
-    private static final int PINNED_SCAN_PAGE_SIZE = 40;
 
     private ActivityDmDetailsBinding binding;
     private DmRepository dmRepository;
@@ -217,14 +215,9 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
         state.isLoading = true;
         state.errorMessage = null;
 
-        if (currentTab.usesSharedContentEndpoint()) {
-            int requestedPage = state.nextPage;
-            dmRepository.getSharedContent(channelId, currentTab.getRequestType(), requestedPage, SHARED_CONTENT_PAGE_SIZE,
-                    result -> runOnUiThread(() -> handleSharedContentResult(result, reset, currentTab, requestedPage)));
-            return;
-        }
-
-        loadPinnedMessages(reset);
+        int requestedPage = state.nextPage;
+        dmRepository.getSharedContent(channelId, currentTab.getRequestType(), requestedPage, SHARED_CONTENT_PAGE_SIZE,
+                result -> runOnUiThread(() -> handleSharedContentResult(result, reset, currentTab, requestedPage)));
     }
 
     private void loadNextPage() {
@@ -268,50 +261,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
 
         handleLoadFailure(state, reset, result.getMessage());
     }
-
-    private void loadPinnedMessages(boolean reset) {
-        TabState state = getCurrentState();
-        int requestedPage = state.nextPage;
-        dmRepository.getMessages(channelId, requestedPage, PINNED_SCAN_PAGE_SIZE,
-                result -> runOnUiThread(() -> handlePinnedMessagesResult(result, reset, requestedPage)));
-    }
-
-    private void handlePinnedMessagesResult(AuthResult<List<MessageDto>> result, boolean reset, int requestedPage) {
-        TabState state = getCurrentState();
-        state.isLoading = false;
-        binding.progressInitial.setVisibility(View.GONE);
-        binding.progressLoadMore.setVisibility(View.GONE);
-
-        if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-            if (reset) {
-                state.items.clear();
-            }
-
-            List<MessageDto> messages = result.getData();
-            for (MessageDto message : messages) {
-                if (message == null) {
-                    continue;
-                }
-                state.items.addAll(DmOverviewItem.fromPinnedMessage(this, message));
-            }
-
-            state.nextPage = requestedPage + 1;
-            state.hasMore = messages.size() >= PINNED_SCAN_PAGE_SIZE;
-            state.hasLoaded = true;
-
-            if (state.items.isEmpty() && state.hasMore) {
-                state.isLoading = true;
-                loadPinnedMessages(false);
-                return;
-            }
-
-            renderCurrentState();
-            return;
-        }
-
-        handleLoadFailure(state, reset, result.getMessage());
-    }
-
     private void handleLoadFailure(@NonNull TabState state, boolean reset, @Nullable String message) {
         state.isLoading = false;
         state.errorMessage = message != null ? message : getString(R.string.dm_gallery_error_generic);
@@ -365,7 +314,7 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
     @Override
     public void onOpenItem(@NonNull DmOverviewItem item) {
         String target = item.getUrl();
-        if (TextUtils.isEmpty(target) || item.isText()) {
+        if (TextUtils.isEmpty(target)) {
             Snackbar.make(binding.getRoot(), R.string.dm_gallery_open_failed, Snackbar.LENGTH_SHORT).show();
             return;
         }
