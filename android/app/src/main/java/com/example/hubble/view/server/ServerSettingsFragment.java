@@ -111,16 +111,21 @@ public class ServerSettingsFragment extends Fragment {
 
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
-        // ── Overview rows ─────────────────────────────────────────────────
+        // ── Overview section (owner-only) ────────────────────────────────
 
-        binding.rowServerName.setOnClickListener(v -> {
-            ((ServerSettingsActivity) requireActivity()).navigateTo(
-                    EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_NAME, serverName), true);
-        });
-        binding.rowServerDescription.setOnClickListener(v -> {
-            ((ServerSettingsActivity) requireActivity()).navigateTo(
-                    EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_DESCRIPTION, description), true);
-        });
+        if (isOwner) {
+            binding.sectionOverview.setVisibility(View.VISIBLE);
+            binding.rowServerName.setOnClickListener(v -> {
+                ((ServerSettingsActivity) requireActivity()).navigateTo(
+                        EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_NAME, serverName), true);
+            });
+            binding.rowServerDescription.setOnClickListener(v -> {
+                ((ServerSettingsActivity) requireActivity()).navigateTo(
+                        EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_DESCRIPTION, description), true);
+            });
+        } else {
+            binding.sectionOverview.setVisibility(View.GONE);
+        }
 
         // Server icon row: owner-only
         if (isOwner) {
@@ -134,6 +139,9 @@ public class ServerSettingsFragment extends Fragment {
             binding.rowServerIcon.setVisibility(View.GONE);
             binding.rowRemoveIcon.setVisibility(View.GONE);
         }
+
+        // Delete server card: owner-only
+        binding.cardDeleteServer.setVisibility(isOwner ? View.VISIBLE : View.GONE);
 
         // ── Members count ──────────────────────────────────────────────────
 

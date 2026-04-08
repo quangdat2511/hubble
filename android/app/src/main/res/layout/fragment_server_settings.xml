@@ -36,7 +36,13 @@
             android:orientation="vertical"
             android:padding="@dimen/spacing_md">
 
-            <!-- Overview Section -->
+            <!-- Overview Section (owner-only) -->
+            <LinearLayout
+                android:id="@+id/sectionOverview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -218,6 +224,8 @@
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout><!-- end sectionOverview -->
 
             <!-- Members Section -->
             <TextView
