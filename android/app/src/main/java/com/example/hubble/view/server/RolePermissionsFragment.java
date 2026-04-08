@@ -166,11 +166,21 @@ public class RolePermissionsFragment extends Fragment {
     private void savePermissions() {
         if (currentSections == null) return;
         List<String> granted = new ArrayList<>();
+        Set<String> grantedSet = new HashSet<>();
         for (RolePermissionSection section : currentSections) {
             for (RolePermissionItem item : section.getPermissions()) {
                 if (item.isEnabled()) {
                     granted.add(item.getKey());
+                    grantedSet.add(item.getKey());
                 }
+            }
+        }
+
+        // Update cache with current toggle states so next entry shows correct values
+        List<PermissionResponse> cached = permissionsCache.get(roleId);
+        if (cached != null) {
+            for (PermissionResponse p : cached) {
+                p.setGranted(grantedSet.contains(p.getName()));
             }
         }
         viewModel.updatePermissions(serverId, roleId, granted);

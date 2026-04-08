@@ -1,6 +1,7 @@
 package com.example.hubble.adapter.server;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -13,10 +14,19 @@ import java.util.List;
 
 public class RoleMemberAdapter extends RecyclerView.Adapter<RoleMemberAdapter.ViewHolder> {
 
+    public interface OnRemoveClickListener {
+        void onRemove(MemberBriefResponse member);
+    }
+
     private List<MemberBriefResponse> members;
+    private OnRemoveClickListener removeListener;
 
     public RoleMemberAdapter(List<MemberBriefResponse> members) {
         this.members = members;
+    }
+
+    public void setOnRemoveClickListener(OnRemoveClickListener listener) {
+        this.removeListener = listener;
     }
 
     public void updateList(List<MemberBriefResponse> newMembers) {
@@ -42,7 +52,7 @@ public class RoleMemberAdapter extends RecyclerView.Adapter<RoleMemberAdapter.Vi
         return members.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
+    class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemMemberSelectableBinding binding;
 
         ViewHolder(ItemMemberSelectableBinding binding) {
@@ -54,7 +64,12 @@ public class RoleMemberAdapter extends RecyclerView.Adapter<RoleMemberAdapter.Vi
             String display = member.getDisplayName() != null ? member.getDisplayName() : member.getUsername();
             binding.tvDisplayName.setText(display);
             binding.tvUsername.setText(member.getUsername());
-            binding.checkBox.setVisibility(android.view.View.GONE);
+
+            binding.checkBox.setVisibility(View.GONE);
+            binding.ivRemove.setVisibility(View.VISIBLE);
+            binding.ivRemove.setOnClickListener(v -> {
+                if (removeListener != null) removeListener.onRemove(member);
+            });
         }
     }
 }

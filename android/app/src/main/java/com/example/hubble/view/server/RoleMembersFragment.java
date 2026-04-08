@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Shows members assigned to a role with option to remove them.
- */
 public class RoleMembersFragment extends Fragment {
 
     private static final ConcurrentHashMap<String, List<MemberBriefResponse>> membersCache = new ConcurrentHashMap<>();
@@ -87,8 +84,11 @@ public class RoleMembersFragment extends Fragment {
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
         adapter = new RoleMemberAdapter(new ArrayList<>());
+        adapter.setOnRemoveClickListener(this::removeMember);
         binding.rvMembers.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvMembers.setAdapter(adapter);
+
+        binding.layoutAddMember.setOnClickListener(v -> openAddMemberSheet());
 
         // Clear stale data from previous role
         viewModel.resetMembers();
@@ -97,8 +97,7 @@ public class RoleMembersFragment extends Fragment {
         List<MemberBriefResponse> cached = membersCache.get(roleId);
         if (cached != null) {
             adapter.updateList(cached);
-            binding.tvEmpty.setVisibility(cached.isEmpty() ? View.VISIBLE : View.GONE);
-            binding.rvMembers.setVisibility(cached.isEmpty() ? View.GONE : View.VISIBLE);
+            updateEmptyState(cached);
         }
 
         viewModel.members.observe(getViewLifecycleOwner(), result -> {
@@ -107,8 +106,7 @@ public class RoleMembersFragment extends Fragment {
                 List<MemberBriefResponse> members = result.getData();
                 membersCache.put(roleId, members);
                 adapter.updateList(members);
-                binding.tvEmpty.setVisibility(members.isEmpty() ? View.VISIBLE : View.GONE);
-                binding.rvMembers.setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
+                updateEmptyState(members);
             } else if (result.isError() && cached == null) {
                 Snackbar.make(view, result.getMessage(), Snackbar.LENGTH_SHORT).show();
             }
@@ -116,6 +114,41 @@ public class RoleMembersFragment extends Fragment {
 
         // Always refresh from API
         viewModel.loadMembers(serverId, roleId);
+    }
+
+    private void updateEmptyState(List<MemberBriefResponse> members) {
+        binding.tvEmpty.setVisibility(members.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.rvMembers.setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    private void openAddMemberSheet() {
+        ArrayList<String> existingUserIds = new ArrayList<>();
+        List<MemberBriefResponse> current = membersCache.get(roleId);
+        if (current != null) {
+            for (MemberBriefResponse m : current) {
+                existingUserIds.add(m.getUserId());
+            }
+        }
+
+        AddRoleMemberBottomSheet sheet = AddRoleMemberBottomSheet.newInstance(serverId, roleName, existingUserIds);
+        sheet.setOnMembersSelectedListener(userIds -> {
+            viewModel.assignMembers(serverId, roleId, userIds);
+        });
+        sheet.show(getChildFragmentManager(), "add_role_member");
+    }
+
+    private void removeMember(MemberBriefResponse member) {
+        viewModel.removeMember(serverId, roleId, member.getServerMemberId());
+
+        // Optimistically remove from cache and UI
+        List<MemberBriefResponse> current = membersCache.get(roleId);
+        if (current != null) {
+            List<MemberBriefResponse> updated = new ArrayList<>(current);
+            updated.removeIf(m -> m.getServerMemberId().equals(member.getServerMemberId()));
+            membersCache.put(roleId, updated);
+            adapter.updateList(updated);
+            updateEmptyState(updated);
+        }
     }
 
     @Override
