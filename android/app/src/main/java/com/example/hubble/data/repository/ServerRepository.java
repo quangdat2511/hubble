@@ -20,7 +20,9 @@ import com.example.hubble.utils.TokenManager;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -215,6 +217,41 @@ public class ServerRepository {
                 });
     }
 
+    public void updateServer(String serverId, String name, String description,
+                            RepositoryCallback<ServerResponse> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+        String token = "Bearer " + accessToken;
+        Map<String, String> body = new HashMap<>();
+        if (name != null) body.put("name", name);
+        if (description != null) body.put("description", description);
+
+        RetrofitClient.getServerService(appContext)
+                .updateServer(token, serverId, body)
+                .enqueue(new Callback<ApiResponse<ServerResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<ServerResponse>> call,
+                                           @NonNull Response<ApiResponse<ServerResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                        } else {
+                            callback.onResult(AuthResult.error(resolveError(response)));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<ServerResponse>> call,
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
     public void deleteServer(String serverId, RepositoryCallback<Void> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
@@ -302,7 +339,7 @@ public class ServerRepository {
     private ServerItem mapToServerItem(ServerResponse server, int index) {
         int color = defaultColors[index % defaultColors.length];
         return new ServerItem(server.getId(), server.getOwnerId(),
-                server.getName(), server.getIconUrl(), color);
+                server.getName(), server.getDescription(), server.getIconUrl(), color);
     }
 
     @Nullable

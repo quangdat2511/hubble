@@ -45,6 +45,7 @@ public class ServerSettingsFragment extends Fragment {
     private String serverName;
     private String ownerId;
     private String currentIconUrl;   // tracks latest iconUrl across update/delete
+    private String description;
 
     private final ActivityResultLauncher<Intent> iconPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -57,13 +58,15 @@ public class ServerSettingsFragment extends Fragment {
             });
 
     public static ServerSettingsFragment newInstance(String serverId, String serverName,
-                                                     String ownerId, String iconUrl) {
+                                                     String ownerId, String iconUrl,
+                                                     String description) {
         ServerSettingsFragment fragment = new ServerSettingsFragment();
         Bundle args = new Bundle();
         args.putString("server_id",   serverId);
         args.putString("server_name", serverName);
         args.putString("owner_id",    ownerId);
         args.putString("icon_url",    iconUrl);
+        args.putString("description", description);
         fragment.setArguments(args);
         return fragment;
     }
@@ -85,6 +88,7 @@ public class ServerSettingsFragment extends Fragment {
             serverName     = getArguments().getString("server_name");
             ownerId        = getArguments().getString("owner_id");
             currentIconUrl = getArguments().getString("icon_url");
+            description    = getArguments().getString("description");
         }
 
         // Determine if current user is the owner
@@ -109,8 +113,14 @@ public class ServerSettingsFragment extends Fragment {
 
         // ── Overview rows ─────────────────────────────────────────────────
 
-        binding.rowServerName.setOnClickListener(v -> showComingSoon());
-        binding.rowServerDescription.setOnClickListener(v -> showComingSoon());
+        binding.rowServerName.setOnClickListener(v -> {
+            ((ServerSettingsActivity) requireActivity()).navigateTo(
+                    EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_NAME, serverName), true);
+        });
+        binding.rowServerDescription.setOnClickListener(v -> {
+            ((ServerSettingsActivity) requireActivity()).navigateTo(
+                    EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_DESCRIPTION, description), true);
+        });
 
         // Server icon row: owner-only
         if (isOwner) {
@@ -221,6 +231,19 @@ public class ServerSettingsFragment extends Fragment {
                 Snackbar.make(requireView(), msg, Snackbar.LENGTH_LONG).show();
             }
             viewModel.consumeIconState();
+        });
+
+        // ── Update server observer (name / description) ───────────────────
+
+        viewModel.getUpdateServerState().observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                serverName  = result.getData().getName();
+                description = result.getData().getDescription();
+                viewModel.consumeUpdateServerState();
+            } else if (result.getStatus() == AuthResult.Status.ERROR) {
+                viewModel.consumeUpdateServerState();
+            }
         });
     }
 

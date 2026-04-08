@@ -4,6 +4,7 @@ import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateChannelRequest;
 import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.request.UpdateChannelRequest;
+import com.hubble.dto.request.UpdateServerRequest;
 import com.hubble.dto.response.ChannelMemberResponse;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ChannelRoleResponse;
@@ -46,6 +47,17 @@ public class ServerController {
                 .build();
         return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
                 .result(serverService.createServer(userId, request, iconFile))
+                .build());
+    }
+
+    @PutMapping("/{serverId}")
+    public ResponseEntity<ApiResponse<ServerResponse>> updateServer(
+            @PathVariable UUID serverId,
+            @RequestBody UpdateServerRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
+                .result(serverService.updateServer(userId, serverId, request))
                 .build());
     }
 

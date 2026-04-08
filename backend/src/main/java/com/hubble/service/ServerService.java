@@ -1,6 +1,7 @@
 package com.hubble.service;
 
 import com.hubble.dto.request.CreateServerRequest;
+import com.hubble.dto.request.UpdateServerRequest;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ServerEventNotification;
 import com.hubble.dto.response.ServerResponse;
@@ -185,11 +186,31 @@ public class ServerService {
     }
 
     @Transactional
+    public ServerResponse updateServer(UUID userId, UUID serverId, UpdateServerRequest request) {
+        Server server = getOwnedServer(userId, serverId);
+        if (request.getName() != null) {
+            String name = request.getName().trim();
+            if (name.isEmpty() || name.length() > 100) {
+                throw new AppException(ErrorCode.SERVER_NAME_INVALID);
+            }
+            server.setName(name);
+        }
+        if (request.getDescription() != null) {
+            server.setDescription(request.getDescription().trim());
+        }
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
+    }
+
+    @Transactional
     public ServerResponse updateServerIcon(UUID userId, UUID serverId, MultipartFile iconFile) {
         Server server = getOwnedServer(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(uploadIcon(iconFile));
-        return serverMapper.toServerResponse(serverRepository.save(server));
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
     }
 
     @Transactional
@@ -197,7 +218,25 @@ public class ServerService {
         Server server = getOwnedServer(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(null);
-        return serverMapper.toServerResponse(serverRepository.save(server));
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
+    }
+
+    private void broadcastServerUpdated(UUID serverId, String serverName, UUID actorUserId) {
+        ServerEventNotification notification = ServerEventNotification.builder()
+                .type("SERVER_UPDATED")
+                .serverId(serverId)
+                .serverName(serverName)
+                .build();
+        List<ServerMember> members = serverMemberRepository.findAllByServerId(serverId);
+        for (ServerMember member : members) {
+            if (!member.getUserId().equals(actorUserId)) {
+                messagingTemplate.convertAndSend(
+                        "/topic/users/" + member.getUserId() + "/server-events",
+                        notification);
+            }
+        }
     }
 
     @Transactional
