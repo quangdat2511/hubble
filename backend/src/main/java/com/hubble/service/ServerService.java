@@ -2,6 +2,7 @@ package com.hubble.service;
 
 import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.response.ChannelResponse;
+import com.hubble.dto.response.ServerEventNotification;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.entity.Channel;
 import com.hubble.entity.Role;
@@ -24,6 +25,7 @@ import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,6 +63,7 @@ public class ServerService {
     private final RoleRepository roleRepository;
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
+    private final SimpMessagingTemplate messagingTemplate;
     private final String supabaseUrl;
     private final String serviceRoleKey;
     private final String serverIconBucket;
@@ -76,6 +79,7 @@ public class ServerService {
             RoleRepository roleRepository,
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
+            SimpMessagingTemplate messagingTemplate,
             @Value("${supabase.url}") String supabaseUrl,
             @Value("${supabase.service-role-key}") String serviceRoleKey,
             @Value("${supabase.server-icon-bucket}") String serverIconBucket) {
@@ -89,6 +93,7 @@ public class ServerService {
         this.roleRepository = roleRepository;
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
+        this.messagingTemplate = messagingTemplate;
         this.supabaseUrl = supabaseUrl;
         this.serviceRoleKey = serviceRoleKey;
         this.serverIconBucket = serverIconBucket;
@@ -193,6 +198,29 @@ public class ServerService {
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(null);
         return serverMapper.toServerResponse(serverRepository.save(server));
+    }
+
+    @Transactional
+    public void deleteServer(UUID userId, UUID serverId) {
+        Server server = getOwnedServer(userId, serverId);
+
+        // Notify all members before cascade-deleting
+        List<ServerMember> members = serverMemberRepository.findAllByServerId(serverId);
+        ServerEventNotification notification = ServerEventNotification.builder()
+                .type("SERVER_DELETED")
+                .serverId(serverId)
+                .serverName(server.getName())
+                .build();
+        for (ServerMember member : members) {
+            if (!member.getUserId().equals(userId)) {
+                messagingTemplate.convertAndSend(
+                        "/topic/users/" + member.getUserId() + "/server-events",
+                        notification);
+            }
+        }
+
+        deleteIconQuietly(server.getIconUrl());
+        serverRepository.delete(server);
     }
 
     private String uploadIcon(MultipartFile file) {

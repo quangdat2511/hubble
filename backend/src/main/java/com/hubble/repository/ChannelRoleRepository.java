@@ -15,4 +15,5 @@ public interface ChannelRoleRepository extends JpaRepository<ChannelRole, Channe
     boolean existsByChannelIdAndRoleIdIn(UUID channelId, Collection<UUID> roleIds);
     void deleteByChannelIdAndRoleId(UUID channelId, UUID roleId);
     void deleteAllByChannelId(UUID channelId);
+    void deleteByRoleId(UUID roleId);
 }

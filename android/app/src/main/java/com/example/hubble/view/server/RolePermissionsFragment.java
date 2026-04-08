@@ -1,5 +1,6 @@
 package com.example.hubble.view.server;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,11 +30,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Role permissions screen (#3,4,5). Shows permission toggles for @everyone or a custom role.
  */
 public class RolePermissionsFragment extends Fragment {
+
+    private static final ConcurrentHashMap<String, List<PermissionResponse>> permissionsCache = new ConcurrentHashMap<>();
+
+    public static void prefetch(Context context, String serverId, String roleId) {
+        if (permissionsCache.containsKey(roleId)) return;
+        RoleRepository repo = new RoleRepository(context);
+        repo.getPermissions(serverId, roleId, result -> {
+            if (result.isSuccess() && result.getData() != null) {
+                permissionsCache.put(roleId, result.getData());
+            }
+        });
+    }
 
     private FragmentRolePermissionsBinding binding;
     private RolesViewModel viewModel;
@@ -100,11 +114,21 @@ public class RolePermissionsFragment extends Fragment {
             requireActivity().onBackPressed();
         });
 
+        // Clear stale data from previous role
+        viewModel.resetPermissions();
+
+        // Serve from cache first
+        List<PermissionResponse> cached = permissionsCache.get(roleId);
+        if (cached != null) {
+            displayPermissions(cached);
+        }
+
         viewModel.permissions.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
             if (result.isSuccess() && result.getData() != null) {
+                permissionsCache.put(roleId, result.getData());
                 displayPermissions(result.getData());
-            } else if (result.isError()) {
+            } else if (result.isError() && cached == null) {
                 Snackbar.make(view, result.getMessage(), Snackbar.LENGTH_SHORT).show();
             }
         });

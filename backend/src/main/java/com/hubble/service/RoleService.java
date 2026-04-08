@@ -27,6 +27,7 @@ public class RoleService {
 
     RoleRepository roleRepository;
     MemberRoleRepository memberRoleRepository;
+    ChannelRoleRepository channelRoleRepository;
     ServerRepository serverRepository;
     ServerMemberRepository serverMemberRepository;
     UserRepository userRepository;
@@ -152,6 +153,7 @@ public class RoleService {
         if (Boolean.TRUE.equals(role.getIsDefault())) {
             throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_ROLE);
         }
+        channelRoleRepository.deleteByRoleId(roleId);
         memberRoleRepository.deleteByRoleId(roleId);
         roleRepository.delete(role);
     }
@@ -246,13 +248,16 @@ public class RoleService {
         };
     }
 
-    private void assignMembersInternal(UUID roleId, UUID serverId, List<UUID> memberIds) {
-        for (UUID memberId : memberIds) {
-            if (!serverMemberRepository.existsById(memberId)) continue;
-            MemberRole.MemberRoleId id = new MemberRole.MemberRoleId(memberId, roleId);
+    private void assignMembersInternal(UUID roleId, UUID serverId, List<UUID> userIds) {
+        for (UUID userId : userIds) {
+            ServerMember member = serverMemberRepository
+                    .findByServerIdAndUserId(serverId, userId)
+                    .orElse(null);
+            if (member == null) continue;
+            MemberRole.MemberRoleId id = new MemberRole.MemberRoleId(member.getId(), roleId);
             if (!memberRoleRepository.existsById(id)) {
                 memberRoleRepository.save(MemberRole.builder()
-                        .memberId(memberId)
+                        .memberId(member.getId())
                         .roleId(roleId)
                         .build());
             }

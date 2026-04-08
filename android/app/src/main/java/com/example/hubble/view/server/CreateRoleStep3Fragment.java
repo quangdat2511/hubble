@@ -1,6 +1,8 @@
 package com.example.hubble.view.server;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,7 @@ import com.example.hubble.adapter.server.MemberSelectAdapter;
 import com.example.hubble.data.model.server.MemberBriefResponse;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.data.repository.RoleRepository;
+import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.databinding.FragmentCreateRoleStep3Binding;
 import com.example.hubble.viewmodel.RolesViewModel;
 import com.example.hubble.viewmodel.RolesViewModelFactory;
@@ -76,20 +79,40 @@ public class CreateRoleStep3Fragment extends Fragment {
         binding.toolbar.setTitle(getString(R.string.create_role_step, 3));
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
-        // We need server members for selection — load them from the server members endpoint
-        // For now, adapter starts with empty list; you could load members via a separate ViewModel
-        List<ServerMemberItem> members = new ArrayList<>();
-        adapter = new MemberSelectAdapter(members, selectedCount ->
+        adapter = new MemberSelectAdapter(new ArrayList<>(), selectedCount ->
                 binding.btnFinish.setEnabled(selectedCount > 0));
 
         binding.rvMembers.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvMembers.setAdapter(adapter);
+
+        // Load all server members
+        ServerMemberRepository memberRepo = new ServerMemberRepository(requireContext());
+        memberRepo.getServerMembers(serverId, result -> {
+            if (result.isSuccess() && result.getData() != null) {
+                adapter.updateList(result.getData());
+            } else if (result.isError()) {
+                Snackbar.make(view, result.getMessage(), Snackbar.LENGTH_SHORT).show();
+            }
+        });
+
+        // Wire up search filtering
+        binding.etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adapter.filter(s.toString());
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
 
         // Observe create result
         viewModel.createResult.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
             if (result.isSuccess()) {
                 viewModel.resetCreateResult();
+                viewModel.resetRoles();
                 // Pop all create role steps and navigate to roles list
                 requireActivity().getSupportFragmentManager()
                         .popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);

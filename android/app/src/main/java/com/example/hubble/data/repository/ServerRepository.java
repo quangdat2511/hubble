@@ -215,6 +215,34 @@ public class ServerRepository {
                 });
     }
 
+    public void deleteServer(String serverId, RepositoryCallback<Void> callback) {
+        callback.onResult(AuthResult.loading());
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error("Bạn chưa đăng nhập"));
+            return;
+        }
+        String token = "Bearer " + accessToken;
+        RetrofitClient.getServerService(appContext).deleteServer(token, serverId)
+                .enqueue(new Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<Void>> call,
+                                           @NonNull Response<ApiResponse<Void>> response) {
+                        if (response.isSuccessful()) {
+                            callback.onResult(AuthResult.success(null));
+                        } else {
+                            callback.onResult(AuthResult.error(resolveError(response)));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<Void>> call,
+                                          @NonNull Throwable t) {
+                        callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
     public void kickMember(String serverId, String memberId, RepositoryCallback<Void> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();

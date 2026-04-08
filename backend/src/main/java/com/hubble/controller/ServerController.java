@@ -70,6 +70,15 @@ public class ServerController {
                 .build());
     }
 
+    @DeleteMapping("/{serverId}")
+    public ResponseEntity<ApiResponse<Void>> deleteServer(
+            @PathVariable UUID serverId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        serverService.deleteServer(userId, serverId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().build());
+    }
+
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<ServerResponse>>> getMyServers(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());

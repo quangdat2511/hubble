@@ -102,6 +102,9 @@ public class ServerSettingsFragment extends Fragment {
 
         viewModel.loadMembers(serverId);
 
+        // Prefetch roles for sub-screen
+        RolesListFragment.prefetch(requireContext(), serverId);
+
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
         // ── Overview rows ─────────────────────────────────────────────────
@@ -159,9 +162,35 @@ public class ServerSettingsFragment extends Fragment {
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle(R.string.server_settings_delete_confirm_title)
                         .setMessage(R.string.server_settings_delete_confirm_message)
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> showComingSoon())
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                            if (serverId != null) viewModel.deleteServer(serverId);
+                        })
                         .setNegativeButton(android.R.string.cancel, null)
                         .show());
+
+        // ── Delete server observer ─────────────────────────────────────────
+
+        viewModel.getDeleteServerState().observe(getViewLifecycleOwner(), result -> {
+            if (result == null) return;
+
+            if (result.getStatus() == AuthResult.Status.LOADING) {
+                binding.cardDeleteServer.setEnabled(false);
+                return;
+            }
+
+            binding.cardDeleteServer.setEnabled(true);
+
+            if (result.getStatus() == AuthResult.Status.SUCCESS) {
+                viewModel.consumeDeleteServerState();
+                requireActivity().setResult(Activity.RESULT_OK);
+                requireActivity().finish();
+            } else if (result.getStatus() == AuthResult.Status.ERROR) {
+                String msg = result.getMessage() != null
+                        ? result.getMessage() : getString(R.string.error_generic);
+                Snackbar.make(requireView(), msg, Snackbar.LENGTH_LONG).show();
+                viewModel.consumeDeleteServerState();
+            }
+        });
 
         // ── Icon state observer ────────────────────────────────────────────
 

@@ -60,6 +60,12 @@ public interface ServerService {
             @Path("serverId") String serverId
     );
 
+    @DELETE("api/servers/{serverId}")
+    Call<ApiResponse<Void>> deleteServer(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId
+    );
+
     // ── Member management ──────────────────────────────────────────────────
     @DELETE("api/servers/{serverId}/members/{memberId}")
     Call<ApiResponse<Void>> kickMember(
