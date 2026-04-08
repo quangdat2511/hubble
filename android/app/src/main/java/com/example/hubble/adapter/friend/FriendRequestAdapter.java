@@ -16,6 +16,7 @@ import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.databinding.ItemFriendRequestBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.LocalizedTimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +84,10 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             binding.tvMessage.setText(spannable);
-            binding.tvTime.setText(NotificationActivityAdapter.formatRelativeTime(request.getCreatedAt()));
+            binding.tvTime.setText(LocalizedTimeUtils.formatRelativeTime(
+                    binding.getRoot().getContext(),
+                    request.getCreatedAt()
+            ));
 
             binding.btnAccept.setOnClickListener(v -> {
                 if (listener != null) listener.onAccept(request);

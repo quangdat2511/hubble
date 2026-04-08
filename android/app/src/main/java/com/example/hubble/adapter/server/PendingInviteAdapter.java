@@ -14,9 +14,9 @@ import android.text.Spanned;
 import android.text.style.StyleSpan;
 
 import com.example.hubble.R;
-import com.example.hubble.adapter.friend.NotificationActivityAdapter;
 import com.example.hubble.data.model.server.ServerInviteResponse;
 import com.example.hubble.databinding.ItemPendingInviteBinding;
+import com.example.hubble.utils.LocalizedTimeUtils;
 
 public class PendingInviteAdapter extends ListAdapter<ServerInviteResponse, PendingInviteAdapter.ViewHolder> {
 
@@ -99,8 +99,10 @@ public class PendingInviteAdapter extends ListAdapter<ServerInviteResponse, Pend
             }
             binding.tvMessage.setText(spannable);
 
-            // Relative time
-            binding.tvTime.setText(NotificationActivityAdapter.formatRelativeTime(invite.getCreatedAt()));
+            binding.tvTime.setText(LocalizedTimeUtils.formatRelativeTime(
+                    binding.getRoot().getContext(),
+                    invite.getCreatedAt()
+            ));
 
             // Action buttons
             binding.btnAccept.setOnClickListener(v -> listener.onAccept(invite));
@@ -108,4 +110,3 @@ public class PendingInviteAdapter extends ListAdapter<ServerInviteResponse, Pend
         }
     }
 }
-

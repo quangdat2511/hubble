@@ -13,8 +13,10 @@ import java.util.UUID;
 @Service
 public class ThemeService {
 
-    private static final String DEFAULT_THEME = "DARK";
+    private static final String DEFAULT_THEME = "SYSTEM";
+    private static final String SYSTEM_THEME = "SYSTEM";
     private static final String LIGHT_THEME = "LIGHT";
+    private static final String DARK_THEME = "DARK";
 
     private final UserSettingsRepository repo;
 
@@ -65,6 +67,8 @@ public class ThemeService {
     }
 
     private boolean isSupportedTheme(String theme) {
-        return LIGHT_THEME.equals(theme) || DEFAULT_THEME.equals(theme);
+        return SYSTEM_THEME.equals(theme)
+                || LIGHT_THEME.equals(theme)
+                || DARK_THEME.equals(theme);
     }
 }

@@ -30,13 +30,13 @@ class ThemeServiceTest {
     private ThemeService themeService;
 
     @Test
-    void getTheme_NoSettingsRow_ReturnsDark() {
+    void getTheme_NoSettingsRow_ReturnsSystem() {
         UUID userId = UUID.randomUUID();
         when(userSettingsRepository.findById(userId)).thenReturn(Optional.empty());
 
         String result = themeService.getTheme(userId);
 
-        assertEquals("DARK", result);
+        assertEquals("SYSTEM", result);
     }
 
     @Test
@@ -54,7 +54,7 @@ class ThemeServiceTest {
     }
 
     @Test
-    void getTheme_InvalidStoredTheme_FallsBackToDark() {
+    void getTheme_InvalidStoredTheme_FallsBackToSystem() {
         UUID userId = UUID.randomUUID();
         UserSettings settings = UserSettings.builder()
                 .userId(userId)
@@ -64,7 +64,7 @@ class ThemeServiceTest {
 
         String result = themeService.getTheme(userId);
 
-        assertEquals("DARK", result);
+        assertEquals("SYSTEM", result);
     }
 
     @Test
@@ -72,7 +72,7 @@ class ThemeServiceTest {
         UUID userId = UUID.randomUUID();
 
         AppException exception = assertThrows(AppException.class,
-                () -> themeService.updateTheme(userId, "system"));
+                () -> themeService.updateTheme(userId, "solarized"));
 
         assertEquals(ErrorCode.INVALID_THEME, exception.getErrorCode());
     }

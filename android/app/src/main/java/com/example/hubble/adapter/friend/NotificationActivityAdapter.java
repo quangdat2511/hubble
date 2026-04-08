@@ -13,13 +13,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.hubble.R;
 import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.databinding.ItemNotificationActivityBinding;
+import com.example.hubble.utils.LocalizedTimeUtils;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
 public class NotificationActivityAdapter extends RecyclerView.Adapter<NotificationActivityAdapter.ViewHolder> {
 
@@ -72,29 +69,10 @@ public class NotificationActivityAdapter extends RecyclerView.Adapter<Notificati
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             binding.tvMessage.setText(spannable);
-            binding.tvTime.setText(formatRelativeTime(item.getCreatedAt()));
-        }
-    }
-
-    public static String formatRelativeTime(String isoDate) {
-        if (isoDate == null || isoDate.isEmpty()) return "";
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            Date date = sdf.parse(isoDate.length() > 19 ? isoDate.substring(0, 19) : isoDate);
-            if (date == null) return "";
-            long diffMs = System.currentTimeMillis() - date.getTime();
-            long secs = diffMs / 1000;
-            if (secs < 60) return secs + "s";
-            long mins = secs / 60;
-            if (mins < 60) return mins + "ph";
-            long hours = mins / 60;
-            if (hours < 24) return hours + "g";
-            long days = hours / 24;
-            if (days < 7) return days + "ng";
-            return (days / 7) + "tuần";
-        } catch (Exception e) {
-            return "";
+            binding.tvTime.setText(LocalizedTimeUtils.formatRelativeTime(
+                    binding.getRoot().getContext(),
+                    item.getCreatedAt()
+            ));
         }
     }
 }

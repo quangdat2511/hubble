@@ -34,14 +34,12 @@ import com.example.hubble.databinding.ItemDmProfileIntroBinding;
 import com.google.android.material.chip.Chip;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.InAppMessageUtils;
+import com.example.hubble.utils.LocalizedTimeUtils;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -53,6 +51,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static final int TYPE_MESSAGE = 2;
     private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
+    @NonNull
+    private final Context context;
     private final List<DmMessageItem> items = new ArrayList<>();
 
     @Nullable
@@ -76,6 +76,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static ImageView currentPlayButton;
     private static Handler audioHandler = new Handler(Looper.getMainLooper());
     private static Runnable updateSeekBarRunnable;
+
+    public DmMessageAdapter(@NonNull Context context) {
+        this.context = context;
+    }
 
     public interface OnMessageLongClickListener {
         void onMessageLongClick(@NonNull DmMessageItem item, @NonNull View anchorView);
@@ -130,7 +134,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 if (item == null || item.isDeleted()) continue;
                 String dateKey = getDateKey(item.getCreatedAtMillis());
                 if (dateKey != null && !dateKey.equals(lastDateKey)) {
-                    items.add(DmMessageItem.createDateSeparator(formatDateLabel(item.getCreatedAtMillis())));
+                    items.add(DmMessageItem.createDateSeparator(
+                            LocalizedTimeUtils.formatConversationDateLabel(
+                                    context,
+                                    item.getCreatedAtMillis()
+                            )
+                    ));
                     lastDateKey = dateKey;
                 }
                 items.add(item);
@@ -144,25 +153,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(millis);
         return cal.get(Calendar.YEAR) + "-" + cal.get(Calendar.DAY_OF_YEAR);
-    }
-
-    private static String formatDateLabel(long millis) {
-        if (millis < 0) return "";
-        Calendar msgCal = Calendar.getInstance();
-        msgCal.setTimeInMillis(millis);
-        Calendar today = Calendar.getInstance();
-        Calendar yesterday = Calendar.getInstance();
-        yesterday.add(Calendar.DAY_OF_YEAR, -1);
-
-        if (isSameDay(msgCal, today)) return "Today";
-        if (isSameDay(msgCal, yesterday)) return "Yesterday";
-        SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH);
-        return sdf.format(new Date(millis));
-    }
-
-    private static boolean isSameDay(Calendar a, Calendar b) {
-        return a.get(Calendar.YEAR) == b.get(Calendar.YEAR)
-                && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
     }
 
     public void appendItem(DmMessageItem item) {
@@ -193,7 +183,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 }
             }
             if (!newDateKey.equals(lastDateKey)) {
-                items.add(DmMessageItem.createDateSeparator(formatDateLabel(item.getCreatedAtMillis())));
+                items.add(DmMessageItem.createDateSeparator(
+                        LocalizedTimeUtils.formatConversationDateLabel(
+                                context,
+                                item.getCreatedAtMillis()
+                        )
+                ));
                 notifyItemInserted(items.size() - 1 + introOffset());
             }
         }

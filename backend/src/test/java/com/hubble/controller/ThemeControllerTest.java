@@ -53,13 +53,13 @@ class ThemeControllerTest {
     void getTheme_Authenticated_ReturnsTheme() throws Exception {
         UUID userId = UUID.randomUUID();
         Authentication authentication = new UsernamePasswordAuthenticationToken(userId.toString(), null);
-        when(themeService.getTheme(userId)).thenReturn("DARK");
+        when(themeService.getTheme(userId)).thenReturn("SYSTEM");
 
         mockMvc.perform(get("/api/settings/theme")
                 .principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1000))
-                .andExpect(jsonPath("$.result").value("DARK"));
+                .andExpect(jsonPath("$.result").value("SYSTEM"));
     }
 
     @Test
@@ -80,12 +80,12 @@ class ThemeControllerTest {
     void updateTheme_InvalidTheme_ReturnsBadRequest() throws Exception {
         UUID userId = UUID.randomUUID();
         Authentication authentication = new UsernamePasswordAuthenticationToken(userId.toString(), null);
-        when(themeService.updateTheme(eq(userId), eq("system")))
+        when(themeService.updateTheme(eq(userId), eq("solarized")))
                 .thenThrow(new AppException(ErrorCode.INVALID_THEME));
 
                 mockMvc.perform(put("/api/settings/theme")
                         .principal(authentication)
-                        .queryParam("theme", "system"))
+                        .queryParam("theme", "solarized"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_THEME.getCode()));
     }

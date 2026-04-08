@@ -2,7 +2,8 @@
 <resources>
     <string name="settings_theme">Giao diện</string>
     <string name="theme_title">Giao diện</string>
-    <string name="theme_description">Chọn cách Hubble hiển thị trong toàn bộ ứng dụng.</string>
+    <string name="theme_description">Chọn để Hubble tự động theo giao diện điện thoại hoặc dùng giao diện cố định.</string>
+    <string name="theme_system">HỆ THỐNG</string>
     <string name="theme_light">SÁNG</string>
     <string name="theme_light_description">Giao diện sáng phù hợp khi dùng ban ngày.</string>
     <string name="theme_dark">TỐI</string>
