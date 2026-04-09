@@ -17,6 +17,7 @@ import com.example.hubble.data.repository.UserRepository;
 import com.example.hubble.databinding.FragmentUserProfileBinding;
 import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.InAppMessageUtils;
+import com.example.hubble.utils.UserStatusFormatter;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -148,7 +149,7 @@ public class UserProfileFragment extends Fragment
     }
 
     private String resolveStatusLabel(String status) {
-        return TextUtils.isEmpty(status) ? "ONLINE" : status.trim().toUpperCase(Locale.ROOT);
+        return UserStatusFormatter.getDisplayLabel(requireContext(), status);
     }
 
     private String formatJoinedSince(@Nullable String createdAt) {

@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.hubble.R;
 import com.bumptech.glide.Glide;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.DmConversationItem;
@@ -76,14 +77,14 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
         }
 
         if (!favoriteItems.isEmpty()) {
-            rows.add(RowItem.header("Favorites"));
+            rows.add(RowItem.header(R.string.dm_section_favorites));
             for (DmConversationItem item : favoriteItems) {
                 rows.add(RowItem.conversation(item));
             }
         }
 
         if (!regularItems.isEmpty()) {
-            rows.add(RowItem.header("Messages"));
+            rows.add(RowItem.header(R.string.dm_section_messages));
             for (DmConversationItem item : regularItems) {
                 rows.add(RowItem.conversation(item));
             }
@@ -116,7 +117,7 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         RowItem row = rows.get(position);
         if (holder instanceof HeaderViewHolder) {
-            ((HeaderViewHolder) holder).bind(row.headerTitle);
+            ((HeaderViewHolder) holder).bind(row.headerTitleRes);
             return;
         }
         if (holder instanceof ConversationViewHolder) {
@@ -143,8 +144,8 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             this.binding = binding;
         }
 
-        void bind(String title) {
-            binding.tvSectionTitle.setText(title);
+        void bind(int titleRes) {
+            binding.tvSectionTitle.setText(titleRes);
         }
     }
 
@@ -282,21 +283,21 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
 
     static class RowItem {
         final boolean isHeader;
-        final String headerTitle;
+        final int headerTitleRes;
         final DmConversationItem conversation;
 
-        private RowItem(boolean isHeader, @Nullable String headerTitle, @Nullable DmConversationItem conversation) {
+        private RowItem(boolean isHeader, int headerTitleRes, @Nullable DmConversationItem conversation) {
             this.isHeader = isHeader;
-            this.headerTitle = headerTitle;
+            this.headerTitleRes = headerTitleRes;
             this.conversation = conversation;
         }
 
-        static RowItem header(String title) {
-            return new RowItem(true, title, null);
+        static RowItem header(int titleRes) {
+            return new RowItem(true, titleRes, null);
         }
 
         static RowItem conversation(DmConversationItem item) {
-            return new RowItem(false, null, item);
+            return new RowItem(false, 0, item);
         }
     }
 }

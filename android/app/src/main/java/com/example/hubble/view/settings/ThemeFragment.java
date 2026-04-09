@@ -30,12 +30,15 @@ public class ThemeFragment extends Fragment {
 
     private static final String TAG = "ThemeFragment";
 
+    private MaterialCardView systemOption;
     private MaterialCardView lightOption;
     private MaterialCardView darkOption;
+    private ImageView systemSelectedIcon;
     private ImageView lightSelectedIcon;
     private ImageView darkSelectedIcon;
     private View previewLight;
     private View previewDark;
+    private TextView textSystemTitle;
     private TextView textLightTitle;
     private TextView textDarkTitle;
     private SettingsViewModel settingsViewModel;
@@ -52,12 +55,15 @@ public class ThemeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        systemOption = view.findViewById(R.id.optionSystem);
         lightOption = view.findViewById(R.id.optionLight);
         darkOption = view.findViewById(R.id.optionDark);
+        systemSelectedIcon = view.findViewById(R.id.iconSystemSelected);
         lightSelectedIcon = view.findViewById(R.id.iconLightSelected);
         darkSelectedIcon = view.findViewById(R.id.iconDarkSelected);
         previewLight = view.findViewById(R.id.previewLight);
         previewDark = view.findViewById(R.id.previewDark);
+        textSystemTitle = view.findViewById(R.id.textSystemTitle);
         textLightTitle = view.findViewById(R.id.textLightTitle);
         textDarkTitle = view.findViewById(R.id.textDarkTitle);
         settingsViewModel = new ViewModelProvider(
@@ -149,6 +155,7 @@ public class ThemeFragment extends Fragment {
     }
 
     private void setupOptionListeners() {
+        systemOption.setOnClickListener(v -> handleThemeSelection(ThemeManager.THEME_SYSTEM));
         lightOption.setOnClickListener(v -> handleThemeSelection(ThemeManager.THEME_LIGHT));
         darkOption.setOnClickListener(v -> handleThemeSelection(ThemeManager.THEME_DARK));
     }
@@ -180,15 +187,29 @@ public class ThemeFragment extends Fragment {
     }
 
     private void applyThemeSelection(String theme) {
-        boolean isLight = ThemeManager.THEME_LIGHT.equals(ThemeManager.normalizeTheme(theme));
-        updateOptionAppearance(lightOption, lightSelectedIcon, isLight);
-        updateOptionAppearance(darkOption, darkSelectedIcon, !isLight);
+        String normalizedTheme = ThemeManager.normalizeTheme(theme);
+        String effectiveTheme = ThemeManager.resolveEffectiveTheme(requireContext(), normalizedTheme);
+
+        boolean isSystem = ThemeManager.THEME_SYSTEM.equals(normalizedTheme);
+        boolean isLight = ThemeManager.THEME_LIGHT.equals(effectiveTheme);
+
+        updateOptionAppearance(systemOption, systemSelectedIcon, isSystem);
+        updateOptionAppearance(lightOption, lightSelectedIcon,
+                ThemeManager.THEME_LIGHT.equals(normalizedTheme));
+        updateOptionAppearance(darkOption, darkSelectedIcon,
+                ThemeManager.THEME_DARK.equals(normalizedTheme));
         previewLight.setVisibility(isLight ? View.VISIBLE : View.GONE);
         previewDark.setVisibility(isLight ? View.GONE : View.VISIBLE);
+        textSystemTitle.setTextColor(ContextCompat.getColor(requireContext(),
+                isSystem ? R.color.color_primary : R.color.color_text_secondary));
         textLightTitle.setTextColor(ContextCompat.getColor(requireContext(),
-                isLight ? R.color.color_primary : R.color.color_text_secondary));
+                ThemeManager.THEME_LIGHT.equals(normalizedTheme)
+                        ? R.color.color_primary
+                        : R.color.color_text_secondary));
         textDarkTitle.setTextColor(ContextCompat.getColor(requireContext(),
-                isLight ? R.color.color_text_secondary : R.color.color_primary));
+                ThemeManager.THEME_DARK.equals(normalizedTheme)
+                        ? R.color.color_primary
+                        : R.color.color_text_secondary));
     }
 
     private void updateOptionAppearance(MaterialCardView option, ImageView selectedIcon, boolean isSelected) {
@@ -203,6 +224,7 @@ public class ThemeFragment extends Fragment {
     }
 
     private void setOptionsEnabled(boolean isEnabled) {
+        setOptionEnabled(systemOption, isEnabled);
         setOptionEnabled(lightOption, isEnabled);
         setOptionEnabled(darkOption, isEnabled);
     }

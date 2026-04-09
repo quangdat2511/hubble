@@ -11,13 +11,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.hubble.R;
 import com.example.hubble.data.model.notify.NotificationResponse;
 import com.example.hubble.databinding.ItemSystemNotificationBinding;
+import com.example.hubble.utils.LocalizedTimeUtils;
+import com.example.hubble.utils.NotificationTextFormatter;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
 public class SystemNotificationAdapter extends RecyclerView.Adapter<SystemNotificationAdapter.ViewHolder> {
 
@@ -65,9 +63,15 @@ public class SystemNotificationAdapter extends RecyclerView.Adapter<SystemNotifi
         }
 
         void bind(NotificationResponse item, OnNotificationClickListener listener) {
-            binding.tvContent.setText(item.getContent());
+            binding.tvContent.setText(NotificationTextFormatter.format(
+                    binding.getRoot().getContext(),
+                    item
+            ));
             binding.tvContent.setTypeface(null, Boolean.TRUE.equals(item.getIsRead()) ? Typeface.NORMAL : Typeface.BOLD);
-            binding.tvTime.setText(formatRelativeTime(item.getCreatedAt()));
+            binding.tvTime.setText(LocalizedTimeUtils.formatRelativeTime(
+                    binding.getRoot().getContext(),
+                    item.getCreatedAt()
+            ));
             binding.ivUnreadDot.setVisibility(Boolean.TRUE.equals(item.getIsRead()) ? View.GONE : View.VISIBLE);
 
             int iconRes;
@@ -87,28 +91,6 @@ public class SystemNotificationAdapter extends RecyclerView.Adapter<SystemNotifi
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) listener.onClick(item);
             });
-        }
-    }
-
-    public static String formatRelativeTime(String isoDate) {
-        if (isoDate == null || isoDate.isEmpty()) return "";
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            Date date = sdf.parse(isoDate.length() > 19 ? isoDate.substring(0, 19) : isoDate);
-            if (date == null) return "";
-            long diffMs = System.currentTimeMillis() - date.getTime();
-            long secs = diffMs / 1000;
-            if (secs < 60) return secs + "s";
-            long mins = secs / 60;
-            if (mins < 60) return mins + "ph";
-            long hours = mins / 60;
-            if (hours < 24) return hours + "g";
-            long days = hours / 24;
-            if (days < 7) return days + "ng";
-            return (days / 7) + "tuần";
-        } catch (Exception e) {
-            return "";
         }
     }
 }

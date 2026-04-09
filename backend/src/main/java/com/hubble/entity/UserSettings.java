@@ -49,7 +49,7 @@ public class UserSettings {
     protected void onCreate() {
         normalizeTheme();
         if (theme == null) {
-            theme = "DARK";
+            theme = "SYSTEM";
         }
         if (locale == null) {
             locale = "vi";

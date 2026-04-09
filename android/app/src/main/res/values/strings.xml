@@ -99,6 +99,11 @@
     <string name="notification_channel_desc">Thông báo từ ứng dụng Hubble</string>
     <string name="notification_system_section">Thông báo hệ thống</string>
     <string name="notification_mark_all_read">Đánh dấu tất cả đã đọc</string>
+    <string name="relative_time_seconds_short">%1$ds</string>
+    <string name="relative_time_minutes_short">%1$dph</string>
+    <string name="relative_time_hours_short">%1$dg</string>
+    <string name="relative_time_days_short">%1$dng</string>
+    <string name="relative_time_weeks_short">%1$dtuần</string>
 
     <!-- Me / Profile screen -->
     <string name="me_title">Bạn</string>
@@ -115,6 +120,10 @@
         <item>OFFLINE</item>
         <item>DND</item>
     </string-array>
+    <string name="status_online">Trực tuyến</string>
+    <string name="status_idle">Rảnh</string>
+    <string name="status_offline">Ngoại tuyến</string>
+    <string name="status_dnd">Không làm phiền</string>
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
@@ -135,6 +144,7 @@
 
     <!-- Settings screen -->
     <string name="settings_title">Cài Đặt</string>
+    <string name="settings_section_preferences">Cài đặt nhanh</string>
     <string name="settings_section_app">Ứng dụng</string>
     <string name="settings_section_support">Hỗ trợ</string>
     <string name="settings_section_info">Có gì mới</string>
@@ -194,14 +204,18 @@
     <string name="create_server_success">Tạo máy chủ thành công!</string>
 
     <!-- Channel list -->
-    <string name="channel_category_voice">Voice Channels</string>
-    <string name="channel_category_text">Text Channels</string>
-    <string name="channel_general">General</string>
-    <string name="channel_announcements">Announcements</string>
-    <string name="channel_lounge">Lounge</string>
+    <string name="channel_category_voice">Kênh đàm thoại</string>
+    <string name="channel_category_text">Kênh chat</string>
+    <string name="channel_general">Chung</string>
+    <string name="channel_announcements">Thông báo</string>
+    <string name="channel_lounge">Phòng chờ</string>
 
     <!-- Direct message MVP -->
     <string name="dm_title">Tin nhắn</string>
+    <string name="dm_section_messages">Tin nhắn</string>
+    <string name="dm_section_favorites">Yêu thích</string>
+    <string name="dm_date_today">Hôm nay</string>
+    <string name="dm_date_yesterday">Hôm qua</string>
     <string name="dm_add_friend">Thêm bạn bè</string>
     <string name="dm_new_message">Tin nhắn mới</string>
     <string name="dm_default_user">Người dùng</string>
