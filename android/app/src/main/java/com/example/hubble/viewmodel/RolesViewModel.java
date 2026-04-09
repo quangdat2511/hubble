@@ -90,4 +90,7 @@ public class RolesViewModel extends ViewModel {
 
     public void resetCreateResult() { _createResult.setValue(null); }
     public void resetDeleteResult() { _deleteResult.setValue(null); }
+    public void resetRoles() { _roles.setValue(null); }
+    public void resetPermissions() { _permissions.setValue(null); }
+    public void resetMembers() { _members.setValue(null); }
 }

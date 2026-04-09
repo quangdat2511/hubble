@@ -154,7 +154,7 @@ public class ServerMemberRepository {
                         roleColor = Color.parseColor("#5865F2");
                     }
                 }
-                roleItems.add(new ServerRoleItem(roleDto.getId(), roleDto.getName(), roleColor));
+                roleItems.add(new ServerRoleItem(roleDto.getId(), roleDto.getName(), roleColor, 0));
             }
         }
 
@@ -179,13 +179,13 @@ public class ServerMemberRepository {
         String currentDisplayName = tokenManager.getUser() != null ? tokenManager.getUser().getDisplayName() : "Server Owner";
 
         List<ServerRoleItem> adminRoles = new ArrayList<>();
-        adminRoles.add(new ServerRoleItem("r1", "Admin", Color.parseColor("#ED4245")));
+        adminRoles.add(new ServerRoleItem("r1", "Admin", Color.parseColor("#ED4245"), 0));
 
         List<ServerRoleItem> modRoles = new ArrayList<>();
-        modRoles.add(new ServerRoleItem("r2", "Moderator", Color.parseColor("#FEE75C")));
+        modRoles.add(new ServerRoleItem("r2", "Moderator", Color.parseColor("#FEE75C"), 0));
 
         List<ServerRoleItem> memberRoles = new ArrayList<>();
-        memberRoles.add(new ServerRoleItem("r3", "Member", Color.parseColor("#5865F2")));
+        memberRoles.add(new ServerRoleItem("r3", "Member", Color.parseColor("#5865F2"), 0));
 
         List<ServerMemberItem> members = new ArrayList<>();
         members.add(new ServerMemberItem(currentUserId, currentUsername, currentDisplayName,

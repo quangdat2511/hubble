@@ -26,6 +26,7 @@ public class DmMessageItem {
     private boolean deleted;
     private String replyToSenderName;
     private String replyToContent;
+    private boolean replyToMine;
     private MessageStatus status;
 
     public DmMessageItem(String id, String senderName, String content, String timestamp, boolean mine) {
@@ -143,6 +144,14 @@ public class DmMessageItem {
 
     public void setReplyToContent(String replyToContent) {
         this.replyToContent = replyToContent;
+    }
+
+    public boolean isReplyToMine() {
+        return replyToMine;
+    }
+
+    public void setReplyToMine(boolean replyToMine) {
+        this.replyToMine = replyToMine;
     }
 
     public boolean hasReply() {

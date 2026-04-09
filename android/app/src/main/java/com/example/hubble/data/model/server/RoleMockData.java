@@ -19,7 +19,7 @@ public class RoleMockData {
     /** Returns mock custom roles for a server. */
     public static List<ServerRoleItem> getMockRoles() {
         List<ServerRoleItem> roles = new ArrayList<>();
-        roles.add(new ServerRoleItem("role_1", "vai trò mới", Color.parseColor("#99AAB5")));
+        roles.add(new ServerRoleItem("role_1", "vai trò mới", Color.parseColor("#99AAB5"), 0));
         return roles;
     }
 

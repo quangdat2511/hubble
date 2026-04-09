@@ -571,6 +571,10 @@
     <string name="color_picker_reset">Đặt lại</string>
     <string name="create_role_step">Bước %1$d/3</string>
     <string name="role_members_empty">Vai trò này chưa có thành viên nào.</string>
+    <string name="role_members_add_btn">Thêm</string>
+    <string name="role_members_max_hint">Chọn tối đa 30</string>
+    <string name="role_members_no_available">Không còn thành viên nào có thể thêm.</string>
+    <string name="role_members_add_member">Thêm thành viên</string>
 
     <!-- Create Role Step 2 - Permissions -->
     <string name="create_role_perm_title">Thiết lập quyền hạn</string>

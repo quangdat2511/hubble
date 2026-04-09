@@ -68,6 +68,7 @@ public enum ErrorCode {
 
     // Server icon
     NOT_SERVER_OWNER(3012, "You are not the server owner", HttpStatus.FORBIDDEN),
+    SERVER_NAME_INVALID(3013, "Server name must be between 1 and 100 characters", HttpStatus.BAD_REQUEST),
 
     // Roles
     ROLE_NOT_FOUND(3020, "Role not found", HttpStatus.NOT_FOUND),

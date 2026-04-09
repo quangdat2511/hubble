@@ -4,13 +4,15 @@ public class ServerItem {
     private final String id;
     private final String ownerId;
     private final String name;
+    private final String description;
     private final String iconUrl; // null means use initials
     private final int backgroundColor;
 
-    public ServerItem(String id, String ownerId, String name, String iconUrl, int backgroundColor) {
+    public ServerItem(String id, String ownerId, String name, String description, String iconUrl, int backgroundColor) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
+        this.description = description;
         this.iconUrl = iconUrl;
         this.backgroundColor = backgroundColor;
     }
@@ -18,6 +20,7 @@ public class ServerItem {
     public String getId() { return id; }
     public String getOwnerId() { return ownerId; }
     public String getName() { return name; }
+    public String getDescription() { return description; }
     public String getIconUrl() { return iconUrl; }
     public int getBackgroundColor() { return backgroundColor; }
 

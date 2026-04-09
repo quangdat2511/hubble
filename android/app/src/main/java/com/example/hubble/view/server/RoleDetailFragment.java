@@ -73,7 +73,10 @@ public class RoleDetailFragment extends Fragment {
 
         binding.toolbar.setTitle(roleName);
         binding.toolbar.setSubtitle(getString(R.string.server_settings_roles));
-        binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            saveNameIfChanged();
+            requireActivity().onBackPressed();
+        });
 
         // Populate fields
         binding.etRoleName.setText(roleName);
@@ -81,6 +84,10 @@ public class RoleDetailFragment extends Fragment {
 
         // Color hex display
         binding.tvColorHex.setText(String.format("#%06X", 0xFFFFFF & roleColor));
+
+        // Prefetch members and permissions for sub-screens
+        RoleMembersFragment.prefetch(requireContext(), serverId, roleId);
+        RolePermissionsFragment.prefetch(requireContext(), serverId, roleId);
 
         // Color picker
         binding.rowColorPicker.setOnClickListener(v -> {
@@ -125,15 +132,25 @@ public class RoleDetailFragment extends Fragment {
             if (result == null) return;
             if (result.isSuccess()) {
                 viewModel.resetDeleteResult();
+                // Reload roles list after deletion
+                viewModel.loadRoles(serverId);
                 requireActivity().onBackPressed();
             } else if (result.isError()) {
                 Snackbar.make(view, result.getMessage(), Snackbar.LENGTH_SHORT).show();
                 viewModel.resetDeleteResult();
             }
         });
+    }
 
-        // Save name on back (using toolbar nav)
-        // (name is saved when user navigates away — we override the toolbar back)
+    private void saveNameIfChanged() {
+        if (binding == null) return;
+        String newName = binding.etRoleName.getText() != null
+                ? binding.etRoleName.getText().toString().trim() : "";
+        if (!newName.isEmpty() && !newName.equals(roleName)) {
+            Map<String, Object> fields = new HashMap<>();
+            fields.put("name", newName);
+            viewModel.updateRole(serverId, roleId, fields);
+        }
     }
 
     private void updateColorPreview() {

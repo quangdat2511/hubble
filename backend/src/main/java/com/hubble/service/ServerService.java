@@ -1,7 +1,9 @@
 package com.hubble.service;
 
 import com.hubble.dto.request.CreateServerRequest;
+import com.hubble.dto.request.UpdateServerRequest;
 import com.hubble.dto.response.ChannelResponse;
+import com.hubble.dto.response.ServerEventNotification;
 import com.hubble.dto.response.ServerResponse;
 import com.hubble.entity.Channel;
 import com.hubble.entity.Role;
@@ -24,6 +26,7 @@ import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.ServerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,6 +64,7 @@ public class ServerService {
     private final RoleRepository roleRepository;
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
+    private final SimpMessagingTemplate messagingTemplate;
     private final String supabaseUrl;
     private final String serviceRoleKey;
     private final String serverIconBucket;
@@ -76,6 +80,7 @@ public class ServerService {
             RoleRepository roleRepository,
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
+            SimpMessagingTemplate messagingTemplate,
             @Value("${supabase.url}") String supabaseUrl,
             @Value("${supabase.service-role-key}") String serviceRoleKey,
             @Value("${supabase.server-icon-bucket}") String serverIconBucket) {
@@ -89,6 +94,7 @@ public class ServerService {
         this.roleRepository = roleRepository;
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
+        this.messagingTemplate = messagingTemplate;
         this.supabaseUrl = supabaseUrl;
         this.serviceRoleKey = serviceRoleKey;
         this.serverIconBucket = serverIconBucket;
@@ -180,11 +186,31 @@ public class ServerService {
     }
 
     @Transactional
+    public ServerResponse updateServer(UUID userId, UUID serverId, UpdateServerRequest request) {
+        Server server = getOwnedServer(userId, serverId);
+        if (request.getName() != null) {
+            String name = request.getName().trim();
+            if (name.isEmpty() || name.length() > 100) {
+                throw new AppException(ErrorCode.SERVER_NAME_INVALID);
+            }
+            server.setName(name);
+        }
+        if (request.getDescription() != null) {
+            server.setDescription(request.getDescription().trim());
+        }
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
+    }
+
+    @Transactional
     public ServerResponse updateServerIcon(UUID userId, UUID serverId, MultipartFile iconFile) {
         Server server = getOwnedServer(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(uploadIcon(iconFile));
-        return serverMapper.toServerResponse(serverRepository.save(server));
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
     }
 
     @Transactional
@@ -192,7 +218,48 @@ public class ServerService {
         Server server = getOwnedServer(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(null);
-        return serverMapper.toServerResponse(serverRepository.save(server));
+        ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
+        broadcastServerUpdated(serverId, server.getName(), userId);
+        return response;
+    }
+
+    private void broadcastServerUpdated(UUID serverId, String serverName, UUID actorUserId) {
+        ServerEventNotification notification = ServerEventNotification.builder()
+                .type("SERVER_UPDATED")
+                .serverId(serverId)
+                .serverName(serverName)
+                .build();
+        List<ServerMember> members = serverMemberRepository.findAllByServerId(serverId);
+        for (ServerMember member : members) {
+            if (!member.getUserId().equals(actorUserId)) {
+                messagingTemplate.convertAndSend(
+                        "/topic/users/" + member.getUserId() + "/server-events",
+                        notification);
+            }
+        }
+    }
+
+    @Transactional
+    public void deleteServer(UUID userId, UUID serverId) {
+        Server server = getOwnedServer(userId, serverId);
+
+        // Notify all members before cascade-deleting
+        List<ServerMember> members = serverMemberRepository.findAllByServerId(serverId);
+        ServerEventNotification notification = ServerEventNotification.builder()
+                .type("SERVER_DELETED")
+                .serverId(serverId)
+                .serverName(server.getName())
+                .build();
+        for (ServerMember member : members) {
+            if (!member.getUserId().equals(userId)) {
+                messagingTemplate.convertAndSend(
+                        "/topic/users/" + member.getUserId() + "/server-events",
+                        notification);
+            }
+        }
+
+        deleteIconQuietly(server.getIconUrl());
+        serverRepository.delete(server);
     }
 
     private String uploadIcon(MultipartFile file) {
