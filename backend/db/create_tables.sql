@@ -114,7 +114,7 @@ CREATE TABLE user_sessions (
 -- User Settings table
 CREATE TABLE user_settings (
                                user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                               theme VARCHAR(16) DEFAULT 'DARK',
+                               theme VARCHAR(16) DEFAULT 'SYSTEM',
                                locale VARCHAR(8) DEFAULT 'vi',
                                app_lock_pin VARCHAR(255),
                                notification_enabled BOOLEAN DEFAULT TRUE,

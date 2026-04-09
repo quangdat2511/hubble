@@ -1,7 +1,6 @@
 package com.example.hubble.view.me;
 
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,11 +17,10 @@ import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.repository.UserRepository;
 import com.example.hubble.databinding.BottomSheetProfileEditBinding;
 import com.example.hubble.utils.InAppMessageUtils;
+import com.example.hubble.utils.UserStatusFormatter;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
-
-import java.util.Locale;
 
 public class ProfileEditBottomSheet extends BottomSheetDialogFragment implements AvatarFragment.AvatarListener {
 
@@ -83,7 +81,7 @@ public class ProfileEditBottomSheet extends BottomSheetDialogFragment implements
     }
 
     private void setupStatusDropdown() {
-        String[] statuses = getResources().getStringArray(R.array.status_options);
+        String[] statuses = UserStatusFormatter.getDisplayLabels(requireContext());
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_list_item_1,
@@ -182,10 +180,7 @@ public class ProfileEditBottomSheet extends BottomSheetDialogFragment implements
         if (selectedStatus.isEmpty() && currentProfile != null) {
             selectedStatus = safe(currentProfile.getStatus()).trim();
         }
-        if (selectedStatus.isEmpty()) {
-            selectedStatus = "ONLINE";
-        }
-        return selectedStatus.toUpperCase(Locale.ROOT);
+        return UserStatusFormatter.getCodeFromDisplayLabel(requireContext(), selectedStatus);
     }
 
     private void notifyHost(@NonNull UserResponse updatedUser) {
@@ -230,7 +225,7 @@ public class ProfileEditBottomSheet extends BottomSheetDialogFragment implements
     }
 
     private String resolveStatusLabel(@Nullable String status) {
-        return TextUtils.isEmpty(status) ? "ONLINE" : status.trim().toUpperCase(Locale.ROOT);
+        return UserStatusFormatter.getDisplayLabel(requireContext(), status);
     }
 
     private String textOf(@NonNull android.widget.TextView textView) {

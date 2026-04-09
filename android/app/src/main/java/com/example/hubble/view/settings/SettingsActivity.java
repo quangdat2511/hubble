@@ -182,16 +182,24 @@ public class SettingsActivity extends BaseAuthActivity {
         String languageCode = AppLanguageManager.getCurrentLanguage(this);
         binding.textLanguageSummary.setText(
                 AppLanguageManager.LANGUAGE_ENGLISH.equals(languageCode)
-                        ? R.string.language_option_en
-                        : R.string.language_option_vi
+                        ? R.string.language_current_en
+                        : R.string.language_current_vi
         );
 
         String savedTheme = ThemeManager.getSavedTheme(this);
-        binding.textAppearanceSummary.setText(
-                ThemeManager.THEME_LIGHT.equals(savedTheme)
-                        ? R.string.theme_light
-                        : R.string.theme_dark
-        );
+        int themeSummaryRes;
+        switch (savedTheme) {
+            case ThemeManager.THEME_LIGHT:
+                themeSummaryRes = R.string.theme_light;
+                break;
+            case ThemeManager.THEME_DARK:
+                themeSummaryRes = R.string.theme_dark;
+                break;
+            default:
+                themeSummaryRes = R.string.theme_system;
+                break;
+        }
+        binding.textAppearanceSummary.setText(themeSummaryRes);
     }
 
     public static Intent createIntent(Context context) {

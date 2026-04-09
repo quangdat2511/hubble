@@ -45,6 +45,7 @@ import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
+import com.example.hubble.utils.ServerChannelNameFormatter;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -202,23 +203,34 @@ public class HomeFragment extends Fragment {
     private void setupServerChannels(MainViewModel viewModel) {
         serverChannelAdapter = new ServerChannelAdapter(
             channel -> {
+                String displayChannelName = ServerChannelNameFormatter.getDisplayName(
+                        requireContext(),
+                        channel
+                );
                 if (Boolean.TRUE.equals(channel.getIsPrivate()) && !Boolean.TRUE.equals(channel.getCanAccess())) {
-                    showMessage("Bạn không có quyền truy cập kênh " + channel.getName());
+                    showMessage("Bạn không có quyền truy cập kênh " + displayChannelName);
                 } else {
-                    showMessage("Kênh: " + channel.getName() + " (chức năng đang phát triển)");
+                    showMessage("Kênh: " + displayChannelName + " (chức năng đang phát triển)");
                 }
             },
             viewModel::toggleCategoryCollapse,
             channel -> {
                 ServerItem server = viewModel.selectedServer.getValue();
                 if (server != null) {
+                    String displayChannelName = ServerChannelNameFormatter.getDisplayName(
+                            requireContext(),
+                            channel
+                    );
                     // Resolve parent category name
                     String parentName = null;
                     if (channel.getParentId() != null && viewModel.serverChannels.getValue() != null
                             && viewModel.serverChannels.getValue().getData() != null) {
                         for (ChannelDto ch : viewModel.serverChannels.getValue().getData()) {
                             if (channel.getParentId().equals(ch.getId())) {
-                                parentName = ch.getName();
+                                parentName = ServerChannelNameFormatter.getDisplayName(
+                                        requireContext(),
+                                        ch
+                                );
                                 break;
                             }
                         }
@@ -226,7 +238,7 @@ public class HomeFragment extends Fragment {
                     ChannelProfileBottomSheet.newInstance(
                             server.getId(), server.getName(), server.getIconUrl(),
                             server.getOwnerId(),
-                            channel.getId(), channel.getName(), channel.getType(),
+                            channel.getId(), displayChannelName, channel.getType(),
                             channel.getTopic(), channel.getParentId(), parentName,
                             Boolean.TRUE.equals(channel.getIsPrivate())
                     ).show(getParentFragmentManager(), "ChannelProfile");
@@ -238,7 +250,10 @@ public class HomeFragment extends Fragment {
                     CategoryProfileBottomSheet.newInstance(
                             server.getId(), server.getName(), server.getIconUrl(),
                             server.getOwnerId(),
-                            category.getId(), category.getName(),
+                            category.getId(), ServerChannelNameFormatter.getDisplayName(
+                                    requireContext(),
+                                    category
+                            ),
                             Boolean.TRUE.equals(category.getIsPrivate())
                     ).show(getParentFragmentManager(), "CategoryProfile");
                 }

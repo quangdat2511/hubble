@@ -396,7 +396,7 @@ public class DmChatActivity extends AppCompatActivity {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void setupMessageList() {
-        adapter = new DmMessageAdapter();
+        adapter = new DmMessageAdapter(this);
         adapter.setCurrentUserId(currentUserId);
         adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
         adapter.setIntroItem(DmMessageItem.createIntro(

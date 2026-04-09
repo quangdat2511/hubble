@@ -40,7 +40,7 @@ public class SettingsViewModel extends ViewModel {
     private Observer<AuthResult<String>> themeUpdateObserver;
     private LiveData<AuthResult<String>> themeUpdateSource;
 
-    private String cachedTheme = ThemeManager.THEME_DARK;
+    private String cachedTheme = ThemeManager.THEME_SYSTEM;
     private String pendingPreviousTheme;
     private String pendingThemeErrorMessage;
     private boolean localOverrideSinceFetch;

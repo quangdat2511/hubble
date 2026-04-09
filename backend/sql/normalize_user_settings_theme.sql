@@ -1,5 +1,5 @@
 ALTER TABLE user_settings
-    ALTER COLUMN theme SET DEFAULT 'DARK';
+    ALTER COLUMN theme SET DEFAULT 'SYSTEM';
 
 UPDATE user_settings
 SET theme = UPPER(TRIM(theme))

@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.databinding.ItemChannelBinding;
 import com.example.hubble.databinding.ItemChannelCategoryBinding;
+import com.example.hubble.utils.ServerChannelNameFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -187,7 +188,10 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
 
         void bind(ChannelDto category) {
-            binding.tvCategoryName.setText(category.getName());
+            binding.tvCategoryName.setText(ServerChannelNameFormatter.getDisplayName(
+                    binding.getRoot().getContext(),
+                    category
+            ));
 
             boolean collapsed = collapsedCategories != null && collapsedCategories.contains(category.getId());
             float rotation = collapsed ? -90f : 0f;
@@ -222,7 +226,10 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
 
         void bind(ChannelDto channel) {
-            binding.tvChannelName.setText(channel.getName());
+            binding.tvChannelName.setText(ServerChannelNameFormatter.getDisplayName(
+                    binding.getRoot().getContext(),
+                    channel
+            ));
 
             // Set icon based on channel type
             if (viewType == VIEW_TYPE_TEXT_CHANNEL) {

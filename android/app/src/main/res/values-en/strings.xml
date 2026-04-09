@@ -84,6 +84,22 @@
     <string name="notifications_title">Notifications</string>
     <string name="notifications_empty">No new notifications</string>
     <string name="cd_notifications_more">More notification options</string>
+    <string name="friend_requests_section_label">FRIEND REQUESTS</string>
+    <string name="friend_request_respond_success">Friend request updated</string>
+    <string name="notification_ignore">Ignore</string>
+    <string name="notification_recent_activity">Recent activity</string>
+    <string name="notification_friend_request_text">%1$s sent you a friend request.</string>
+    <string name="notification_server_invite_text">%1$s invited you to join %2$s.</string>
+    <string name="notification_friend_accepted_text">%1$s accepted your friend request.</string>
+    <string name="notification_channel_name">Hubble notifications</string>
+    <string name="notification_channel_desc">Notifications from the Hubble app</string>
+    <string name="notification_system_section">System notifications</string>
+    <string name="notification_mark_all_read">Mark all as read</string>
+    <string name="relative_time_seconds_short">%1$ds</string>
+    <string name="relative_time_minutes_short">%1$dm</string>
+    <string name="relative_time_hours_short">%1$dh</string>
+    <string name="relative_time_days_short">%1$dd</string>
+    <string name="relative_time_weeks_short">%1$dw</string>
 
     <string name="me_title">You</string>
     <string name="me_add_status">Add status</string>
@@ -96,6 +112,7 @@
     <string name="cd_online_status">Online</string>
 
     <string name="settings_title">Settings</string>
+    <string name="settings_section_preferences">Quick settings</string>
     <string name="settings_section_app">App</string>
     <string name="settings_section_support">Support</string>
     <string name="settings_section_info">What’s New</string>
@@ -169,6 +186,10 @@
     <string name="channel_lounge">Lounge</string>
 
     <string name="dm_title">Messages</string>
+    <string name="dm_section_messages">Messages</string>
+    <string name="dm_section_favorites">Favorites</string>
+    <string name="dm_date_today">Today</string>
+    <string name="dm_date_yesterday">Yesterday</string>
     <string name="dm_add_friend">Add Friends</string>
     <string name="dm_new_message">New message</string>
     <string name="dm_default_user">Danzg</string>
@@ -207,6 +228,10 @@
         <item>OFFLINE</item>
         <item>DND</item>
     </string-array>
+    <string name="status_online">Online</string>
+    <string name="status_idle">Idle</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_dnd">Do Not Disturb</string>
     <string name="me_outgoing_requests">Sent requests</string>
     <string name="me_blocked_users">Blocked users</string>
     <string name="settings_sessions">Manage devices and sessions</string>
@@ -298,6 +323,8 @@
     <string name="add_friend_title">Add friend</string>
     <string name="add_friend_search_hint">Enter username</string>
     <string name="pending_requests_title">Pending requests</string>
+    <string name="invite_accept">Accept</string>
+    <string name="invite_decline">Deny</string>
     <string name="session_management_title">Your devices</string>
     <string name="friend_action_add">Add</string>
     <string name="attachment_file">Attachment</string>

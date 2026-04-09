@@ -2,11 +2,13 @@ package com.example.hubble.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
 public final class ThemeManager {
 
+    public static final String THEME_SYSTEM = "SYSTEM";
     public static final String THEME_LIGHT = "LIGHT";
     public static final String THEME_DARK = "DARK";
 
@@ -30,19 +32,42 @@ public final class ThemeManager {
     }
 
     public static String getSavedTheme(Context context) {
-        return normalizeTheme(getPreferences(context).getString(KEY_THEME, THEME_DARK));
+        return normalizeTheme(getPreferences(context).getString(KEY_THEME, THEME_SYSTEM));
     }
 
     public static String normalizeTheme(String theme) {
-        return THEME_LIGHT.equalsIgnoreCase(theme) ? THEME_LIGHT : THEME_DARK;
+        if (THEME_LIGHT.equalsIgnoreCase(theme)) {
+            return THEME_LIGHT;
+        }
+        if (THEME_DARK.equalsIgnoreCase(theme)) {
+            return THEME_DARK;
+        }
+        return THEME_SYSTEM;
     }
 
     public static void applyTheme(String theme) {
-        AppCompatDelegate.setDefaultNightMode(
-                THEME_DARK.equals(normalizeTheme(theme))
-                        ? AppCompatDelegate.MODE_NIGHT_YES
-                        : AppCompatDelegate.MODE_NIGHT_NO
-        );
+        switch (normalizeTheme(theme)) {
+            case THEME_LIGHT:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case THEME_DARK:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            default:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
+    }
+
+    public static String resolveEffectiveTheme(Context context, String theme) {
+        String normalizedTheme = normalizeTheme(theme);
+        if (!THEME_SYSTEM.equals(normalizedTheme)) {
+            return normalizedTheme;
+        }
+
+        int currentNightMode = context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return currentNightMode == Configuration.UI_MODE_NIGHT_YES ? THEME_DARK : THEME_LIGHT;
     }
 
     private static SharedPreferences getPreferences(Context context) {

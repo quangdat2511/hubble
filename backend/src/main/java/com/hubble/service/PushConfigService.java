@@ -52,7 +52,7 @@ public class PushConfigService {
     private UserSettings buildDefaultSettings(UUID userId) {
         return UserSettings.builder()
                 .userId(userId)
-                .theme("DARK")
+                .theme("SYSTEM")
                 .locale("vi")
                 .notificationEnabled(true)
                 .notificationSound(true)
