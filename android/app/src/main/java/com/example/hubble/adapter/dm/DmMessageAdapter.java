@@ -443,10 +443,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
         boolean isLastMine = item.isMine() && isLastMineMessageAt(rawPos);
         String rowAvatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
+        String replyAvatarUrl = item.hasReply()
+                ? (item.isReplyToMine() ? currentUserAvatarUrl : peerAvatarUrl)
+                : null;
 
         if (holder instanceof MessageRowHolder) {
-            ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl, currentUserId,
-                    isLastMine, peerLastReadAtMillis);
+            ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl,
+                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis);
         }
     }
 
@@ -798,6 +801,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
 
         void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
+                  @Nullable String replyAvatarUrl,
                   @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
@@ -833,6 +837,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 } else {
                     b.tvReplyQuoteContent.setText(replyContent);
                 }
+                bindReplyAvatar(replyAvatarUrl, item.getReplyToSenderName());
             } else {
                 b.replyQuoteContainer.setVisibility(View.GONE);
             }
@@ -965,6 +970,26 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         private int dp(int value) {
             return Math.round(value * b.getRoot().getResources().getDisplayMetrics().density);
+        }
+
+        private void bindReplyAvatar(@Nullable String replyAvatarUrl, @Nullable String replyName) {
+            int size = (int) (16 * b.getRoot().getContext().getResources().getDisplayMetrics().density);
+            android.graphics.drawable.Drawable fallback =
+                    AvatarPlaceholderUtils.createAvatarDrawable(b.ivReplyAvatar.getContext(), replyName, size);
+            String resolvedUrl = NetworkConfig.resolveUrl(replyAvatarUrl);
+            Glide.with(b.ivReplyAvatar.getContext()).clear(b.ivReplyAvatar);
+            if (resolvedUrl == null || resolvedUrl.trim().isEmpty()) {
+                b.ivReplyAvatar.setImageDrawable(fallback);
+            } else {
+                b.ivReplyAvatar.setImageDrawable(null);
+                Glide.with(b.ivReplyAvatar.getContext())
+                        .load(resolvedUrl)
+                        .override(size, size)
+                        .error(fallback)
+                        .fallback(fallback)
+                        .circleCrop()
+                        .into(b.ivReplyAvatar);
+            }
         }
 
         private void bindAvatar(@Nullable String avatarUrl, @Nullable String displayName) {

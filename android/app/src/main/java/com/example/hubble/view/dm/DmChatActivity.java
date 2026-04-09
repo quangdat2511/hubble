@@ -1685,6 +1685,7 @@ public class DmChatActivity extends AppCompatActivity {
             if (replyItem != null) {
                 item.setReplyToSenderName(replyItem.getSenderName());
                 item.setReplyToContent(replyItem.getContent());
+                item.setReplyToMine(replyItem.isMine());
             }
         }
         return item;
@@ -1718,6 +1719,7 @@ public class DmChatActivity extends AppCompatActivity {
                     boolean replyMine = currentUserId != null && currentUserId.equals(replyDto.getAuthorId());
                     item.setReplyToSenderName(replyMine ? currentUserName : peerDisplayName);
                     item.setReplyToContent(replyDto.getContent() == null ? "" : replyDto.getContent());
+                    item.setReplyToMine(replyMine);
                 }
             }
             mapped.add(item);
