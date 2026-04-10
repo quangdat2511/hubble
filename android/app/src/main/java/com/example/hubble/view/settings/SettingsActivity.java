@@ -14,8 +14,11 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DeviceAlertSettingsRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
@@ -40,6 +43,9 @@ public class SettingsActivity extends BaseAuthActivity {
     private AppLockRepository appLockRepository;
     private AppSwitcherProtectionRepository appSwitcherProtectionRepository;
     private boolean isApplyingSecurityToggle;
+    private boolean isApplyingDeviceAlertSettings;
+    private boolean isDeviceAlertBusy;
+    private DeviceAlertSettingsResponse lastKnownDeviceAlertSettings;
     private final ActivityResultLauncher<Intent> languageSettingsLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
@@ -71,7 +77,8 @@ public class SettingsActivity extends BaseAuthActivity {
                 new SettingsViewModelFactory(
                         new AuthRepository(this),
                         new SettingsRepository(this),
-                        new PushConfigRepository(this)))
+                        new PushConfigRepository(this),
+                        new DeviceAlertSettingsRepository(this)))
                 .get(SettingsViewModel.class);
 
         setupToolbar();
@@ -79,6 +86,7 @@ public class SettingsActivity extends BaseAuthActivity {
         setupRows();
         renderStaticSummaries();
         setupPushConfigSummary();
+        setupDeviceAlertSettings();
         setupLogout();
         if (savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_OPEN_PUSH_CONFIG, false)) {
             navigateTo(new PushConfigFragment(), false);
@@ -130,6 +138,18 @@ public class SettingsActivity extends BaseAuthActivity {
             renderSecuritySummary();
             Snackbar.make(binding.getRoot(), R.string.settings_saved, Snackbar.LENGTH_SHORT).show();
         });
+        binding.rowNewDeviceAlerts.setOnClickListener(v -> {
+            if (!isDeviceAlertBusy) {
+                binding.switchNewDeviceAlerts.toggle();
+            }
+        });
+        binding.switchNewDeviceAlerts.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isApplyingDeviceAlertSettings) {
+                return;
+            }
+
+            viewModel.updateDeviceAlertSettings(isChecked);
+        });
         binding.rowAdvanced.setOnClickListener(v ->
                 startActivity(new Intent(this, SessionManagementActivity.class)));
         binding.rowSupport.setOnClickListener(comingSoon);
@@ -140,6 +160,27 @@ public class SettingsActivity extends BaseAuthActivity {
         viewModel.currentPushConfig.observe(this, this::renderPushConfigSummary);
         renderPushConfigSummary(viewModel.getCurrentPushConfigValue());
         viewModel.loadPushConfig();
+    }
+
+    private void setupDeviceAlertSettings() {
+        viewModel.currentDeviceAlertSettings.observe(this, config -> {
+            if (config == null) {
+                return;
+            }
+
+            lastKnownDeviceAlertSettings = config;
+            applyDeviceAlertSettings(config);
+        });
+        viewModel.deviceAlertSettingsState.observe(this, this::renderDeviceAlertLoadState);
+        viewModel.deviceAlertSettingsSaveState.observe(this, this::renderDeviceAlertSaveState);
+
+        DeviceAlertSettingsResponse cachedSettings = viewModel.getCurrentDeviceAlertSettingsValue();
+        if (cachedSettings != null) {
+            lastKnownDeviceAlertSettings = cachedSettings;
+            applyDeviceAlertSettings(cachedSettings);
+        } else {
+            viewModel.loadDeviceAlertSettings();
+        }
     }
 
     private void setupLogout() {
@@ -200,11 +241,80 @@ public class SettingsActivity extends BaseAuthActivity {
         binding.textNotificationsSummary.setText(summaryRes);
     }
 
+    private void renderDeviceAlertLoadState(AuthResult<DeviceAlertSettingsResponse> result) {
+        if (result == null) {
+            return;
+        }
+
+        if (result.isLoading()) {
+            setDeviceAlertBusy(true);
+            return;
+        }
+
+        setDeviceAlertBusy(false);
+        viewModel.resetDeviceAlertSettingsState();
+
+        if (result.isSuccess()) {
+            return;
+        }
+
+        Snackbar.make(binding.getRoot(),
+                result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic),
+                Snackbar.LENGTH_LONG).show();
+    }
+
+    private void renderDeviceAlertSaveState(AuthResult<DeviceAlertSettingsResponse> result) {
+        if (result == null) {
+            return;
+        }
+
+        if (result.isLoading()) {
+            setDeviceAlertBusy(true);
+            return;
+        }
+
+        setDeviceAlertBusy(false);
+        viewModel.resetDeviceAlertSettingsSaveState();
+
+        if (result.isSuccess() && result.getData() != null) {
+            Snackbar.make(binding.getRoot(),
+                    getString(R.string.settings_device_alert_saved),
+                    Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (lastKnownDeviceAlertSettings != null) {
+            applyDeviceAlertSettings(lastKnownDeviceAlertSettings);
+        }
+        Snackbar.make(binding.getRoot(),
+                result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic),
+                Snackbar.LENGTH_LONG).show();
+    }
+
+    private void applyDeviceAlertSettings(DeviceAlertSettingsResponse config) {
+        isApplyingDeviceAlertSettings = true;
+        binding.switchNewDeviceAlerts.setChecked(config.isEnabled());
+        binding.textNewDeviceAlertsSummary.setText(config.isEnabled()
+                ? R.string.settings_device_alert_summary_on
+                : R.string.settings_device_alert_summary_off);
+        isApplyingDeviceAlertSettings = false;
+    }
+
+    private void setDeviceAlertBusy(boolean isBusy) {
+        isDeviceAlertBusy = isBusy;
+        setScreenLoading(isBusy);
+        binding.rowNewDeviceAlerts.setEnabled(!isBusy);
+        binding.switchNewDeviceAlerts.setEnabled(!isBusy);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         renderStaticSummaries();
         renderSecuritySummary();
+        if (lastKnownDeviceAlertSettings != null) {
+            applyDeviceAlertSettings(lastKnownDeviceAlertSettings);
+        }
     }
 
     private void renderStaticSummaries() {

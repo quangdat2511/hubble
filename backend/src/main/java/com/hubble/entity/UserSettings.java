@@ -42,6 +42,9 @@ public class UserSettings {
     @Column(name = "notification_sound")
     private Boolean notificationSound;
 
+    @Column(name = "new_device_login_alerts_enabled")
+    private Boolean newDeviceLoginAlertsEnabled;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -59,6 +62,9 @@ public class UserSettings {
         }
         if (notificationSound == null) {
             notificationSound = true;
+        }
+        if (newDeviceLoginAlertsEnabled == null) {
+            newDeviceLoginAlertsEnabled = true;
         }
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();

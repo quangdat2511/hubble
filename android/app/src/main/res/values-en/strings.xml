@@ -171,6 +171,10 @@
     <string name="settings_app_switcher_protection">Protect App in App Switcher</string>
     <string name="settings_app_switcher_protection_summary_off">Allow the app preview to appear normally in recent apps</string>
     <string name="settings_app_switcher_protection_summary_on">Hide sensitive content from recent apps previews and screenshots</string>
+    <string name="settings_device_alert">New Device Login Alerts</string>
+    <string name="settings_device_alert_summary_off">Do not send alerts when your account signs in on a new device</string>
+    <string name="settings_device_alert_summary_on">Send a system alert when we detect a login from an unrecognized device</string>
+    <string name="settings_device_alert_saved">New device login alerts updated</string>
     <string name="settings_notifications_summary">Manage push notifications on this device</string>
     <string name="settings_notifications_enable_title">Enable push notifications</string>
     <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>

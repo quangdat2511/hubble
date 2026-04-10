@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DeviceAlertSettingsRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
@@ -71,7 +72,8 @@ public class ThemeFragment extends Fragment {
                 new SettingsViewModelFactory(
                         new AuthRepository(requireContext()),
                         new SettingsRepository(requireContext()),
-                        new PushConfigRepository(requireContext()))
+                        new PushConfigRepository(requireContext()),
+                        new DeviceAlertSettingsRepository(requireContext()))
         ).get(SettingsViewModel.class);
 
         TokenManager tokenManager = new TokenManager(requireContext().getApplicationContext());

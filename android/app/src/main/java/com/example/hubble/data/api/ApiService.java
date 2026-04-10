@@ -23,12 +23,14 @@ import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
-import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
+import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
 import com.example.hubble.data.model.settings.AppLockSettingsRequest;
 import com.example.hubble.data.model.settings.AppLockSettingsResponse;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsRequest;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 
@@ -180,6 +182,17 @@ public interface ApiService {
             @Body AppLockSettingsRequest request
     );
 
+    @GET("api/settings/security/device-alerts")
+    Call<ApiResponse<DeviceAlertSettingsResponse>> getDeviceAlertSettings(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/security/device-alerts")
+    Call<ApiResponse<DeviceAlertSettingsResponse>> updateDeviceAlertSettings(
+            @Header("Authorization") String token,
+            @Body DeviceAlertSettingsRequest request
+    );
+
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
@@ -276,6 +289,7 @@ public interface ApiService {
     Call<ApiResponse<UserResponse>> getProfile(
             @Header("Authorization") String token
     );
+
     @PUT("api/settings/theme")
     Call<ApiResponse<String>> updateTheme(
             @Header("Authorization") String token,
@@ -306,7 +320,6 @@ public interface ApiService {
     Call<ApiResponse<String>> getLanguage(
             @Header("Authorization") String token
     );
-
 
     @GET("api/notifications")
     Call<ApiResponse<java.util.List<com.example.hubble.data.model.notify.NotificationResponse>>> getNotifications(

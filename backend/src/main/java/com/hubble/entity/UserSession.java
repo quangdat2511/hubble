@@ -38,6 +38,9 @@ public class UserSession {
     @Column(name = "ip_address", columnDefinition = "TEXT")
     String ipAddress;
 
+    @Column(name = "device_fingerprint", length = 128)
+    String deviceFingerprint;
+
     @Column(name = "refresh_token", columnDefinition = "TEXT")
     String refreshToken;
 

@@ -2,11 +2,15 @@ package com.example.hubble.data.api;
 
 import android.content.Context;
 import android.os.Build;
+import android.provider.Settings;
 
 import com.example.hubble.utils.TokenManager;
 
+import java.nio.charset.StandardCharsets;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -39,8 +43,11 @@ public class RetrofitClient {
             Interceptor userAgentInterceptor = chain -> {
                 Request original = chain.request();
                 String deviceName = Build.MANUFACTURER + " " + Build.MODEL; // VD: samsung SM-G998B
+                String deviceFingerprint = createDeviceFingerprint(context);
                 Request request = original.newBuilder()
                         .header("User-Agent", deviceName)
+                        .header("X-Device-Name", deviceName)
+                        .header("X-Device-Fingerprint", deviceFingerprint)
                         .build();
                 return chain.proceed(request);
             };
@@ -109,5 +116,27 @@ public class RetrofitClient {
                 return fallbackAddresses;
             }
         };
+    }
+
+    private static String createDeviceFingerprint(Context context) {
+        String androidId = Settings.Secure.getString(
+                context.getContentResolver(),
+                Settings.Secure.ANDROID_ID
+        );
+        String rawValue = (androidId != null ? androidId : "unknown")
+                + "|" + Build.MANUFACTURER
+                + "|" + Build.MODEL
+                + "|" + Build.DEVICE;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawValue.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte value : hash) {
+                builder.append(String.format("%02x", value));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return rawValue;
+        }
     }
 }

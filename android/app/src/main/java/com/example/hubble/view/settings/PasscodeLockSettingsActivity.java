@@ -14,6 +14,7 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.settings.AppLockSettingsResponse;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DeviceAlertSettingsRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivityPasscodeLockSettingsBinding;
@@ -56,7 +57,8 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
                 new SettingsViewModelFactory(
                         new AuthRepository(this),
                         new SettingsRepository(this),
-                        new PushConfigRepository(this)))
+                        new PushConfigRepository(this),
+                        new DeviceAlertSettingsRepository(this)))
                 .get(SettingsViewModel.class);
         setupToolbar();
         setupRows();

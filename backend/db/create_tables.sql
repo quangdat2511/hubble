@@ -105,6 +105,7 @@ CREATE TABLE user_sessions (
                                device_name VARCHAR(128),
                                device_type device_type,
                                ip_address TEXT,
+                               device_fingerprint VARCHAR(128),
                                refresh_token TEXT,
                                is_active BOOLEAN DEFAULT TRUE,
                                last_active_at TIMESTAMPTZ DEFAULT NOW(),
@@ -119,6 +120,7 @@ CREATE TABLE user_settings (
                                app_lock_pin VARCHAR(255),
                                notification_enabled BOOLEAN DEFAULT TRUE,
                                notification_sound BOOLEAN DEFAULT TRUE,
+                               new_device_login_alerts_enabled BOOLEAN DEFAULT TRUE,
                                updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

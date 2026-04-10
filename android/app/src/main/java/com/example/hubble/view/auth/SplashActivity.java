@@ -39,9 +39,6 @@ public class SplashActivity extends BaseAuthActivity {
     }
 
     @Override
-    protected boolean shouldUseDarkSystemBars() { return true; }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
