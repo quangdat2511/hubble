@@ -21,8 +21,8 @@ public class SecurePinStorage {
     private static final String KEYSTORE_PROVIDER = "AndroidKeyStore";
     private static final String KEY_ALIAS = "hubble_app_lock_pin_key";
     private static final String PREFS_NAME = "HubbleSecurePrefs";
-    private static final String KEY_PIN_IV = "secure_pin_iv";
-    private static final String KEY_PIN_VALUE = "secure_pin_value";
+    private static final String KEY_PIN_IV_PREFIX = "secure_pin_iv_";
+    private static final String KEY_PIN_VALUE_PREFIX = "secure_pin_value_";
     private static final int GCM_TAG_LENGTH = 128;
 
     private final SharedPreferences preferences;
@@ -32,19 +32,23 @@ public class SecurePinStorage {
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
-    public boolean hasStoredPin() {
-        return !TextUtils.isEmpty(preferences.getString(KEY_PIN_IV, null))
-                && !TextUtils.isEmpty(preferences.getString(KEY_PIN_VALUE, null));
+    public boolean hasStoredPin(String userId) {
+        return !TextUtils.isEmpty(preferences.getString(buildIvKey(userId), null))
+                && !TextUtils.isEmpty(preferences.getString(buildValueKey(userId), null));
     }
 
-    public boolean savePin(String pin) {
+    public boolean savePin(String userId, String pin) {
+        if (TextUtils.isEmpty(userId) || TextUtils.isEmpty(pin)) {
+            return false;
+        }
+
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey());
             byte[] encrypted = cipher.doFinal(pin.getBytes(StandardCharsets.UTF_8));
             preferences.edit()
-                    .putString(KEY_PIN_IV, Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
-                    .putString(KEY_PIN_VALUE, Base64.encodeToString(encrypted, Base64.NO_WRAP))
+                    .putString(buildIvKey(userId), Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
+                    .putString(buildValueKey(userId), Base64.encodeToString(encrypted, Base64.NO_WRAP))
                     .apply();
             return true;
         } catch (Exception e) {
@@ -52,9 +56,13 @@ public class SecurePinStorage {
         }
     }
 
-    public String getPin() {
-        String iv = preferences.getString(KEY_PIN_IV, null);
-        String encrypted = preferences.getString(KEY_PIN_VALUE, null);
+    public String getPin(String userId) {
+        if (TextUtils.isEmpty(userId)) {
+            return null;
+        }
+
+        String iv = preferences.getString(buildIvKey(userId), null);
+        String encrypted = preferences.getString(buildValueKey(userId), null);
         if (TextUtils.isEmpty(iv) || TextUtils.isEmpty(encrypted)) {
             return null;
         }
@@ -68,20 +76,24 @@ public class SecurePinStorage {
             byte[] decrypted = cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP));
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            clearPin();
+            clearPin(userId);
             return null;
         }
     }
 
-    public boolean verifyPin(String pin) {
-        String storedPin = getPin();
+    public boolean verifyPin(String userId, String pin) {
+        String storedPin = getPin(userId);
         return storedPin != null && storedPin.equals(pin);
     }
 
-    public void clearPin() {
+    public void clearPin(String userId) {
+        if (TextUtils.isEmpty(userId)) {
+            return;
+        }
+
         preferences.edit()
-                .remove(KEY_PIN_IV)
-                .remove(KEY_PIN_VALUE)
+                .remove(buildIvKey(userId))
+                .remove(buildValueKey(userId))
                 .apply();
     }
 
@@ -106,5 +118,13 @@ public class SecurePinStorage {
                 .setRandomizedEncryptionRequired(true)
                 .build());
         return keyGenerator.generateKey();
+    }
+
+    private String buildIvKey(String userId) {
+        return KEY_PIN_IV_PREFIX + userId;
+    }
+
+    private String buildValueKey(String userId) {
+        return KEY_PIN_VALUE_PREFIX + userId;
     }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.AppLockSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
@@ -31,6 +32,15 @@ public class SettingsViewModel extends ViewModel {
 
     private final MutableLiveData<PushConfigResponse> currentPushConfigMutable = new MutableLiveData<>();
     public final LiveData<PushConfigResponse> currentPushConfig = currentPushConfigMutable;
+
+    private final MutableLiveData<AuthResult<AppLockSettingsResponse>> appLockStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<AppLockSettingsResponse>> appLockState = appLockStateMutable;
+
+    private final MutableLiveData<AuthResult<AppLockSettingsResponse>> appLockSaveStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<AppLockSettingsResponse>> appLockSaveState = appLockSaveStateMutable;
+
+    private final MutableLiveData<AppLockSettingsResponse> currentAppLockSettingsMutable = new MutableLiveData<>();
+    public final LiveData<AppLockSettingsResponse> currentAppLockSettings = currentAppLockSettingsMutable;
 
     private final MutableLiveData<AuthResult<String>> themeState = new MutableLiveData<>();
     private final MutableLiveData<AuthResult<String>> themeUpdateState = new MutableLiveData<>();
@@ -173,6 +183,24 @@ public class SettingsViewModel extends ViewModel {
         });
     }
 
+    public void loadAppLockSettings() {
+        settingsRepository.getAppLockSettings(result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentAppLockSettingsMutable.setValue(result.getData());
+            }
+            appLockStateMutable.setValue(result);
+        });
+    }
+
+    public void updateAppLockSettings(String pin) {
+        settingsRepository.updateAppLockSettings(pin, result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentAppLockSettingsMutable.setValue(result.getData());
+            }
+            appLockSaveStateMutable.setValue(result);
+        });
+    }
+
     public PushConfigResponse getCurrentPushConfigValue() {
         return currentPushConfigMutable.getValue();
     }
@@ -183,6 +211,18 @@ public class SettingsViewModel extends ViewModel {
 
     public void resetPushConfigSaveState() {
         pushConfigSaveStateMutable.setValue(null);
+    }
+
+    public AppLockSettingsResponse getCurrentAppLockSettingsValue() {
+        return currentAppLockSettingsMutable.getValue();
+    }
+
+    public void resetAppLockState() {
+        appLockStateMutable.setValue(null);
+    }
+
+    public void resetAppLockSaveState() {
+        appLockSaveStateMutable.setValue(null);
     }
 
     @Override

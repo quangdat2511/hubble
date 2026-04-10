@@ -38,6 +38,7 @@ public enum ErrorCode {
     PASSWORDS_NOT_MATCH(1016, "Passwords do not match", HttpStatus.BAD_REQUEST),
     QR_TOKEN_INVALID(1018, "QR token is invalid or expired", HttpStatus.BAD_REQUEST),
     LOCALE_INVALID(1019, "Locale is invalid", HttpStatus.BAD_REQUEST),
+    INVALID_APP_LOCK_PIN(1020, "App lock PIN must be exactly 4 digits", HttpStatus.BAD_REQUEST),
 
     // Friends
     FRIEND_REQUEST_EXISTED(2001, "Friend request already exists", HttpStatus.BAD_REQUEST),

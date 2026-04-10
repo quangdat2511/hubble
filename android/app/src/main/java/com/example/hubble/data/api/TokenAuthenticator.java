@@ -8,6 +8,7 @@ import android.os.Looper;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
+import com.example.hubble.security.AppLockManager;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.auth.LoginActivity;
 
@@ -49,6 +50,10 @@ public class TokenAuthenticator implements Authenticator {
                     .build();
         } else {
             tokenManager.clear();
+            AppLockManager manager = AppLockManager.getInstance();
+            if (manager != null) {
+                manager.onSessionEnded();
+            }
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 Intent intent = new Intent(context, LoginActivity.class);

@@ -25,6 +25,9 @@ public class AppLockActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         repository = new AppLockRepository(this);
+        if (!repository.hasStoredPin()) {
+            repository.setPasscodeEnabled(false);
+        }
         if (!repository.isPasscodeEnabled() || !repository.hasStoredPin()) {
             finish();
             return;

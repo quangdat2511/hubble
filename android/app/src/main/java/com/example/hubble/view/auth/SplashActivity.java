@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.SettingsRepository;
+import com.example.hubble.utils.AppLockSyncManager;
 import com.example.hubble.databinding.ActivitySplashBinding;
 import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.ThemeSyncManager;
@@ -38,6 +39,9 @@ public class SplashActivity extends BaseAuthActivity {
     }
 
     @Override
+    protected boolean shouldUseDarkSystemBars() { return true; }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -61,7 +65,8 @@ public class SplashActivity extends BaseAuthActivity {
 
         String accessToken = tokenManager.getAccessToken();
         if (TextUtils.isEmpty(accessToken)) {
-            ThemeSyncManager.syncThemeIfAuthenticated(this, () -> navigateOnce(true));
+            ThemeSyncManager.syncThemeIfAuthenticated(this,
+                    () -> AppLockSyncManager.syncAppLockIfAuthenticated(this, () -> navigateOnce(true)));
             return;
         }
 
@@ -70,12 +75,16 @@ public class SplashActivity extends BaseAuthActivity {
             @Override
             public void onSuccess(String language) {
                 AppLanguageManager.applyAppLanguage(language);
-                ThemeSyncManager.syncThemeIfAuthenticated(SplashActivity.this, () -> navigateOnce(true));
+                ThemeSyncManager.syncThemeIfAuthenticated(SplashActivity.this,
+                        () -> AppLockSyncManager.syncAppLockIfAuthenticated(SplashActivity.this,
+                                () -> navigateOnce(true)));
             }
 
             @Override
             public void onError(String message) {
-                ThemeSyncManager.syncThemeIfAuthenticated(SplashActivity.this, () -> navigateOnce(true));
+                ThemeSyncManager.syncThemeIfAuthenticated(SplashActivity.this,
+                        () -> AppLockSyncManager.syncAppLockIfAuthenticated(SplashActivity.this,
+                                () -> navigateOnce(true)));
             }
         });
     }

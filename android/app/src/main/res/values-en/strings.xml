@@ -137,7 +137,7 @@
     <string name="settings_passcode_lock_status_disabled">App lock is off</string>
     <string name="settings_passcode_lock_manage_description">Set a 4-digit PIN to protect the app when you come back from the background.</string>
     <string name="settings_passcode_lock_toggle_title">Require PIN</string>
-    <string name="settings_passcode_lock_toggle_summary">Ask for your PIN after the app stays in the background for about 30 seconds</string>
+    <string name="settings_passcode_lock_toggle_summary">Ask for your PIN whenever you reopen the app</string>
     <string name="settings_passcode_lock_toggle_summary_empty">Turn this on to create a PIN for the app</string>
     <string name="settings_passcode_change">Change PIN</string>
     <string name="settings_passcode_change_summary">Update the PIN you currently use</string>
@@ -167,7 +167,7 @@
     <string name="settings_passcode_prompt_action">Unlock</string>
     <string name="settings_passcode_prompt_exit">Exit app</string>
     <string name="settings_passcode_prompt_error">That PIN was incorrect. Please try again.</string>
-    <string name="settings_passcode_timeout_hint">The app locks again after it stays in the background for about 30 seconds.</string>
+    <string name="settings_passcode_timeout_hint">The app locks again when you leave it and come back.</string>
     <string name="settings_notifications_summary">Manage push notifications on this device</string>
     <string name="settings_notifications_enable_title">Enable push notifications</string>
     <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>

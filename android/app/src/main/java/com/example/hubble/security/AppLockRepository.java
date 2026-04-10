@@ -2,88 +2,121 @@ package com.example.hubble.security;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
+
+import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.utils.TokenManager;
 
 public class AppLockRepository {
 
     public static final int PIN_LENGTH = 4;
-    public static final long LOCK_TIMEOUT_MS = 30_000L;
 
     private static final String PREFS_NAME = "HubbleAppLockPrefs";
-    private static final String KEY_PASSCODE_ENABLED = "passcode_enabled";
-    private static final String KEY_LAST_BACKGROUNDED_AT = "last_backgrounded_at";
+    private static final String KEY_PASSCODE_ENABLED_PREFIX = "passcode_enabled_";
 
     private final SharedPreferences preferences;
     private final SecurePinStorage securePinStorage;
+    private final TokenManager tokenManager;
 
     public AppLockRepository(Context context) {
         Context appContext = context.getApplicationContext();
         preferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         securePinStorage = new SecurePinStorage(appContext);
+        tokenManager = new TokenManager(appContext);
     }
 
     public boolean hasStoredPin() {
-        return securePinStorage.hasStoredPin();
+        String userId = getCurrentUserId();
+        return userId != null && securePinStorage.hasStoredPin(userId);
     }
 
     public boolean isPasscodeEnabled() {
-        return preferences.getBoolean(KEY_PASSCODE_ENABLED, false) && hasStoredPin();
+        String userId = getCurrentUserId();
+        return userId != null
+                && preferences.getBoolean(buildEnabledKey(userId), false)
+                && hasStoredPin();
     }
 
     public boolean savePin(String pin) {
-        return securePinStorage.savePin(pin);
+        String userId = getCurrentUserId();
+        return userId != null && securePinStorage.savePin(userId, pin);
     }
 
     public boolean updatePin(String pin) {
-        return securePinStorage.savePin(pin);
+        return savePin(pin);
     }
 
     public boolean verifyPin(String pin) {
-        return securePinStorage.verifyPin(pin);
+        String userId = getCurrentUserId();
+        return userId != null && securePinStorage.verifyPin(userId, pin);
     }
 
     public void setPasscodeEnabled(boolean enabled) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            return;
+        }
+
         preferences.edit()
-                .putBoolean(KEY_PASSCODE_ENABLED, enabled && hasStoredPin())
+                .putBoolean(buildEnabledKey(userId), enabled && hasStoredPin())
                 .apply();
     }
 
     public void clearPin() {
-        securePinStorage.clearPin();
-        preferences.edit()
-                .putBoolean(KEY_PASSCODE_ENABLED, false)
-                .remove(KEY_LAST_BACKGROUNDED_AT)
-                .apply();
-    }
-
-    public void markBackgrounded() {
-        if (!isPasscodeEnabled()) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
             return;
         }
-        preferences.edit()
-                .putLong(KEY_LAST_BACKGROUNDED_AT, System.currentTimeMillis())
-                .apply();
+
+        securePinStorage.clearPin(userId);
+        preferences.edit().putBoolean(buildEnabledKey(userId), false).apply();
     }
 
-    public boolean shouldRequireUnlock() {
-        if (!isPasscodeEnabled()) {
-            clearBackgroundState();
-            return false;
+    public void syncPinFromServer(@Nullable String pin) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            return;
         }
 
-        long lastBackgroundedAt = preferences.getLong(KEY_LAST_BACKGROUNDED_AT, 0L);
-        if (lastBackgroundedAt <= 0L) {
-            return false;
+        String normalizedPin = normalizePin(pin);
+        if (normalizedPin == null) {
+            securePinStorage.clearPin(userId);
+            preferences.edit().putBoolean(buildEnabledKey(userId), false).apply();
+            return;
         }
 
-        long timeInBackground = System.currentTimeMillis() - lastBackgroundedAt;
-        if (timeInBackground < LOCK_TIMEOUT_MS) {
-            clearBackgroundState();
-            return false;
+        securePinStorage.savePin(userId, normalizedPin);
+    }
+
+    @Nullable
+    public String getCurrentUserId() {
+        UserResponse user = tokenManager.getUser();
+        if (user == null || TextUtils.isEmpty(user.getId())) {
+            return null;
         }
-        return true;
+        return user.getId();
     }
 
     public void clearBackgroundState() {
-        preferences.edit().remove(KEY_LAST_BACKGROUNDED_AT).apply();
+        // Kept as a no-op so existing callers continue to compile after moving to immediate re-locking.
+    }
+
+    private String buildEnabledKey(String userId) {
+        return KEY_PASSCODE_ENABLED_PREFIX + userId;
+    }
+
+    @Nullable
+    private String normalizePin(@Nullable String pin) {
+        if (pin == null) {
+            return null;
+        }
+
+        String normalizedPin = pin.trim();
+        if (normalizedPin.matches("\\d{" + PIN_LENGTH + "}")) {
+            return normalizedPin;
+        }
+        return null;
     }
 }

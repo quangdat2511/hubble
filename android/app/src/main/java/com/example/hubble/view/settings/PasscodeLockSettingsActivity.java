@@ -8,13 +8,21 @@ import android.view.View;
 import android.widget.Button;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
+import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.AppLockSettingsResponse;
+import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.PushConfigRepository;
+import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivityPasscodeLockSettingsBinding;
 import com.example.hubble.databinding.DialogPasscodeFormBinding;
 import com.example.hubble.security.AppLockManager;
 import com.example.hubble.security.AppLockRepository;
 import com.example.hubble.view.base.BaseAuthActivity;
+import com.example.hubble.viewmodel.SettingsViewModel;
+import com.example.hubble.viewmodel.SettingsViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -22,7 +30,9 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
 
     private ActivityPasscodeLockSettingsBinding binding;
     private AppLockRepository repository;
+    private SettingsViewModel viewModel;
     private boolean applyingState;
+    private PendingPasscodeAction pendingAction;
 
     @Override
     protected View getRootView() {
@@ -42,9 +52,17 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
         applyEdgeToEdge(binding.getRoot());
 
         repository = new AppLockRepository(this);
+        viewModel = new ViewModelProvider(this,
+                new SettingsViewModelFactory(
+                        new AuthRepository(this),
+                        new SettingsRepository(this),
+                        new PushConfigRepository(this)))
+                .get(SettingsViewModel.class);
         setupToolbar();
         setupRows();
+        setupObservers();
         renderState();
+        viewModel.loadAppLockSettings();
     }
 
     @Override
@@ -72,7 +90,10 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
                 handleEnableRequested();
             } else {
                 repository.setPasscodeEnabled(false);
-                repository.clearBackgroundState();
+                AppLockManager manager = AppLockManager.getInstance();
+                if (manager != null) {
+                    manager.onUnlockSucceeded();
+                }
                 renderState();
                 Snackbar.make(binding.getRoot(),
                         R.string.settings_passcode_saved_disabled,
@@ -93,7 +114,10 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
     private void handleEnableRequested() {
         if (repository.hasStoredPin()) {
             repository.setPasscodeEnabled(true);
-            repository.clearBackgroundState();
+            AppLockManager manager = AppLockManager.getInstance();
+            if (manager != null) {
+                manager.onUnlockSucceeded();
+            }
             renderState();
             Snackbar.make(binding.getRoot(),
                     R.string.settings_passcode_saved_enabled,
@@ -105,6 +129,82 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
             repository.setPasscodeEnabled(false);
             renderState();
         });
+    }
+
+    private void setupObservers() {
+        viewModel.appLockState.observe(this, this::handleLoadState);
+        viewModel.appLockSaveState.observe(this, this::handleSaveState);
+    }
+
+    private void handleLoadState(AuthResult<AppLockSettingsResponse> result) {
+        if (result == null) {
+            return;
+        }
+
+        if (result.isLoading()) {
+            setLoadingState(true);
+            return;
+        }
+
+        setLoadingState(false);
+        viewModel.resetAppLockState();
+        if (result.isSuccess() && result.getData() != null) {
+            applyRemoteSettings(result.getData());
+            renderState();
+            return;
+        }
+
+        if (result.isError()) {
+            showError(result.getMessage());
+            renderState();
+        }
+    }
+
+    private void handleSaveState(AuthResult<AppLockSettingsResponse> result) {
+        if (result == null) {
+            return;
+        }
+
+        if (result.isLoading()) {
+            setLoadingState(true);
+            setPendingDialogLoading(true);
+            return;
+        }
+
+        setLoadingState(false);
+        setPendingDialogLoading(false);
+        viewModel.resetAppLockSaveState();
+
+        PendingPasscodeAction action = pendingAction;
+        if (action == null) {
+            if (result.isSuccess() && result.getData() != null) {
+                applyRemoteSettings(result.getData());
+                renderState();
+            } else if (result.isError()) {
+                showError(result.getMessage());
+            }
+            return;
+        }
+
+        if (result.isSuccess() && result.getData() != null) {
+            applyRemoteSettings(result.getData());
+            if (action.enablePasscodeAfterSuccess != null) {
+                repository.setPasscodeEnabled(action.enablePasscodeAfterSuccess);
+            }
+
+            AppLockManager manager = AppLockManager.getInstance();
+            if (manager != null) {
+                manager.onUnlockSucceeded();
+            }
+
+            action.dialog.dismiss();
+            pendingAction = null;
+            renderState();
+            Snackbar.make(binding.getRoot(), action.successMessageRes, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        showPendingActionError(action.dialogBinding, action.mode, result.getMessage());
     }
 
     private void renderState() {
@@ -157,45 +257,21 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
                     return;
                 }
 
-                boolean success;
-                int successMessageRes;
                 switch (mode) {
                     case CREATE:
-                        success = repository.savePin(newPin);
-                        if (success) {
-                            repository.setPasscodeEnabled(true);
-                            repository.clearBackgroundState();
-                        }
-                        successMessageRes = R.string.settings_passcode_saved_enabled;
+                        submitPinUpdate(mode, newPin, dialog, dialogBinding,
+                                R.string.settings_passcode_saved_enabled, true);
                         break;
                     case CHANGE:
-                        success = repository.updatePin(newPin);
-                        if (success) {
-                            repository.clearBackgroundState();
-                        }
-                        successMessageRes = R.string.settings_passcode_saved_changed;
+                        submitPinUpdate(mode, newPin, dialog, dialogBinding,
+                                R.string.settings_passcode_saved_changed, null);
                         break;
                     case REMOVE:
                     default:
-                        success = true;
-                        repository.clearPin();
-                        repository.clearBackgroundState();
-                        successMessageRes = R.string.settings_passcode_saved_removed;
-                        break;
-                }
-
-                if (!success) {
-                    dialogBinding.layoutNewPin.setError(getString(R.string.settings_passcode_pin_error_storage));
+                        submitPinUpdate(mode, null, dialog, dialogBinding,
+                                R.string.settings_passcode_saved_removed, false);
                     return;
                 }
-
-                AppLockManager manager = AppLockManager.getInstance();
-                if (manager != null) {
-                    manager.onUnlockSucceeded();
-                }
-                dialog.dismiss();
-                renderState();
-                Snackbar.make(binding.getRoot(), successMessageRes, Snackbar.LENGTH_SHORT).show();
             });
         });
 
@@ -269,6 +345,59 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
         return input.getText() == null ? "" : input.getText().toString().trim();
     }
 
+    private void submitPinUpdate(PasscodeDialogMode mode,
+                                 @Nullable String pin,
+                                 androidx.appcompat.app.AlertDialog dialog,
+                                 DialogPasscodeFormBinding dialogBinding,
+                                 int successMessageRes,
+                                 @Nullable Boolean enablePasscodeAfterSuccess) {
+        pendingAction = new PendingPasscodeAction(
+                mode,
+                dialog,
+                dialogBinding,
+                successMessageRes,
+                enablePasscodeAfterSuccess
+        );
+        viewModel.updateAppLockSettings(pin);
+    }
+
+    private void applyRemoteSettings(AppLockSettingsResponse response) {
+        repository.syncPinFromServer(response != null ? response.getAppLockPin() : null);
+    }
+
+    private void setPendingDialogLoading(boolean isLoading) {
+        if (pendingAction == null) {
+            return;
+        }
+
+        Button positiveButton = pendingAction.dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE);
+        Button negativeButton = pendingAction.dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE);
+        if (positiveButton != null) {
+            positiveButton.setEnabled(!isLoading);
+        }
+        if (negativeButton != null) {
+            negativeButton.setEnabled(!isLoading);
+        }
+        pendingAction.dialog.setCancelable(!isLoading);
+        pendingAction.dialog.setCanceledOnTouchOutside(!isLoading);
+    }
+
+    private void showPendingActionError(DialogPasscodeFormBinding dialogBinding,
+                                        PasscodeDialogMode mode,
+                                        @Nullable String message) {
+        pendingAction = null;
+        if (mode == PasscodeDialogMode.REMOVE) {
+            dialogBinding.layoutCurrentPin.setError(message != null
+                    ? message
+                    : getString(R.string.settings_passcode_pin_error_storage));
+            return;
+        }
+
+        dialogBinding.layoutNewPin.setError(message != null
+                ? message
+                : getString(R.string.settings_passcode_pin_error_storage));
+    }
+
     public static Intent createIntent(Context context) {
         return new Intent(context, PasscodeLockSettingsActivity.class);
     }
@@ -284,6 +413,26 @@ public class PasscodeLockSettingsActivity extends BaseAuthActivity {
         PasscodeDialogMode(int titleRes, int actionRes) {
             this.titleRes = titleRes;
             this.actionRes = actionRes;
+        }
+    }
+
+    private static final class PendingPasscodeAction {
+        private final PasscodeDialogMode mode;
+        private final androidx.appcompat.app.AlertDialog dialog;
+        private final DialogPasscodeFormBinding dialogBinding;
+        private final int successMessageRes;
+        private final Boolean enablePasscodeAfterSuccess;
+
+        private PendingPasscodeAction(PasscodeDialogMode mode,
+                                      androidx.appcompat.app.AlertDialog dialog,
+                                      DialogPasscodeFormBinding dialogBinding,
+                                      int successMessageRes,
+                                      @Nullable Boolean enablePasscodeAfterSuccess) {
+            this.mode = mode;
+            this.dialog = dialog;
+            this.dialogBinding = dialogBinding;
+            this.successMessageRes = successMessageRes;
+            this.enablePasscodeAfterSuccess = enablePasscodeAfterSuccess;
         }
     }
 }

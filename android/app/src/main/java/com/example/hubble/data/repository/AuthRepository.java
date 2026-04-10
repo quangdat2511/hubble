@@ -17,6 +17,8 @@ import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.security.AppLockManager;
+import com.example.hubble.utils.AppLockSyncManager;
 import com.example.hubble.utils.ThemeSyncManager;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
@@ -236,6 +238,10 @@ public class AuthRepository {
             });
         }
         tokenManager.clear();
+        AppLockManager manager = AppLockManager.getInstance();
+        if (manager != null) {
+            manager.onSessionEnded();
+        }
     }
 
     private void handleAuthenticatedResponse(TokenResponse tokenResponse,
@@ -243,7 +249,8 @@ public class AuthRepository {
         tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
         tokenManager.saveUser(tokenResponse.getUser());
         ThemeSyncManager.syncThemeIfAuthenticated(context,
-                () -> callback.onResult(AuthResult.success(tokenResponse.getUser())));
+                () -> AppLockSyncManager.syncAppLockIfAuthenticated(context,
+                        () -> callback.onResult(AuthResult.success(tokenResponse.getUser()))));
     }
 
     private <T> String extractErrorMessage(Response<T> response, String fallback) {

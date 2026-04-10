@@ -170,7 +170,7 @@
     <string name="settings_passcode_lock_status_disabled">Khóa ứng dụng đang tắt</string>
     <string name="settings_passcode_lock_manage_description">Thiết lập mã PIN 4 số để bảo vệ ứng dụng khi quay lại từ nền.</string>
     <string name="settings_passcode_lock_toggle_title">Yêu cầu mã PIN</string>
-    <string name="settings_passcode_lock_toggle_summary">Yêu cầu mã PIN sau khoảng 30 giây khi ứng dụng ở nền</string>
+    <string name="settings_passcode_lock_toggle_summary">Yêu cầu mã PIN mỗi khi bạn mở lại ứng dụng</string>
     <string name="settings_passcode_lock_toggle_summary_empty">Bật để tạo mã PIN bảo vệ ứng dụng</string>
     <string name="settings_passcode_change">Đổi mã PIN</string>
     <string name="settings_passcode_change_summary">Cập nhật mã PIN hiện tại của bạn</string>
@@ -200,7 +200,7 @@
     <string name="settings_passcode_prompt_action">Mở khóa</string>
     <string name="settings_passcode_prompt_exit">Thoát ứng dụng</string>
     <string name="settings_passcode_prompt_error">Mã PIN không đúng. Vui lòng thử lại.</string>
-    <string name="settings_passcode_timeout_hint">Ứng dụng sẽ khóa lại sau khi ở nền khoảng 30 giây.</string>
+    <string name="settings_passcode_timeout_hint">Ứng dụng sẽ khóa lại mỗi khi bạn rời ứng dụng và quay lại.</string>
 
     <!-- Create / Join Server -->
     <string name="create_server_title">Tạo máy chủ</string>

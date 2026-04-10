@@ -25,6 +25,8 @@ public class AppLockManager implements DefaultLifecycleObserver, Application.Act
 
     private final AppLockRepository repository;
     private WeakReference<Activity> currentActivity = new WeakReference<>(null);
+    private String activeUserId;
+    private boolean unlockRequired;
     private boolean promptVisible;
 
     private AppLockManager(Application application) {
@@ -47,12 +49,20 @@ public class AppLockManager implements DefaultLifecycleObserver, Application.Act
 
     public void onUnlockSucceeded() {
         promptVisible = false;
-        repository.clearBackgroundState();
+        unlockRequired = false;
+    }
+
+    public void onSessionEnded() {
+        activeUserId = null;
+        promptVisible = false;
+        unlockRequired = false;
     }
 
     @Override
     public void onStop(@NonNull LifecycleOwner owner) {
-        repository.markBackgrounded();
+        if (repository.isPasscodeEnabled() && repository.hasStoredPin()) {
+            unlockRequired = true;
+        }
     }
 
     @Override
@@ -70,6 +80,7 @@ public class AppLockManager implements DefaultLifecycleObserver, Application.Act
             promptVisible = true;
             return;
         }
+        syncUserState();
         maybeShowLock(activity);
     }
 
@@ -97,7 +108,11 @@ public class AppLockManager implements DefaultLifecycleObserver, Application.Act
     }
 
     private void maybeShowLock(Activity activity) {
-        if (promptVisible || !shouldProtect(activity) || !repository.shouldRequireUnlock()) {
+        if (promptVisible
+                || !shouldProtect(activity)
+                || !unlockRequired
+                || !repository.isPasscodeEnabled()
+                || !repository.hasStoredPin()) {
             return;
         }
 
@@ -116,5 +131,32 @@ public class AppLockManager implements DefaultLifecycleObserver, Application.Act
                 && !(activity instanceof OtpActivity)
                 && !(activity instanceof ForgotPasswordActivity)
                 && !(activity instanceof AppLockActivity);
+    }
+
+    private void syncUserState() {
+        String currentUserId = repository.getCurrentUserId();
+        if (currentUserId == null) {
+            onSessionEnded();
+            return;
+        }
+
+        if (currentUserId.equals(activeUserId)) {
+            if (repository.isPasscodeEnabled() && !repository.hasStoredPin()) {
+                repository.setPasscodeEnabled(false);
+                unlockRequired = false;
+            }
+            return;
+        }
+
+        activeUserId = currentUserId;
+        promptVisible = false;
+        if (repository.isPasscodeEnabled() && repository.hasStoredPin()) {
+            unlockRequired = true;
+        } else {
+            if (repository.isPasscodeEnabled()) {
+                repository.setPasscodeEnabled(false);
+            }
+            unlockRequired = false;
+        }
     }
 }

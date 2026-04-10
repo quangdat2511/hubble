@@ -27,6 +27,8 @@ import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.AppLockSettingsRequest;
+import com.example.hubble.data.model.settings.AppLockSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 
@@ -165,6 +167,17 @@ public interface ApiService {
     Call<ApiResponse<PushConfigResponse>> updatePushConfig(
             @Header("Authorization") String token,
             @Body PushConfigRequest request
+    );
+
+    @GET("api/settings/app-lock")
+    Call<ApiResponse<AppLockSettingsResponse>> getAppLockSettings(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/app-lock")
+    Call<ApiResponse<AppLockSettingsResponse>> updateAppLockSettings(
+            @Header("Authorization") String token,
+            @Body AppLockSettingsRequest request
     );
 
     @GET("api/friends/friends")
