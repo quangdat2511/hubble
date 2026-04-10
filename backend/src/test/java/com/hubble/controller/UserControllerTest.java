@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hubble.configuration.SecurityConfig;
 import com.hubble.dto.request.UpdateCustomStatusRequest;
 import com.hubble.dto.request.UpdateProfileRequest;
+import com.hubble.dto.response.AvatarResponse;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.enums.UserStatus;
 import com.hubble.repository.UserRepository;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,6 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -161,5 +164,42 @@ public class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1000))
                 .andExpect(jsonPath("$.result.customStatus").value("Working from home"));
+    }
+
+    @Test
+    public void uploadAvatar_ValidFile_ReturnsUpdatedUser() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", "image".getBytes());
+        UserResponse mockResponse = UserResponse.builder()
+                .id(currentUserId)
+                .avatarUrl("https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/avatars/users/test/avatar.jpg")
+                .build();
+
+        when(userService.updateAvatar(eq(currentUserId), any())).thenReturn(mockResponse);
+
+        mockMvc.perform(multipart("/api/users/me/avatar")
+                        .file(file)
+                        .with(authentication(authentication)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result.avatarUrl").value(mockResponse.getAvatarUrl()));
+    }
+
+    @Test
+    public void getMyAvatar_ReturnsAvatarResponse() throws Exception {
+        AvatarResponse mockResponse = AvatarResponse.builder()
+                .avatarUrl("https://qexzpkwrfjlblrvtqvuh.supabase.co/storage/v1/object/public/avatars/users/test/avatar.png")
+                .fileName("avatar.png")
+                .contentType("image/png")
+                .build();
+
+        when(userService.getAvatarResponse(currentUserId)).thenReturn(mockResponse);
+
+        mockMvc.perform(get("/api/users/me/avatar")
+                        .with(authentication(authentication))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result.fileName").value("avatar.png"))
+                .andExpect(jsonPath("$.result.contentType").value("image/png"));
     }
 }

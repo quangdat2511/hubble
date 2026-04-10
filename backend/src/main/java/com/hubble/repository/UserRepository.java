@@ -19,5 +19,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByPhone(String phone);
     Optional<User> findByUsername(String username);
 
+    List<User> findAllByAvatarUrlStartingWith(String avatarUrlPrefix);
     List<User> findTop20ByUsernameContainingIgnoreCaseOrderByUsernameAsc(String username);
 }
