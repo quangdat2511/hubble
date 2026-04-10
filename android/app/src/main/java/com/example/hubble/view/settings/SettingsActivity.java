@@ -19,6 +19,7 @@ import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
+import com.example.hubble.security.AppLockRepository;
 import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.view.base.BaseAuthActivity;
@@ -34,6 +35,7 @@ public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
     private SettingsViewModel viewModel;
+    private AppLockRepository appLockRepository;
     private final ActivityResultLauncher<Intent> languageSettingsLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
@@ -58,6 +60,7 @@ public class SettingsActivity extends BaseAuthActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyEdgeToEdge(binding.getRoot());
+        appLockRepository = new AppLockRepository(this);
 
         viewModel = new ViewModelProvider(this,
                 new SettingsViewModelFactory(
@@ -102,6 +105,8 @@ public class SettingsActivity extends BaseAuthActivity {
                 navigateTo(new PushConfigFragment(), true));
         binding.rowAppearance.setOnClickListener(v ->
                 startActivity(new Intent(this, ThemeActivity.class)));
+        binding.rowPasscodeLock.setOnClickListener(v ->
+                startActivity(PasscodeLockSettingsActivity.createIntent(this)));
         binding.rowAdvanced.setOnClickListener(v ->
                 startActivity(new Intent(this, SessionManagementActivity.class)));
         binding.rowSupport.setOnClickListener(comingSoon);
@@ -200,6 +205,17 @@ public class SettingsActivity extends BaseAuthActivity {
                 break;
         }
         binding.textAppearanceSummary.setText(themeSummaryRes);
+        binding.textPasscodeLockSummary.setText(getPasscodeSummaryRes());
+    }
+
+    private int getPasscodeSummaryRes() {
+        if (appLockRepository.isPasscodeEnabled()) {
+            return R.string.settings_passcode_lock_summary_enabled;
+        }
+        if (appLockRepository.hasStoredPin()) {
+            return R.string.settings_passcode_lock_summary_configured;
+        }
+        return R.string.settings_passcode_lock_summary_disabled;
     }
 
     public static Intent createIntent(Context context) {

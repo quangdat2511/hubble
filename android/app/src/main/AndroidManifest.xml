@@ -91,6 +91,19 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.settings.PasscodeLockSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.security.AppLockActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:theme="@style/Theme.Hubble" />
+
+        <activity
             android:name=".view.server.CreateServerActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

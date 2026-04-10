@@ -74,6 +74,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-runtime:${lifecycle_version}")
+    implementation("androidx.lifecycle:lifecycle-process:${lifecycle_version}")
 
     implementation("com.hbb20:ccp:2.5.0")
 
