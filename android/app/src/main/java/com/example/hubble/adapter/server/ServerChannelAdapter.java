@@ -3,6 +3,7 @@ package com.example.hubble.adapter.server;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -165,6 +166,8 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     private class CategoryViewHolder extends RecyclerView.ViewHolder {
         private final ItemChannelCategoryBinding binding;
+        private String lastBoundCategoryId = null;
+        private boolean lastCollapsedState = false;
 
         CategoryViewHolder(ItemChannelCategoryBinding binding) {
             super(binding.getRoot());
@@ -194,8 +197,23 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
             ));
 
             boolean collapsed = collapsedCategories != null && collapsedCategories.contains(category.getId());
-            float rotation = collapsed ? -90f : 0f;
-            binding.ivCollapseArrow.setRotation(rotation);
+            float targetRotation = collapsed ? 0f : 90f;
+
+            boolean stateChanged = category.getId().equals(lastBoundCategoryId)
+                    && collapsed != lastCollapsedState;
+            if (stateChanged) {
+                binding.ivCollapseArrow.animate()
+                        .rotation(targetRotation)
+                        .setDuration(200)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .start();
+            } else {
+                binding.ivCollapseArrow.animate().cancel();
+                binding.ivCollapseArrow.setRotation(targetRotation);
+            }
+
+            lastBoundCategoryId = category.getId();
+            lastCollapsedState = collapsed;
         }
     }
 
