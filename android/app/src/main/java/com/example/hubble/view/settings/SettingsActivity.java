@@ -19,6 +19,8 @@ import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.databinding.ActivitySettingsBinding;
+import com.example.hubble.security.AppSwitcherProtectionManager;
+import com.example.hubble.security.AppSwitcherProtectionRepository;
 import com.example.hubble.utils.AppLanguageManager;
 import com.example.hubble.utils.ThemeManager;
 import com.example.hubble.view.base.BaseAuthActivity;
@@ -34,6 +36,8 @@ public class SettingsActivity extends BaseAuthActivity {
 
     private ActivitySettingsBinding binding;
     private SettingsViewModel viewModel;
+    private AppSwitcherProtectionRepository appSwitcherProtectionRepository;
+    private boolean isApplyingSecurityToggle;
     private final ActivityResultLauncher<Intent> languageSettingsLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
@@ -58,6 +62,7 @@ public class SettingsActivity extends BaseAuthActivity {
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyEdgeToEdge(binding.getRoot());
+        appSwitcherProtectionRepository = new AppSwitcherProtectionRepository(this);
 
         viewModel = new ViewModelProvider(this,
                 new SettingsViewModelFactory(
@@ -102,6 +107,24 @@ public class SettingsActivity extends BaseAuthActivity {
                 navigateTo(new PushConfigFragment(), true));
         binding.rowAppearance.setOnClickListener(v ->
                 startActivity(new Intent(this, ThemeActivity.class)));
+        binding.rowAppSwitcherProtection.setOnClickListener(v -> {
+            if (!isApplyingSecurityToggle) {
+                binding.switchAppSwitcherProtection.toggle();
+            }
+        });
+        binding.switchAppSwitcherProtection.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isApplyingSecurityToggle) {
+                return;
+            }
+
+            appSwitcherProtectionRepository.setEnabled(isChecked);
+            AppSwitcherProtectionManager manager = AppSwitcherProtectionManager.getInstance();
+            if (manager != null) {
+                manager.refreshProtection();
+            }
+            renderSecuritySummary();
+            Snackbar.make(binding.getRoot(), R.string.settings_saved, Snackbar.LENGTH_SHORT).show();
+        });
         binding.rowAdvanced.setOnClickListener(v ->
                 startActivity(new Intent(this, SessionManagementActivity.class)));
         binding.rowSupport.setOnClickListener(comingSoon);
@@ -176,6 +199,7 @@ public class SettingsActivity extends BaseAuthActivity {
     protected void onResume() {
         super.onResume();
         renderStaticSummaries();
+        renderSecuritySummary();
     }
 
     private void renderStaticSummaries() {
@@ -200,6 +224,16 @@ public class SettingsActivity extends BaseAuthActivity {
                 break;
         }
         binding.textAppearanceSummary.setText(themeSummaryRes);
+    }
+
+    private void renderSecuritySummary() {
+        boolean isEnabled = appSwitcherProtectionRepository.isEnabled();
+        isApplyingSecurityToggle = true;
+        binding.switchAppSwitcherProtection.setChecked(isEnabled);
+        binding.textAppSwitcherProtectionSummary.setText(isEnabled
+                ? R.string.settings_app_switcher_protection_summary_on
+                : R.string.settings_app_switcher_protection_summary_off);
+        isApplyingSecurityToggle = false;
     }
 
     public static Intent createIntent(Context context) {

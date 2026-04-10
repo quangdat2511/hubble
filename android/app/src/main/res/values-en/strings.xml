@@ -128,6 +128,10 @@
     <string name="settings_logout_confirm_yes">Log out</string>
     <string name="settings_logout_confirm_no">Cancel</string>
     <string name="cd_settings_back">Back</string>
+    <string name="settings_section_security">Security</string>
+    <string name="settings_app_switcher_protection">Protect App in App Switcher</string>
+    <string name="settings_app_switcher_protection_summary_off">Allow the app preview to appear normally in recent apps</string>
+    <string name="settings_app_switcher_protection_summary_on">Hide sensitive content from recent apps previews and screenshots</string>
     <string name="settings_notifications_summary">Manage push notifications on this device</string>
     <string name="settings_notifications_enable_title">Enable push notifications</string>
     <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>
