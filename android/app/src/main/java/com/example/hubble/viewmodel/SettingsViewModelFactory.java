@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DeviceAlertSettingsRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 
@@ -13,13 +14,16 @@ public class SettingsViewModelFactory implements ViewModelProvider.Factory {
     private final AuthRepository authRepository;
     private final SettingsRepository settingsRepository;
     private final PushConfigRepository pushConfigRepository;
+    private final DeviceAlertSettingsRepository deviceAlertSettingsRepository;
 
     public SettingsViewModelFactory(AuthRepository authRepository,
                                     SettingsRepository settingsRepository,
-                                    PushConfigRepository pushConfigRepository) {
+                                    PushConfigRepository pushConfigRepository,
+                                    DeviceAlertSettingsRepository deviceAlertSettingsRepository) {
         this.authRepository = authRepository;
         this.settingsRepository = settingsRepository;
         this.pushConfigRepository = pushConfigRepository;
+        this.deviceAlertSettingsRepository = deviceAlertSettingsRepository;
     }
 
     @NonNull
@@ -27,7 +31,12 @@ public class SettingsViewModelFactory implements ViewModelProvider.Factory {
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
-            return (T) new SettingsViewModel(authRepository, settingsRepository, pushConfigRepository);
+            return (T) new SettingsViewModel(
+                    authRepository,
+                    settingsRepository,
+                    pushConfigRepository,
+                    deviceAlertSettingsRepository
+            );
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass.getName());
     }

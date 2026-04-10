@@ -1,7 +1,7 @@
 package com.hubble.service;
 
-import com.hubble.dto.request.PushConfigUpdateRequest;
-import com.hubble.dto.response.PushConfigResponse;
+import com.hubble.dto.request.DeviceAlertSettingsUpdateRequest;
+import com.hubble.dto.response.DeviceAlertSettingsResponse;
 import com.hubble.entity.UserSettings;
 import com.hubble.repository.UserSettingsRepository;
 import lombok.AccessLevel;
@@ -15,37 +15,31 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class PushConfigService {
+public class DeviceAlertSettingsService {
 
     UserSettingsRepository repo;
 
-    public PushConfigResponse getPushConfig(UUID userId) {
+    public DeviceAlertSettingsResponse getSettings(UUID userId) {
         UserSettings settings = repo.findById(userId)
                 .orElseGet(() -> buildDefaultSettings(userId));
-
         return mapToResponse(settings);
     }
 
-    public PushConfigResponse updatePushConfig(UUID userId, PushConfigUpdateRequest request) {
+    public DeviceAlertSettingsResponse updateSettings(UUID userId, DeviceAlertSettingsUpdateRequest request) {
         UserSettings settings = repo.findById(userId)
                 .orElseGet(() -> buildDefaultSettings(userId));
 
-        if (request.getNotificationEnabled() != null) {
-            settings.setNotificationEnabled(request.getNotificationEnabled());
-        }
-        if (request.getNotificationSound() != null) {
-            settings.setNotificationSound(request.getNotificationSound());
+        if (request.getEnabled() != null) {
+            settings.setNewDeviceLoginAlertsEnabled(request.getEnabled());
         }
         settings.setUpdatedAt(LocalDateTime.now());
 
-        UserSettings savedSettings = repo.save(settings);
-        return mapToResponse(savedSettings);
+        return mapToResponse(repo.save(settings));
     }
 
-    private PushConfigResponse mapToResponse(UserSettings settings) {
-        return PushConfigResponse.builder()
-                .notificationEnabled(Boolean.TRUE.equals(settings.getNotificationEnabled()))
-                .notificationSound(Boolean.TRUE.equals(settings.getNotificationSound()))
+    private DeviceAlertSettingsResponse mapToResponse(UserSettings settings) {
+        return DeviceAlertSettingsResponse.builder()
+                .enabled(!Boolean.FALSE.equals(settings.getNewDeviceLoginAlertsEnabled()))
                 .build();
     }
 

@@ -27,6 +27,8 @@ import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.data.model.me.AvatarResponse;
 import com.example.hubble.data.model.me.UpdateProfileRequest;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsRequest;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 
@@ -165,6 +167,17 @@ public interface ApiService {
     Call<ApiResponse<PushConfigResponse>> updatePushConfig(
             @Header("Authorization") String token,
             @Body PushConfigRequest request
+    );
+
+    @GET("api/settings/security/device-alerts")
+    Call<ApiResponse<DeviceAlertSettingsResponse>> getDeviceAlertSettings(
+            @Header("Authorization") String token
+    );
+
+    @PUT("api/settings/security/device-alerts")
+    Call<ApiResponse<DeviceAlertSettingsResponse>> updateDeviceAlertSettings(
+            @Header("Authorization") String token,
+            @Body DeviceAlertSettingsRequest request
     );
 
     @GET("api/friends/friends")

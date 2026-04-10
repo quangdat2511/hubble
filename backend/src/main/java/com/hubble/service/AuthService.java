@@ -4,14 +4,17 @@ import com.hubble.dto.request.*;
 import com.hubble.dto.response.TokenResponse;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
+import com.hubble.entity.UserSettings;
 import com.hubble.entity.UserSession;
 import com.hubble.enums.AuthProvider;
 import com.hubble.enums.DeviceType;
+import com.hubble.enums.NotificationType;
 import com.hubble.enums.OtpType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.UserMapper;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSettingsRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.GoogleTokenVerifier;
 import com.hubble.security.JwtService;
@@ -36,12 +39,14 @@ public class AuthService {
 
     UserRepository userRepository;
     UserSessionRepository userSessionRepository;
+    UserSettingsRepository userSettingsRepository;
     UserMapper userMapper;
     JwtService jwtService;
     PasswordEncoder passwordEncoder;
     GoogleTokenVerifier googleTokenVerifier;
     OtpService otpService;
     EmailService emailService;
+    NotificationService notificationService;
 
     @Transactional
     public String register(RegisterRequest request) {
@@ -267,6 +272,7 @@ public class AuthService {
 
         String ipAddress = "Unknown";
         String deviceName = "Unknown Device";
+        String deviceFingerprint = null;
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
@@ -275,22 +281,37 @@ public class AuthService {
                 if (ipAddress == null || ipAddress.isEmpty()) {
                     ipAddress = request.getRemoteAddr();
                 }
-                String userAgent = request.getHeader("User-Agent");
-                if (userAgent != null && !userAgent.isEmpty()) {
-                    deviceName = userAgent;
+                String providedDeviceName = request.getHeader("X-Device-Name");
+                if (hasText(providedDeviceName)) {
+                    deviceName = providedDeviceName.trim();
+                } else {
+                    String userAgent = request.getHeader("User-Agent");
+                    if (hasText(userAgent)) {
+                        deviceName = userAgent.trim();
+                    }
+                }
+                String providedFingerprint = request.getHeader("X-Device-Fingerprint");
+                if (hasText(providedFingerprint)) {
+                    deviceFingerprint = providedFingerprint.trim();
                 }
             }
         } catch (Exception ignored) {}
+
+        boolean hasPriorSessions = userSessionRepository.existsByUserId(user.getId());
+        boolean knownDevice = isKnownDevice(user.getId(), deviceFingerprint, deviceName);
 
         UserSession session = UserSession.builder()
                 .userId(user.getId())
                 .refreshToken(refreshToken)
                 .deviceType(DeviceType.MOBILE)
                 .deviceName(deviceName)
+                .deviceFingerprint(deviceFingerprint)
                 .ipAddress(ipAddress)
                 .isActive(true)
                 .build();
         session = userSessionRepository.save(session);
+
+        maybeDispatchNewDeviceAlert(user.getId(), session, deviceName, ipAddress, hasPriorSessions, knownDevice);
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), session.getId());
 
@@ -300,5 +321,56 @@ public class AuthService {
                 .expiresIn(jwtService.getAccessTokenExpiration())
                 .user(userMapper.toUserResponse(user))
                 .build();
+    }
+
+    private void maybeDispatchNewDeviceAlert(UUID userId,
+                                             UserSession session,
+                                             String deviceName,
+                                             String ipAddress,
+                                             boolean hasPriorSessions,
+                                             boolean knownDevice) {
+        if (!hasPriorSessions || knownDevice) {
+            return;
+        }
+
+        UserSettings settings = userSettingsRepository.findById(userId).orElse(null);
+        boolean alertsEnabled = settings == null
+                || settings.getNewDeviceLoginAlertsEnabled() == null
+                || Boolean.TRUE.equals(settings.getNewDeviceLoginAlertsEnabled());
+        if (!alertsEnabled) {
+            return;
+        }
+
+        boolean sendPush = settings == null || Boolean.TRUE.equals(settings.getNotificationEnabled());
+        String safeDeviceName = hasText(deviceName) ? deviceName : "Thiết bị mới";
+        String safeIpAddress = hasText(ipAddress) ? ipAddress : "IP không xác định";
+        String content = String.format(
+                "Phát hiện đăng nhập trên thiết bị mới: %s (%s). Nếu không phải bạn, hãy đổi mật khẩu ngay.",
+                safeDeviceName,
+                safeIpAddress
+        );
+
+        notificationService.dispatchNotification(
+                userId,
+                NotificationType.SYSTEM_ALERT,
+                session.getId().toString(),
+                content,
+                false,
+                sendPush
+        );
+    }
+
+    private boolean isKnownDevice(UUID userId, String deviceFingerprint, String deviceName) {
+        if (hasText(deviceFingerprint)) {
+            return userSessionRepository.existsByUserIdAndDeviceFingerprint(userId, deviceFingerprint.trim());
+        }
+        if (hasText(deviceName)) {
+            return userSessionRepository.existsByUserIdAndDeviceName(userId, deviceName.trim());
+        }
+        return false;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

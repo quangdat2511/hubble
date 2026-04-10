@@ -162,6 +162,12 @@
     <string name="settings_logout_confirm_no">Hủy</string>
     <string name="cd_settings_back">Quay lại</string>
 
+    <string name="settings_section_security">Bảo mật</string>
+    <string name="settings_device_alert">Cảnh báo đăng nhập thiết bị lạ</string>
+    <string name="settings_device_alert_summary_off">Không gửi cảnh báo khi tài khoản đăng nhập trên thiết bị mới</string>
+    <string name="settings_device_alert_summary_on">Gửi thông báo hệ thống khi phát hiện đăng nhập trên thiết bị chưa nhận diện</string>
+    <string name="settings_device_alert_saved">Đã cập nhật cảnh báo đăng nhập thiết bị lạ</string>
+
     <!-- Create / Join Server -->
     <string name="create_server_title">Tạo máy chủ</string>
     <string name="create_server_subtitle">Máy chủ của bạn là nơi bạn và bạn bè trò chuyện. Hãy tạo máy chủ và bắt đầu nói chuyện.</string>
