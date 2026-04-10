@@ -168,6 +168,9 @@
     <string name="settings_passcode_prompt_exit">Exit app</string>
     <string name="settings_passcode_prompt_error">That PIN was incorrect. Please try again.</string>
     <string name="settings_passcode_timeout_hint">The app locks again when you leave it and come back.</string>
+    <string name="settings_app_switcher_protection">Protect App in App Switcher</string>
+    <string name="settings_app_switcher_protection_summary_off">Allow the app preview to appear normally in recent apps</string>
+    <string name="settings_app_switcher_protection_summary_on">Hide sensitive content from recent apps previews and screenshots</string>
     <string name="settings_notifications_summary">Manage push notifications on this device</string>
     <string name="settings_notifications_enable_title">Enable push notifications</string>
     <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>

@@ -202,6 +202,11 @@
     <string name="settings_passcode_prompt_error">Mã PIN không đúng. Vui lòng thử lại.</string>
     <string name="settings_passcode_timeout_hint">Ứng dụng sẽ khóa lại mỗi khi bạn rời ứng dụng và quay lại.</string>
 
+    <string name="settings_section_security">Bảo mật</string>
+    <string name="settings_app_switcher_protection">Bảo vệ màn hình đa nhiệm</string>
+    <string name="settings_app_switcher_protection_summary_off">Cho phép xem trước giao diện ứng dụng trong đa nhiệm</string>
+    <string name="settings_app_switcher_protection_summary_on">Ẩn nội dung nhạy cảm khỏi màn hình đa nhiệm và ảnh chụp màn hình</string>
+
     <!-- Create / Join Server -->
     <string name="create_server_title">Tạo máy chủ</string>
     <string name="create_server_subtitle">Máy chủ của bạn là nơi bạn và bạn bè trò chuyện. Hãy tạo máy chủ và bắt đầu nói chuyện.</string>
