@@ -20,6 +20,7 @@ import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.google.gson.Gson;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
+import com.example.hubble.data.ws.FriendStatusEvent;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -156,6 +157,62 @@ public class MainViewModel extends ViewModel {
                     }
                 }, throwable -> {})
         );
+
+        wsDisposables.add(
+            ServerEventWebSocketManager.getInstance().getFriendStatusEvents()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handleFriendStatusUpdate, throwable -> {})
+        );
+    }
+
+    private void handleFriendStatusUpdate(FriendStatusEvent event) {
+        String friendId = event.getUserId();
+        if (friendId == null) return;
+
+        // Update stories
+        List<DmConversationItem> stories = _dmStories.getValue();
+        if (stories != null) {
+            List<DmConversationItem> updatedStories = new ArrayList<>();
+            boolean storyChanged = false;
+            for (DmConversationItem item : stories) {
+                if (friendId.equals(item.getFriendId())) {
+                    updatedStories.add(new DmConversationItem(
+                            item.getId(), item.getChannelId(), item.getFriendId(),
+                            item.getDisplayName(), item.getAvatarUrl(),
+                            item.getLastMessage(), item.getTimeLabel(),
+                            event.getStatus(), event.getCustomStatus(),
+                            item.isVerified(), item.isSelected(), item.isFavorite(),
+                            item.getUnreadCount(), item.getLastMessageAtMillis()));
+                    storyChanged = true;
+                } else {
+                    updatedStories.add(item);
+                }
+            }
+            if (storyChanged) _dmStories.setValue(updatedStories);
+        }
+
+        // Update conversations
+        List<DmConversationItem> convos = _dmConversations.getValue();
+        if (convos != null) {
+            List<DmConversationItem> updatedConvos = new ArrayList<>();
+            boolean convoChanged = false;
+            for (DmConversationItem item : convos) {
+                if (friendId.equals(item.getFriendId())) {
+                    updatedConvos.add(new DmConversationItem(
+                            item.getId(), item.getChannelId(), item.getFriendId(),
+                            item.getDisplayName(), item.getAvatarUrl(),
+                            item.getLastMessage(), item.getTimeLabel(),
+                            event.getStatus(), event.getCustomStatus(),
+                            item.isVerified(), item.isSelected(), item.isFavorite(),
+                            item.getUnreadCount(), item.getLastMessageAtMillis()));
+                    convoChanged = true;
+                } else {
+                    updatedConvos.add(item);
+                }
+            }
+            if (convoChanged) _dmConversations.setValue(updatedConvos);
+        }
     }
 
     public void removeServerById(String serverId) {
@@ -365,7 +422,8 @@ public class MainViewModel extends ViewModel {
             baseItem.getAvatarUrl(),
             baseItem.getLastMessage(),
             baseItem.getTimeLabel(),
-            baseItem.isOnline(),
+            baseItem.getStatus(),
+            baseItem.getCustomStatus(),
             baseItem.isVerified(),
             baseItem.isSelected(),
             baseItem.isFavorite(),
@@ -426,7 +484,8 @@ public class MainViewModel extends ViewModel {
                 ),
                 "",
                 "",
-                "ONLINE".equalsIgnoreCase(peerStatus),
+                peerStatus,
+                friend != null ? friend.getCustomStatus() : null,
                 false,
                 false,
                 isFavoriteChannel(channelId),
@@ -712,7 +771,8 @@ public class MainViewModel extends ViewModel {
                     seededItem.getAvatarUrl(),
                     previewText,
                     timeLabel,
-                    seededItem.isOnline(),
+                    seededItem.getStatus(),
+                    seededItem.getCustomStatus(),
                     seededItem.isVerified(),
                         seededItem.isSelected(),
                         seededItem.isFavorite(),
@@ -745,7 +805,8 @@ public class MainViewModel extends ViewModel {
                 currentItem.getAvatarUrl(),
                 previewText,
                 timeLabel,
-                currentItem.isOnline(),
+                currentItem.getStatus(),
+                currentItem.getCustomStatus(),
                 currentItem.isVerified(),
                 currentItem.isSelected(),
                 currentItem.isFavorite(),
@@ -843,7 +904,8 @@ public class MainViewModel extends ViewModel {
                             item.getAvatarUrl(),
                             previewText,
                             timeLabel,
-                            item.isOnline(),
+                            item.getStatus(),
+                            item.getCustomStatus(),
                             item.isVerified(),
                                 item.isSelected(),
                                 item.isFavorite(),
@@ -922,7 +984,8 @@ public class MainViewModel extends ViewModel {
                         item.getAvatarUrl(),
                         item.getLastMessage(),
                         item.getTimeLabel(),
-                        item.isOnline(),
+                        item.getStatus(),
+                        item.getCustomStatus(),
                         item.isVerified(),
                         item.isSelected(),
                         shouldFavorite,

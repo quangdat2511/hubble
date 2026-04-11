@@ -6,16 +6,13 @@ import lombok.experimental.FieldDefaults;
 import java.util.UUID;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FriendUserResponse {
-    UUID id;
-    String username;
-    String displayName;
-    String avatarUrl;
+public class UserStatusResponse {
+    UUID userId;
     String status;
     String customStatus;
-    String relationStatus;
+    String lastSeenAt;
 }

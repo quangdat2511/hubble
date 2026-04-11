@@ -13,6 +13,7 @@ import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmStoryBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.UserStatusFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,8 +69,23 @@ public class DmStoryAdapter extends RecyclerView.Adapter<DmStoryAdapter.ViewHold
             String displayName = item.getDisplayName() != null ? item.getDisplayName().trim() : "";
             String initial = displayName.isEmpty() ? "?" : displayName.substring(0, 1).toUpperCase();
             binding.tvInitial.setText(initial);
+            String customStatus = item.getCustomStatus();
+            boolean hasCustomStatus = customStatus != null && !customStatus.trim().isEmpty();
+            if (hasCustomStatus) {
+                binding.layoutNameStatus.setVisibility(View.VISIBLE);
+                binding.tvName.setText(displayName.isEmpty() ? "?" : displayName);
+                binding.tvCustomStatus.setText(customStatus.trim());
+                binding.tvCustomStatus.setVisibility(View.VISIBLE);
+            } else {
+                binding.layoutNameStatus.setVisibility(View.GONE);
+            }
             bindAvatar(item);
-            binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
+            String status = item.getStatus();
+            boolean showDot = UserStatusFormatter.isVisibleStatus(status);
+            binding.viewPresence.setVisibility(showDot ? View.VISIBLE : View.GONE);
+            if (showDot) {
+                binding.viewPresence.setBackgroundResource(UserStatusFormatter.getStatusDotDrawable(status));
+            }
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onStoryClick(item);
