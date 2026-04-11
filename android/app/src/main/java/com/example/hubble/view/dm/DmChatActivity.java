@@ -1684,7 +1684,7 @@ public class DmChatActivity extends AppCompatActivity {
                         if (response != null) {
                             android.util.Log.d("SmartReply", "Author: " + response.getMessageAuthorId() + ", Me: " + currentUserId);
                             if (!currentUserId.equals(response.getMessageAuthorId())) {
-                                runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                                runOnUiThread(() -> showSmartReplies(response.getSuggestions(), response.getContextTag()));
                             }
                         }
                     } catch (Exception e) {
@@ -1977,10 +1977,17 @@ public class DmChatActivity extends AppCompatActivity {
         return mapped;
     }
 
-    private void showSmartReplies(List<String> suggestions) {
+    private void showSmartReplies(List<String> suggestions, String contextTag) {
         if (suggestions == null || suggestions.isEmpty()) {
             binding.suggestionBar.setVisibility(View.GONE);
             return;
+        }
+        if (!TextUtils.isEmpty(contextTag)) {
+            binding.tvContextTag.setVisibility(View.VISIBLE);
+            binding.tvContextTag.setText("🧠 " + contextTag + ":");
+            binding.tvContextTag.setTextColor(ContextCompat.getColor(this, R.color.color_primary));
+        } else {
+            binding.tvContextTag.setVisibility(View.GONE);
         }
 
         binding.cgSuggestions.removeAllViews();
