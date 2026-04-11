@@ -12,6 +12,7 @@ import com.hubble.security.JwtAuthenticationFilter;
 import com.hubble.security.JwtService;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.UserService;
+import com.hubble.service.UserStatusService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private UserStatusService userStatusService;
 
     @MockBean
     private JwtService jwtService;
