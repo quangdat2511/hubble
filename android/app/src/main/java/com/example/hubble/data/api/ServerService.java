@@ -7,6 +7,7 @@ import com.example.hubble.data.model.server.ChannelRoleResponse;
 import com.example.hubble.data.model.server.CreateChannelRequest;
 import com.example.hubble.data.model.server.ServerResponse;
 import com.example.hubble.data.model.server.UpdateChannelRequest;
+import com.example.hubble.data.model.voice.VoiceParticipant;
 
 import java.util.List;
 import java.util.Map;
@@ -161,5 +162,12 @@ public interface ServerService {
             @Path("serverId") String serverId,
             @Path("channelId") String channelId,
             @Path("roleId") String roleId
+    );
+
+    // ── Voice channel participants ─────────────────────────────────────────
+    @GET("api/voice/{channelId}/participants")
+    Call<ApiResponse<List<VoiceParticipant>>> getVoiceParticipants(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
     );
 }
