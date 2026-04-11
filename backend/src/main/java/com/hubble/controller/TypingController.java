@@ -20,7 +20,7 @@ public class TypingController {
     /**
      * Receives a typing event from a client via STOMP:
      *   destination: /app/channels/{channelId}/typing
-     *   payload:     { "userId": "<sender-id>" }
+     *   payload:     { "userId": "<sender-id>", "username": "...", "displayName": "..." } (name fields optional)
      *
      * Broadcasts to all subscribers of the channel typing topic:
      *   /topic/channels/{channelId}/typing

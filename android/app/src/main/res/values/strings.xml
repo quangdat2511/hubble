@@ -224,6 +224,14 @@
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
     <string name="typing_indicator">%1$s đang nhập…</string>
+    <string name="typing_indicator_someone">Đang có người nhập…</string>
+    <string name="channel_message_hint">Nhắn #%1$s</string>
+    <string name="channel_profile_intro_no_topic">Chưa có chủ đề kênh.</string>
+    <string name="channel_unknown_author">Thành viên</string>
+    <string name="channel_untitled">kênh</string>
+    <string name="forward_target_server_channel">Kênh máy chủ</string>
+    <string name="channel_welcome_title">Chào mừng đến với %1$s!</string>
+    <string name="channel_welcome_subtitle">Đây là điểm bắt đầu của kênh %1$s.</string>
     <string name="dm_message_hint">Nhắn tin @%1$s</string>
     <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>

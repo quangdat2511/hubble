@@ -8,11 +8,13 @@ import com.hubble.exception.AppException;
 import com.hubble.mapper.NotificationMapper;
 import com.hubble.repository.NotificationRepository;
 import com.hubble.repository.UserRepository;
+import com.hubble.testsupport.MessagingTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -35,7 +37,8 @@ class NotificationServiceTest {
     @Mock private NotificationRepository notificationRepository;
     @Mock private UserRepository userRepository;
     @Mock private NotificationMapper notificationMapper;
-    @Mock private SimpMessagingTemplate messagingTemplate;
+    @Spy
+    private SimpMessagingTemplate messagingTemplate = MessagingTestSupport.createTemplate();
     @Mock private EmailService emailService;
     @Mock private PushNotificationService pushNotificationService;
 

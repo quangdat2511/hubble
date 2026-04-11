@@ -30,6 +30,7 @@ import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.databinding.ItemDmDateSeparatorBinding;
 import com.example.hubble.databinding.ItemDmMessageBinding;
+import com.example.hubble.databinding.ItemChannelWelcomeIntroBinding;
 import com.example.hubble.databinding.ItemDmProfileIntroBinding;
 import com.google.android.material.chip.Chip;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
@@ -49,6 +50,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static final int TYPE_INTRO = 0;
     private static final int TYPE_DATE = 1;
     private static final int TYPE_MESSAGE = 2;
+    private static final int TYPE_INTRO_CHANNEL = 3;
     private static final long GROUPING_TIME_THRESHOLD_MILLIS = 7 * 60 * 1000L;
 
     @NonNull
@@ -71,6 +73,11 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     /** Peer's last_read boundary (server time), millis; -1 = unknown */
     private long peerLastReadAtMillis = -1L;
+
+    /**
+     * When false (e.g. server text channel), outbound rows do not show sending/sent/delivered/read.
+     */
+    private boolean showMineMessageStatus = true;
 
     private static MediaPlayer currentMediaPlayer;
     private static ImageView currentPlayButton;
@@ -264,6 +271,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         notifyDataSetChanged();
     }
 
+    public void setShowMineMessageStatus(boolean show) {
+        if (this.showMineMessageStatus == show) return;
+        this.showMineMessageStatus = show;
+        notifyDataSetChanged();
+    }
+
     @Nullable
     public DmMessageItem getItem(int adapterPosition) {
         if (introItem != null) {
@@ -406,7 +419,9 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public int getItemViewType(int position) {
-        if (introItem != null && position == 0) return TYPE_INTRO;
+        if (introItem != null && position == 0) {
+            return introItem.isChannelWelcomeIntro() ? TYPE_INTRO_CHANNEL : TYPE_INTRO;
+        }
         DmMessageItem item = items.get(position - introOffset());
         if (item.isDateSeparator()) return TYPE_DATE;
         return TYPE_MESSAGE;
@@ -419,6 +434,9 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         if (viewType == TYPE_INTRO) {
             return new IntroHolder(ItemDmProfileIntroBinding.inflate(inflater, parent, false));
         }
+        if (viewType == TYPE_INTRO_CHANNEL) {
+            return new ChannelWelcomeIntroHolder(ItemChannelWelcomeIntroBinding.inflate(inflater, parent, false));
+        }
         if (viewType == TYPE_DATE) {
             return new DateSeparatorHolder(ItemDmDateSeparatorBinding.inflate(inflater, parent, false));
         }
@@ -430,6 +448,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof IntroHolder) {
             ((IntroHolder) holder).bind(introItem, peerAvatarUrl);
+            return;
+        }
+        if (holder instanceof ChannelWelcomeIntroHolder) {
+            ((ChannelWelcomeIntroHolder) holder).bind(introItem);
             return;
         }
         int rawPos = position - introOffset();
@@ -449,7 +471,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         if (holder instanceof MessageRowHolder) {
             ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl,
-                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis);
+                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus);
         }
     }
 
@@ -768,6 +790,21 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
     }
 
+    static class ChannelWelcomeIntroHolder extends RecyclerView.ViewHolder {
+        private final ItemChannelWelcomeIntroBinding b;
+
+        ChannelWelcomeIntroHolder(ItemChannelWelcomeIntroBinding binding) {
+            super(binding.getRoot());
+            this.b = binding;
+        }
+
+        void bind(@Nullable DmMessageItem intro) {
+            if (intro == null) return;
+            b.tvWelcomeTitle.setText(intro.getSenderName());
+            b.tvWelcomeSubtitle.setText(intro.getContent());
+        }
+    }
+
     static class DateSeparatorHolder extends RecyclerView.ViewHolder {
         private final ItemDmDateSeparatorBinding b;
 
@@ -802,7 +839,8 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
                   @Nullable String replyAvatarUrl,
-                  @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis) {
+                  @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis,
+                  boolean showMineMessageStatus) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
@@ -875,7 +913,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             bindReactions(item, currentUserId);
 
             DmMessageItem.MessageStatus status = item.getStatus();
-            if (item.isMine() && isLastMine && status != null) {
+            if (item.isMine() && isLastMine && status != null && showMineMessageStatus) {
                 b.tvStatus.setVisibility(View.VISIBLE);
                 Context ctx = b.getRoot().getContext();
                 boolean seenByPeer = peerLastReadAtMillis >= 0
