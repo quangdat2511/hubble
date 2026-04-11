@@ -173,17 +173,22 @@ public class MessageService {
 
         if ("TEXT".equalsIgnoreCase(request.getType())) {
             CompletableFuture.runAsync(() -> {
-                List<String> suggestions = smartReplyService.generateSuggestions(saved.getContent());
+                SmartReplyResponse aiResponse = smartReplyService.generateSuggestions(saved.getContent());
 
-                if (!suggestions.isEmpty()) {
+                if (aiResponse != null && aiResponse.getSuggestions() != null && !aiResponse.getSuggestions().isEmpty()) {
+
+                    aiResponse.setMessageAuthorId(authorId);
+
                     messagingTemplate.convertAndSend(
                             "/topic/channels/" + request.getChannelId() + "/suggestions",
-                            new SmartReplyResponse(suggestions, authorId)
+                            aiResponse
                     );
                 }
+            }).exceptionally(ex -> {
+                System.out.println("Error generating smart reply suggestions: " + ex.getMessage());
+                return null;
             });
         }
-
         return response;
     }
 

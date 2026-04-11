@@ -30,9 +30,9 @@ public class SmartReplyService {
     @Value("${groq.api-key}")
     private String apiKey;
 
-    public List<String> generateSuggestions(String messageContent) {
+    public SmartReplyResponse generateSuggestions(String messageContent) {
         if (messageContent == null || messageContent.trim().length() < 3) {
-            return List.of();
+            return null;
         }
 
         String systemPrompt = "Bạn là trợ lý chat thông minh. Dựa vào tin nhắn của người dùng, hãy thực hiện 2 việc:\n" +
@@ -40,7 +40,6 @@ public class SmartReplyService {
                 "2. Gợi ý 3 câu trả lời ngắn gọn (dưới 6 từ) bằng tiếng Việt.\n" +
                 "BẮT BUỘC trả về dữ liệu dưới định dạng JSON object có chứa 2 key: 'contextTag' (chuỗi) và 'suggestions' (mảng chuỗi).\n" +
                 "Ví dụ: {\"contextTag\": \"Hẹn lịch\", \"suggestions\": [\"Ok bạn\", \"Mấy giờ?\", \"Ở đâu vậy?\"]}";
-
         try {
             GroqChatRequest requestBody = GroqChatRequest.builder()
                     .model("llama-3.1-8b-instant")
@@ -64,22 +63,21 @@ public class SmartReplyService {
 
         } catch (Exception e) {
             log.error("Lỗi khi gọi Groq API: {}", e.getMessage());
-            return List.of();
+            return null; // 3. Trả về null thay vì List.of()
         }
     }
 
-    private List<String> parseStructuredResponse(GroqChatResponse response) {
+    private SmartReplyResponse parseStructuredResponse(GroqChatResponse response) {
         try {
             if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
                 String aiContent = response.getChoices().get(0).getMessage().getContent();
-                if (aiContent == null || aiContent.isBlank()) return List.of();
+                if (aiContent == null || aiContent.isBlank()) return null;
 
-                SmartReplyResponse replyDto = objectMapper.readValue(aiContent, SmartReplyResponse.class);
-                return replyDto.getSuggestions() != null ? replyDto.getSuggestions() : List.of();
+                return objectMapper.readValue(aiContent, SmartReplyResponse.class);
             }
         } catch (Exception e) {
-            log.error("Lỗi khi parse Structured JSON: {}", e.getMessage());
+            log.error("Lỗi khi parse Structured JSON: ", e);
         }
-        return List.of();
+        return null;
     }
 }
