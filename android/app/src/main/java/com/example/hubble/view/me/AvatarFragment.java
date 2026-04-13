@@ -20,6 +20,10 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.hubble.R;
 import com.example.hubble.data.api.NetworkConfig;
@@ -322,14 +326,35 @@ public class AvatarFragment extends Fragment {
             return;
         }
 
-        binding.tvAvatarInitials.setVisibility(View.GONE);
-        Drawable previous = binding.ivAvatar.getDrawable();
+        showInitialsFallback();
 
         Glide.with(this)
                 .load(toAbsoluteAvatarUrl(avatarUrl))
                 .transform(new CircleCrop())
-                .placeholder(previous)
-                .error(previous)
+                .listener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e,
+                                                Object model,
+                                                Target<Drawable> target,
+                                                boolean isFirstResource) {
+                        if (binding != null) {
+                            showInitialsFallback();
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Drawable resource,
+                                                   Object model,
+                                                   Target<Drawable> target,
+                                                   DataSource dataSource,
+                                                   boolean isFirstResource) {
+                        if (binding != null) {
+                            binding.tvAvatarInitials.setVisibility(View.GONE);
+                        }
+                        return false;
+                    }
+                })
                 .into(binding.ivAvatar);
     }
 
