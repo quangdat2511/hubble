@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
+    <string name="end_call">End Call</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -223,6 +224,14 @@
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
     <string name="typing_indicator">%1$s đang nhập…</string>
+    <string name="typing_indicator_someone">Đang có người nhập…</string>
+    <string name="channel_message_hint">Nhắn #%1$s</string>
+    <string name="channel_profile_intro_no_topic">Chưa có chủ đề kênh.</string>
+    <string name="channel_unknown_author">Thành viên</string>
+    <string name="channel_untitled">kênh</string>
+    <string name="forward_target_server_channel">Kênh máy chủ</string>
+    <string name="channel_welcome_title">Chào mừng đến với %1$s!</string>
+    <string name="channel_welcome_subtitle">Đây là điểm bắt đầu của kênh %1$s.</string>
     <string name="dm_message_hint">Nhắn tin @%1$s</string>
     <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>
@@ -763,4 +772,21 @@
     <string name="category_settings_delete">Xóa mục</string>
     <string name="category_settings_delete_confirm_title">Xóa danh mục</string>
     <string name="category_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa %s? Các kênh trong danh mục sẽ không bị xóa.</string>
+
+    <!-- Voice channel -->
+    <string name="voice_channel_title">%s</string>
+    <string name="voice_join">Tham Gia Thoại</string>
+    <string name="voice_empty_state">Hiện chưa có ai ở đây!</string>
+    <string name="voice_empty_hint">Khi nào bạn sẵn sàng trò chuyện, hãy tham gia.</string>
+    <string name="voice_connecting">Đang kết nối…</string>
+    <string name="voice_connected">Đã kết nối</string>
+    <string name="voice_invite_people">Thêm người vào Trò Chuyện Thoại</string>
+    <string name="voice_invite_hint">Cho nhóm biết bạn đang ở đây!</string>
+    <string name="voice_mic_on">Bật micro</string>
+    <string name="voice_mic_off">Tắt micro</string>
+    <string name="voice_camera_on">Bật camera</string>
+    <string name="voice_camera_off">Tắt camera</string>
+    <string name="voice_speaker_on">Loa ngoài</string>
+    <string name="voice_speaker_off">Loa trong</string>
+    <string name="voice_permission_required">Cần quyền truy cập micro để tham gia kênh thoại</string>
 </resources>

@@ -9,6 +9,10 @@ public class MessageDto {
     private String id;
     private String channelId;
     private String authorId;
+    @SerializedName("authorUsername")
+    private String authorUsername;
+    @SerializedName("authorDisplayName")
+    private String authorDisplayName;
     private String replyToId;
     private String content;
     private String type;
@@ -33,6 +37,14 @@ public class MessageDto {
 
     public String getAuthorId() {
         return authorId;
+    }
+
+    public String getAuthorUsername() {
+        return authorUsername;
+    }
+
+    public String getAuthorDisplayName() {
+        return authorDisplayName;
     }
 
     public String getReplyToId() {

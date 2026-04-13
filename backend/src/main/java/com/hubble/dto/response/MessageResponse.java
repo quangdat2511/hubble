@@ -15,6 +15,9 @@ public class MessageResponse {
     String id;
     String channelId;
     String authorId;
+    /** Denormalized for clients (e.g. server text channels) — may be null for old rows. */
+    String authorUsername;
+    String authorDisplayName;
     String replyToId;
     String content;
     String type;

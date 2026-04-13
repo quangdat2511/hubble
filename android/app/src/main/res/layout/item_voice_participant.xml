@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_sm">
+
+    <!-- Avatar with speaking indicator ring -->
+    <FrameLayout
+        android:layout_width="@dimen/avatar_xl"
+        android:layout_height="@dimen/avatar_xl"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Speaking indicator (green ring) -->
+        <View
+            android:id="@+id/viewSpeakingIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_speaking_indicator"
+            android:visibility="gone" />
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivAvatar"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_gravity="center"
+            android:scaleType="centerCrop"
+            app:shapeAppearance="@style/ShapeAppearance.App.Avatar" />
+
+        <!-- Muted indicator -->
+        <ImageView
+            android:id="@+id/ivMutedBadge"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/bg_circle_dark"
+            android:padding="2dp"
+            android:src="@drawable/ic_mic_off"
+            android:visibility="gone"
+            app:tint="@color/color_error" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvDisplayName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:maxWidth="100dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/color_text_primary" />
+</LinearLayout>
