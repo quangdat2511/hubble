@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -87,7 +86,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             }
             activeItemDownloads.remove(requestInfo.itemStableId);
             adapter.setDownloadingIds(activeItemDownloads);
-            handleDownloadResult(downloadId, requestInfo.fileName);
         }
     };
 
@@ -637,32 +635,6 @@ public class DmDetailsActivity extends AppCompatActivity implements DmConversati
             Snackbar.make(binding.getRoot(),
                     getString(R.string.dm_gallery_download_failed_with_reason, message),
                     Snackbar.LENGTH_LONG).show();
-        }
-    }
-
-    private void handleDownloadResult(long downloadId, String fileName) {
-        DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-        if (downloadManager == null) {
-            return;
-        }
-
-        DownloadManager.Query query = new DownloadManager.Query().setFilterById(downloadId);
-        try (Cursor cursor = downloadManager.query(query)) {
-            if (cursor == null || !cursor.moveToFirst()) {
-                return;
-            }
-
-            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                Snackbar.make(binding.getRoot(),
-                        getString(R.string.dm_gallery_download_success, fileName),
-                        Snackbar.LENGTH_LONG).show();
-            } else {
-                int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                Snackbar.make(binding.getRoot(),
-                        getString(R.string.dm_gallery_download_failed_with_reason, String.valueOf(reason)),
-                        Snackbar.LENGTH_LONG).show();
-            }
         }
     }
 

@@ -43,7 +43,6 @@ public interface AttachmentRepository extends JpaRepository<Attachment, UUID> {
                 or (
                     lower(a.contentType) not like 'image/%'
                     and lower(a.contentType) not like 'video/%'
-                    and lower(a.contentType) not like 'audio/%'
                 )
               )
             order by a.createdAt desc

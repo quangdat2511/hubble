@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -46,16 +47,23 @@ public final class InAppMessageUtils {
     }
 
     public static void show(@Nullable Context context, @Nullable CharSequence message) {
-        show(resolveAnchor(context), message, Snackbar.LENGTH_SHORT);
+        show(resolveAnchor(context), context, message, Snackbar.LENGTH_SHORT);
     }
 
     public static void showLong(@Nullable Context context, @Nullable CharSequence message) {
-        show(resolveAnchor(context), message, Snackbar.LENGTH_LONG);
+        show(resolveAnchor(context), context, message, Snackbar.LENGTH_LONG);
     }
 
     private static void show(@Nullable View anchor, @Nullable CharSequence message, int duration) {
+        show(anchor, null, message, duration);
+    }
+
+    private static void show(@Nullable View anchor, @Nullable Context context,
+                             @Nullable CharSequence message, int duration) {
         if (anchor == null || message == null) {
-            return;
+            if (context == null || message == null) {
+                return;
+            }
         }
 
         String trimmedMessage = message.toString().trim();
@@ -63,7 +71,16 @@ public final class InAppMessageUtils {
             return;
         }
 
-        Snackbar.make(anchor, trimmedMessage, duration).show();
+        if (anchor != null) {
+            Snackbar.make(anchor, trimmedMessage, duration).show();
+            return;
+        }
+
+        Toast.makeText(
+                context.getApplicationContext(),
+                trimmedMessage,
+                duration == Snackbar.LENGTH_LONG ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT
+        ).show();
     }
 
     @Nullable

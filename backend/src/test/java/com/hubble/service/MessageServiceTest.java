@@ -100,6 +100,49 @@ class MessageServiceTest {
     }
 
     @Test
+    void getSharedContentShouldReturnAudioItemsInFilesForAccessibleDm() {
+        UUID userId = UUID.randomUUID();
+        UUID channelId = UUID.randomUUID();
+        UUID messageId = UUID.randomUUID();
+        UUID attachmentId = UUID.randomUUID();
+
+        when(channelRepository.existsById(channelId)).thenReturn(true);
+        when(channelRepository.findById(channelId)).thenReturn(Optional.of(Channel.builder()
+                .id(channelId)
+                .type(ChannelType.DM)
+                .build()));
+        when(channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)).thenReturn(true);
+
+        Attachment attachment = Attachment.builder()
+                .id(attachmentId)
+                .messageId(messageId)
+                .filename("voice-note.mp3")
+                .url("https://cdn.example.com/voice-note.mp3")
+                .contentType("audio/mpeg")
+                .sizeBytes(2048L)
+                .createdAt(LocalDateTime.of(2026, 4, 3, 14, 30))
+                .build();
+
+        when(attachmentRepository.findSharedFilesByChannelId(eq(channelId), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(attachment), PageRequest.of(0, 24), 1));
+
+        SharedContentPageResponse response = messageService.getSharedContent(
+                userId.toString(),
+                channelId.toString(),
+                SharedContentType.FILE,
+                0,
+                24
+        );
+
+        assertThat(response.getType()).isEqualTo("FILE");
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getId()).isEqualTo(attachmentId.toString());
+        assertThat(response.getItems().get(0).getFilename()).isEqualTo("voice-note.mp3");
+        assertThat(response.getItems().get(0).getContentType()).isEqualTo("audio/mpeg");
+        verify(attachmentRepository).findSharedFilesByChannelId(channelId, PageRequest.of(0, 24));
+    }
+
+    @Test
     void getSharedContentShouldExtractNormalizedLinks() {
         UUID userId = UUID.randomUUID();
         UUID channelId = UUID.randomUUID();
