@@ -43,6 +43,7 @@ import com.example.hubble.view.server.CategoryProfileBottomSheet;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
+import com.example.hubble.view.voice.VoiceChannelBottomSheet;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.utils.ServerChannelNameFormatter;
@@ -209,6 +210,44 @@ public class HomeFragment extends Fragment {
                 );
                 if (Boolean.TRUE.equals(channel.getIsPrivate()) && !Boolean.TRUE.equals(channel.getCanAccess())) {
                     showMessage("Bạn không có quyền truy cập kênh " + displayChannelName);
+                } else if ("VOICE".equalsIgnoreCase(channel.getType())) {
+                    ServerItem server = viewModel.selectedServer.getValue();
+                    if (server != null) {
+                        VoiceChannelBottomSheet.newInstance(
+                                channel.getId(), channel.getName(),
+                                server.getId(), server.getName()
+                        ).show(getParentFragmentManager(), "VoiceChannel");
+                    }
+                } else if ("TEXT".equalsIgnoreCase(channel.getType())) {
+                    ServerItem server = viewModel.selectedServer.getValue();
+                    if (server != null && channel.getId() != null) {
+                        String parentName = null;
+                        if (channel.getParentId() != null && viewModel.serverChannels.getValue() != null
+                                && viewModel.serverChannels.getValue().getData() != null) {
+                            for (ChannelDto ch : viewModel.serverChannels.getValue().getData()) {
+                                if (channel.getParentId().equals(ch.getId())) {
+                                    parentName = ServerChannelNameFormatter.getDisplayName(
+                                            requireContext(),
+                                            ch
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+                        startActivity(DmChatActivity.createIntentForServerText(
+                                requireContext(),
+                                server.getId(),
+                                server.getName(),
+                                server.getIconUrl(),
+                                server.getOwnerId(),
+                                channel.getId(),
+                                displayChannelName,
+                                channel.getTopic(),
+                                channel.getParentId(),
+                                parentName,
+                                Boolean.TRUE.equals(channel.getIsPrivate())
+                        ));
+                    }
                 } else {
                     showMessage("Kênh: " + displayChannelName + " (chức năng đang phát triển)");
                 }

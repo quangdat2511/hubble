@@ -25,7 +25,9 @@ import java.util.Date;
 import java.util.Locale;
 
 public class UserProfileFragment extends Fragment
-        implements AvatarFragment.AvatarListener, ProfileEditBottomSheet.ProfileEditListener {
+        implements AvatarFragment.AvatarListener, ProfileEditBottomSheet.ProfileEditListener,
+        StatusSelectionBottomSheet.StatusSelectionListener,
+        CustomStatusBottomSheet.CustomStatusListener {
 
     private static final String VALUE_PLACEHOLDER = "-";
     private static final String EDIT_PROFILE_TAG = "edit_profile_sheet";
@@ -73,6 +75,8 @@ public class UserProfileFragment extends Fragment
 
     private void setupActions() {
         binding.btnSaveProfile.setOnClickListener(v -> openEditProfileSheet());
+        binding.avatarFragmentContainer.setOnClickListener(v -> openStatusSelectionSheet());
+        binding.cardCustomStatusBubble.setOnClickListener(v -> openCustomStatusSheet());
     }
 
     private void loadProfile() {
@@ -119,6 +123,15 @@ public class UserProfileFragment extends Fragment
         binding.tvStatusBadge.setText(status);
         binding.tvJoinedSinceValue.setText(formatJoinedSince(user.getCreatedAt()));
 
+        String customStatus = user.getCustomStatus();
+        if (customStatus != null && !customStatus.isEmpty()) {
+            binding.tvCustomStatusBubble.setText(customStatus);
+            binding.ivCustomStatusAdd.setVisibility(View.GONE);
+        } else {
+            binding.tvCustomStatusBubble.setText(R.string.me_add_status);
+            binding.ivCustomStatusAdd.setVisibility(View.VISIBLE);
+        }
+
     }
 
     private void openEditProfileSheet() {
@@ -133,6 +146,44 @@ public class UserProfileFragment extends Fragment
 
         ProfileEditBottomSheet.newInstance(currentProfile)
                 .show(getChildFragmentManager(), EDIT_PROFILE_TAG);
+    }
+
+    private void openStatusSelectionSheet() {
+        if (!isAdded() || currentProfile == null) return;
+
+        String tag = "status_selection_sheet";
+        if (getChildFragmentManager().findFragmentByTag(tag) != null) return;
+
+        StatusSelectionBottomSheet.newInstance(
+                        currentProfile.getStatus(),
+                        currentProfile.getCustomStatus())
+                .show(getChildFragmentManager(), tag);
+    }
+
+    private void openCustomStatusSheet() {
+        if (!isAdded() || currentProfile == null) return;
+
+        String tag = "custom_status_sheet";
+        if (getChildFragmentManager().findFragmentByTag(tag) != null) return;
+
+        CustomStatusBottomSheet.newInstance(currentProfile.getCustomStatus())
+                .show(getChildFragmentManager(), tag);
+    }
+
+    @Override
+    public void onStatusChanged(@NonNull String newStatus) {
+        if (currentProfile != null) {
+            currentProfile.setStatus(newStatus);
+            populateUserInfo(currentProfile);
+        }
+    }
+
+    @Override
+    public void onCustomStatusChanged(@Nullable String customStatus) {
+        if (currentProfile != null) {
+            currentProfile.setCustomStatus(customStatus);
+            populateUserInfo(currentProfile);
+        }
     }
 
     private AvatarFragment getAvatarFragment() {

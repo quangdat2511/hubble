@@ -102,6 +102,9 @@ dependencies {
 
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
+    // WebRTC for voice/video calls
+    implementation("io.getstream:stream-webrtc-android:1.1.1")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

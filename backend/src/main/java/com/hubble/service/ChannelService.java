@@ -193,6 +193,7 @@ public class ChannelService {
                 response.setPeerDisplayName(peerUser.getDisplayName());
                 response.setPeerAvatarUrl(peerUser.getAvatarUrl());
                 response.setPeerStatus(peerUser.getStatus() != null ? peerUser.getStatus().name() : null);
+                response.setPeerLastSeenAt(peerUser.getLastSeenAt() != null ? peerUser.getLastSeenAt().toString() : null);
         }
     @Transactional
     public ChannelResponse createChannel(UUID serverId, UUID creatorUserId, CreateChannelRequest request) {

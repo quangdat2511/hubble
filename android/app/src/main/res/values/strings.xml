@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
+    <string name="end_call">End Call</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -124,6 +125,25 @@
     <string name="status_idle">Rảnh</string>
     <string name="status_offline">Ngoại tuyến</string>
     <string name="status_dnd">Không làm phiền</string>
+    <string name="status_invisible">Ẩn</string>
+    <string name="status_just_now">Vừa mới hoạt động</string>
+    <string name="status_minutes_ago">%d phút trước</string>
+    <string name="status_hours_ago">%d giờ trước</string>
+    <string name="status_days_ago">%d ngày trước</string>
+
+    <!-- Status selection bottom sheet -->
+    <string name="status_selection_title">Đặt trạng thái</string>
+    <string name="status_online_desc">Mọi người sẽ thấy bạn đang hoạt động</string>
+    <string name="status_idle_desc">Hiển thị bạn đang rảnh</string>
+    <string name="status_dnd_desc">Tắt mọi thông báo</string>
+    <string name="status_invisible_desc">Hiển thị ngoại tuyến nhưng vẫn dùng app</string>
+    <string name="status_set_custom">Đặt trạng thái tùy chỉnh</string>
+    <string name="status_custom_title">Trạng thái tùy chỉnh</string>
+    <string name="status_custom_hint">Bạn đang làm gì?</string>
+    <string name="status_custom_save">Lưu</string>
+    <string name="status_custom_clear">Xóa trạng thái</string>
+    <string name="status_updated">Đã cập nhật trạng thái</string>
+    <string name="status_update_failed">Không thể cập nhật trạng thái</string>
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>
@@ -271,6 +291,14 @@
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">Đây là khởi đầu cho cuộc trò chuyện giữa bạn và %1$s.</string>
     <string name="typing_indicator">%1$s đang nhập…</string>
+    <string name="typing_indicator_someone">Đang có người nhập…</string>
+    <string name="channel_message_hint">Nhắn #%1$s</string>
+    <string name="channel_profile_intro_no_topic">Chưa có chủ đề kênh.</string>
+    <string name="channel_unknown_author">Thành viên</string>
+    <string name="channel_untitled">kênh</string>
+    <string name="forward_target_server_channel">Kênh máy chủ</string>
+    <string name="channel_welcome_title">Chào mừng đến với %1$s!</string>
+    <string name="channel_welcome_subtitle">Đây là điểm bắt đầu của kênh %1$s.</string>
     <string name="dm_message_hint">Nhắn tin @%1$s</string>
     <string name="dm_message_hint_static">Nhắn tin</string>
     <string name="dm_send">Gửi tin nhắn</string>
@@ -811,4 +839,21 @@
     <string name="category_settings_delete">Xóa mục</string>
     <string name="category_settings_delete_confirm_title">Xóa danh mục</string>
     <string name="category_settings_delete_confirm_message">Bạn có chắc chắn muốn xóa %s? Các kênh trong danh mục sẽ không bị xóa.</string>
+
+    <!-- Voice channel -->
+    <string name="voice_channel_title">%s</string>
+    <string name="voice_join">Tham Gia Thoại</string>
+    <string name="voice_empty_state">Hiện chưa có ai ở đây!</string>
+    <string name="voice_empty_hint">Khi nào bạn sẵn sàng trò chuyện, hãy tham gia.</string>
+    <string name="voice_connecting">Đang kết nối…</string>
+    <string name="voice_connected">Đã kết nối</string>
+    <string name="voice_invite_people">Thêm người vào Trò Chuyện Thoại</string>
+    <string name="voice_invite_hint">Cho nhóm biết bạn đang ở đây!</string>
+    <string name="voice_mic_on">Bật micro</string>
+    <string name="voice_mic_off">Tắt micro</string>
+    <string name="voice_camera_on">Bật camera</string>
+    <string name="voice_camera_off">Tắt camera</string>
+    <string name="voice_speaker_on">Loa ngoài</string>
+    <string name="voice_speaker_off">Loa trong</string>
+    <string name="voice_permission_required">Cần quyền truy cập micro để tham gia kênh thoại</string>
 </resources>
