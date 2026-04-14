@@ -5,12 +5,14 @@ public class ServerResponse {
     private String id;
     private String ownerId;
     private String name;
+    private String description;
     private String iconUrl;
 
     public ServerResponse() {}
 
-    public String getId()      { return id; }
-    public String getOwnerId() { return ownerId; }
-    public String getName()    { return name; }
-    public String getIconUrl() { return iconUrl; }
+    public String getId()          { return id; }
+    public String getOwnerId()    { return ownerId; }
+    public String getName()        { return name; }
+    public String getDescription() { return description; }
+    public String getIconUrl()     { return iconUrl; }
 }

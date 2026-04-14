@@ -1,5 +1,6 @@
 package com.example.hubble.view.server;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +23,7 @@ import com.example.hubble.viewmodel.RolesViewModelFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Roles list screen (#2). Shows @everyone + custom roles.
@@ -29,10 +31,23 @@ import java.util.List;
  */
 public class RolesListFragment extends Fragment {
 
+    private static final ConcurrentHashMap<String, List<RoleResponse>> rolesCache = new ConcurrentHashMap<>();
+
     private FragmentRolesListBinding binding;
     private final List<ServerRoleItem> customRoles = new ArrayList<>();
     private RolesViewModel viewModel;
     private String serverId;
+    private boolean waitingForFresh;
+
+    public static void prefetch(Context context, String serverId) {
+        if (rolesCache.containsKey(serverId)) return;
+        RoleRepository repo = new RoleRepository(context);
+        repo.getRoles(serverId, result -> {
+            if (result.isSuccess() && result.getData() != null) {
+                rolesCache.put(serverId, result.getData());
+            }
+        });
+    }
 
     public static RolesListFragment newInstance(String serverId) {
         RolesListFragment fragment = new RolesListFragment();
@@ -65,39 +80,57 @@ public class RolesListFragment extends Fragment {
         binding.toolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
 
         setupClickListeners();
+
+        // Serve from cache first
+        List<RoleResponse> cached = rolesCache.get(serverId);
+        if (cached != null) {
+            renderRoles(cached);
+        }
+
+        // Mark that we need fresh data before navigating to empty
+        waitingForFresh = true;
         observeRoles();
 
         viewModel.loadRoles(serverId);
     }
 
+    private void renderRoles(List<RoleResponse> roles) {
+        customRoles.clear();
+        String everyoneRoleId = null;
+        for (RoleResponse r : roles) {
+            if (Boolean.TRUE.equals(r.getIsDefault())) {
+                everyoneRoleId = r.getId();
+                continue;
+            }
+            customRoles.add(new ServerRoleItem(
+                    r.getId(), r.getName(),
+                    r.getColor() != null ? r.getColor() : 0,
+                    r.getMemberCount() != null ? r.getMemberCount() : 0));
+        }
+        if (!customRoles.isEmpty()) {
+            setupRolesList();
+        }
+        final String eid = everyoneRoleId;
+        binding.rowEveryone.setOnClickListener(v ->
+                ((ServerSettingsActivity) requireActivity()).navigateTo(
+                        RolePermissionsFragment.newInstance(
+                                eid != null ? eid : "everyone", "@everyone", serverId),
+                        true));
+    }
+
     private void observeRoles() {
         viewModel.roles.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
+            if (result.isLoading()) return;
             if (result.isSuccess() && result.getData() != null) {
-                customRoles.clear();
-                String everyoneRoleId = null;
-                for (RoleResponse r : result.getData()) {
-                    if (Boolean.TRUE.equals(r.getIsDefault())) {
-                        everyoneRoleId = r.getId();
-                        continue;
-                    }
-                    customRoles.add(new ServerRoleItem(
-                            r.getId(), r.getName(),
-                            r.getColor() != null ? r.getColor() : 0));
-                }
+                rolesCache.put(serverId, result.getData());
+                waitingForFresh = false;
+                renderRoles(result.getData());
                 if (customRoles.isEmpty()) {
                     ((ServerSettingsActivity) requireActivity()).navigateTo(
                             RolesEmptyFragment.newInstance(serverId), false);
                     return;
                 }
-                setupRolesList();
-                // Store everyone role id for navigation
-                final String eid = everyoneRoleId;
-                binding.rowEveryone.setOnClickListener(v ->
-                        ((ServerSettingsActivity) requireActivity()).navigateTo(
-                                RolePermissionsFragment.newInstance(
-                                        eid != null ? eid : "everyone", "@everyone", serverId),
-                                true));
             }
         });
     }

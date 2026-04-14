@@ -9,13 +9,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.hubble.data.model.server.ServerMemberItem;
 import com.example.hubble.databinding.ItemMemberSelectableBinding;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class MemberSelectAdapter extends RecyclerView.Adapter<MemberSelectAdapter.ViewHolder> {
 
-    private final List<ServerMemberItem> members;
+    private List<ServerMemberItem> members;
+    private List<ServerMemberItem> allMembers;
     private final Set<String> selectedIds = new HashSet<>();
     private final OnSelectionChangeListener listener;
 
@@ -25,7 +27,31 @@ public class MemberSelectAdapter extends RecyclerView.Adapter<MemberSelectAdapte
 
     public MemberSelectAdapter(List<ServerMemberItem> members, OnSelectionChangeListener listener) {
         this.members = members;
+        this.allMembers = new ArrayList<>(members);
         this.listener = listener;
+    }
+
+    public void updateList(List<ServerMemberItem> newMembers) {
+        this.members = new ArrayList<>(newMembers);
+        this.allMembers = new ArrayList<>(newMembers);
+        notifyDataSetChanged();
+    }
+
+    public void filter(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            members = new ArrayList<>(allMembers);
+        } else {
+            String lower = query.toLowerCase().trim();
+            List<ServerMemberItem> filtered = new ArrayList<>();
+            for (ServerMemberItem m : allMembers) {
+                if ((m.getDisplayName() != null && m.getDisplayName().toLowerCase().contains(lower))
+                        || (m.getUsername() != null && m.getUsername().toLowerCase().contains(lower))) {
+                    filtered.add(m);
+                }
+            }
+            members = filtered;
+        }
+        notifyDataSetChanged();
     }
 
     @NonNull

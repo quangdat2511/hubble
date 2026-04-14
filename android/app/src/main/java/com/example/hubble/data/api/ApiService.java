@@ -339,4 +339,33 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Path("fcmToken") String fcmToken
     );
+
+    // ── Status endpoints ─────────────────────────────────────────────────
+
+    @PUT("api/users/me/status")
+    Call<ApiResponse<Object>> updateStatus(
+            @Header("Authorization") String token,
+            @Body java.util.Map<String, String> body
+    );
+
+    @PUT("api/users/me/custom-status")
+    Call<ApiResponse<Object>> updateCustomStatus(
+            @Header("Authorization") String token,
+            @Body java.util.Map<String, String> body
+    );
+
+    @POST("api/users/me/heartbeat")
+    Call<ApiResponse<Void>> heartbeat(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/users/me/go-online")
+    Call<ApiResponse<Void>> goOnline(
+            @Header("Authorization") String token
+    );
+
+    @POST("api/users/me/go-offline")
+    Call<ApiResponse<Void>> goOffline(
+            @Header("Authorization") String token
+    );
 }

@@ -87,3 +87,4 @@ $RECYCLE.BIN/
 backend/.m2/
 backend/src/main/resources/firebase-service-account.json
 
+.github/agents

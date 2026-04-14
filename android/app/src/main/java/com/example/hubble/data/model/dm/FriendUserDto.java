@@ -6,6 +6,7 @@ public class FriendUserDto {
     private String displayName;
     private String avatarUrl;
     private String status;
+    private String customStatus;
     private String relationStatus;
 
     public String getId() {
@@ -26,6 +27,10 @@ public class FriendUserDto {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getCustomStatus() {
+        return customStatus;
     }
 
     public String getRelationStatus() {

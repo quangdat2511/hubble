@@ -16,5 +16,6 @@ public class FriendUserResponse {
     String displayName;
     String avatarUrl;
     String status;
+    String customStatus;
     String relationStatus;
 }

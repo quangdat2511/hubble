@@ -5,6 +5,7 @@ import com.hubble.dto.response.FriendRequestResponse;
 import com.hubble.entity.Friendship;
 import com.hubble.entity.User;
 import com.hubble.enums.FriendshipStatus;
+import com.hubble.enums.UserStatus;
 import com.hubble.enums.NotificationType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
@@ -48,6 +49,7 @@ public class FriendService {
                         .displayName(user.getDisplayName())
                         .avatarUrl(user.getAvatarUrl())
                         .status(user.getStatus() != null ? user.getStatus().name() : null)
+                        .customStatus(user.getStatus() != UserStatus.OFFLINE ? user.getCustomStatus() : null)
                         .relationStatus(resolveRelationStatus(currentUserId, user.getId()))
                         .build())
                 .toList();
@@ -97,6 +99,7 @@ public class FriendService {
                         .displayName(target.getDisplayName())
                         .avatarUrl(target.getAvatarUrl())
                         .status(target.getStatus() != null ? target.getStatus().name() : null)
+                        .customStatus(target.getStatus() != UserStatus.OFFLINE ? target.getCustomStatus() : null)
                         .relationStatus("PENDING_OUTGOING")
                         .build())
                 .build();
@@ -217,6 +220,7 @@ public class FriendService {
                             .displayName(user.getDisplayName())
                             .avatarUrl(user.getAvatarUrl())
                             .status(user.getStatus() != null ? user.getStatus().name() : null)
+                            .customStatus(user.getStatus() != UserStatus.OFFLINE ? user.getCustomStatus() : null)
                             .relationStatus("BLOCKED_BY_ME")
                             .build();
                 })
@@ -286,6 +290,7 @@ public class FriendService {
                             .displayName(user.getDisplayName())
                             .avatarUrl(user.getAvatarUrl())
                             .status(user.getStatus() != null ? user.getStatus().name() : null)
+                            .customStatus(user.getStatus() != UserStatus.OFFLINE ? user.getCustomStatus() : null)
                             .relationStatus("FRIEND")
                             .build();
                 })
@@ -310,6 +315,7 @@ public class FriendService {
                         .displayName(user.getDisplayName())
                         .avatarUrl(user.getAvatarUrl())
                         .status(user.getStatus() != null ? user.getStatus().name() : null)
+                        .customStatus(user.getStatus() != UserStatus.OFFLINE ? user.getCustomStatus() : null)
                         .relationStatus(incoming ? "PENDING_INCOMING" : "PENDING_OUTGOING")
                         .build())
                 .build();

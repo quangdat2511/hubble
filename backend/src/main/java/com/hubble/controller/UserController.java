@@ -3,9 +3,12 @@ package com.hubble.controller;
 import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.UpdateCustomStatusRequest;
 import com.hubble.dto.request.UpdateProfileRequest;
+import com.hubble.dto.request.UpdateStatusRequest;
 import com.hubble.dto.response.AvatarResponse;
 import com.hubble.dto.response.UserResponse;
+import com.hubble.dto.response.UserStatusResponse;
 import com.hubble.service.UserService;
+import com.hubble.service.UserStatusService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,6 +35,7 @@ import java.util.UUID;
 public class UserController {
 
     UserService userService;
+    UserStatusService userStatusService;
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMyProfile(Authentication authentication) {
@@ -57,13 +61,44 @@ public class UserController {
     }
 
     @PutMapping("/me/custom-status")
-    public ResponseEntity<ApiResponse<UserResponse>> updateCustomStatus(
+    public ResponseEntity<ApiResponse<UserStatusResponse>> updateCustomStatus(
             Authentication authentication,
             @RequestBody UpdateCustomStatusRequest request
     ) {
         UUID userId = UUID.fromString(authentication.getName());
-        UserResponse response = userService.updateCustomStatus(userId, request);
-        return ResponseEntity.ok(ApiResponse.<UserResponse>builder().result(response).build());
+        UserStatusResponse response = userStatusService.updateCustomStatus(userId, request.getCustomStatus());
+        return ResponseEntity.ok(ApiResponse.<UserStatusResponse>builder().result(response).build());
+    }
+
+    @PutMapping("/me/status")
+    public ResponseEntity<ApiResponse<UserStatusResponse>> updateOnlineStatus(
+            Authentication authentication,
+            @RequestBody UpdateStatusRequest request
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        UserStatusResponse response = userStatusService.updateStatus(userId, request.getStatus());
+        return ResponseEntity.ok(ApiResponse.<UserStatusResponse>builder().result(response).build());
+    }
+
+    @PostMapping("/me/heartbeat")
+    public ResponseEntity<ApiResponse<Void>> heartbeat(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        userStatusService.heartbeat(userId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().build());
+    }
+
+    @PostMapping("/me/go-online")
+    public ResponseEntity<ApiResponse<Void>> goOnline(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        userStatusService.goOnline(userId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().build());
+    }
+
+    @PostMapping("/me/go-offline")
+    public ResponseEntity<ApiResponse<Void>> goOffline(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        userStatusService.goOffline(userId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().build());
     }
 
     //GET QR

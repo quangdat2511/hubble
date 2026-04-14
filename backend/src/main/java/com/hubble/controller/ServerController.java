@@ -4,6 +4,7 @@ import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.CreateChannelRequest;
 import com.hubble.dto.request.CreateServerRequest;
 import com.hubble.dto.request.UpdateChannelRequest;
+import com.hubble.dto.request.UpdateServerRequest;
 import com.hubble.dto.response.ChannelMemberResponse;
 import com.hubble.dto.response.ChannelResponse;
 import com.hubble.dto.response.ChannelRoleResponse;
@@ -49,6 +50,17 @@ public class ServerController {
                 .build());
     }
 
+    @PutMapping("/{serverId}")
+    public ResponseEntity<ApiResponse<ServerResponse>> updateServer(
+            @PathVariable UUID serverId,
+            @RequestBody UpdateServerRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
+                .result(serverService.updateServer(userId, serverId, request))
+                .build());
+    }
+
     @PutMapping(value = "/{serverId}/icon", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ServerResponse>> updateServerIcon(
             @PathVariable UUID serverId,
@@ -68,6 +80,15 @@ public class ServerController {
         return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
                 .result(serverService.removeServerIcon(userId, serverId))
                 .build());
+    }
+
+    @DeleteMapping("/{serverId}")
+    public ResponseEntity<ApiResponse<Void>> deleteServer(
+            @PathVariable UUID serverId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        serverService.deleteServer(userId, serverId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().build());
     }
 
     @GetMapping("/me")

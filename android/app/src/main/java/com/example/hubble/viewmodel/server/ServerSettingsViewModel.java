@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.server.ServerItem;
+import com.example.hubble.data.model.server.ServerResponse;
 import com.example.hubble.data.repository.RepositoryCallback;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.model.server.ServerMemberItem;
@@ -23,6 +24,8 @@ public class ServerSettingsViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<Void>> banState = new MutableLiveData<>();
     private final MutableLiveData<AuthResult<Void>> transferOwnershipState = new MutableLiveData<>();
     private final MutableLiveData<AuthResult<ServerItem>> _iconState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<Void>> _deleteServerState = new MutableLiveData<>();
+    private final MutableLiveData<AuthResult<ServerResponse>> _updateServerState = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
     private final ServerMemberRepository memberRepository;
@@ -101,6 +104,30 @@ public class ServerSettingsViewModel extends ViewModel {
 
     public void consumeIconState() { _iconState.setValue(null); }
 
+    // ── Update server info ────────────────────────────────────────────────
+
+    public LiveData<AuthResult<ServerResponse>> getUpdateServerState() { return _updateServerState; }
+
+    public void updateServer(String serverId, String name, String description) {
+        _updateServerState.setValue(AuthResult.loading());
+        serverRepository.updateServer(serverId, name, description,
+                result -> _updateServerState.postValue(result));
+    }
+
+    public void consumeUpdateServerState() { _updateServerState.setValue(null); }
+
+    // ── Delete server ─────────────────────────────────────────────────────
+
+    public LiveData<AuthResult<Void>> getDeleteServerState() { return _deleteServerState; }
+
+    public void deleteServer(String serverId) {
+        _deleteServerState.setValue(AuthResult.loading());
+        serverRepository.deleteServer(serverId,
+                result -> _deleteServerState.postValue(result));
+    }
+
+    public void consumeDeleteServerState() { _deleteServerState.setValue(null); }
+
     // ── Consume helpers ───────────────────────────────────────────────────
 
     public void consumeKickState()             { kickState.setValue(null); }
@@ -113,5 +140,6 @@ public class ServerSettingsViewModel extends ViewModel {
     public LiveData<AuthResult<Void>> getKickState()                            { return kickState; }
     public LiveData<AuthResult<Void>> getBanState()                             { return banState; }
     public LiveData<AuthResult<Void>> getTransferOwnershipState()               { return transferOwnershipState; }
+    public LiveData<AuthResult<Void>> getDeleteServerResult()                    { return _deleteServerState; }
     public LiveData<String> getErrorMessage()                                   { return errorMessage; }
 }

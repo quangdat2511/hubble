@@ -27,6 +27,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -51,12 +52,15 @@ import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
 import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
+import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -72,10 +76,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -97,6 +103,17 @@ public class DmChatActivity extends AppCompatActivity {
     private static final String EXTRA_CHANNEL_ID = "extra_channel_id";
     private static final String EXTRA_USERNAME = "extra_username";
     private static final String EXTRA_AVATAR_URL = "extra_avatar_url";
+    private static final String EXTRA_CHAT_MODE = "extra_chat_mode";
+    private static final String EXTRA_SERVER_ID = "extra_server_id";
+    private static final String EXTRA_SERVER_NAME = "extra_server_name";
+    private static final String EXTRA_CHANNEL_TOPIC = "extra_channel_topic";
+    private static final String EXTRA_SERVER_ICON_URL = "extra_server_icon_url";
+    private static final String EXTRA_SERVER_OWNER_ID = "extra_server_owner_id";
+    private static final String EXTRA_CHANNEL_PARENT_ID = "extra_channel_parent_id";
+    private static final String EXTRA_CHANNEL_PARENT_NAME = "extra_channel_parent_name";
+    private static final String EXTRA_CHANNEL_IS_PRIVATE = "extra_channel_is_private";
+    private static final String CHAT_MODE_DM = "dm";
+    private static final String CHAT_MODE_SERVER_TEXT = "server_text";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
@@ -124,6 +141,19 @@ public class DmChatActivity extends AppCompatActivity {
     private String peerDisplayName;
     private String peerUsername;
     private String peerAvatarUrl;
+    private String peerCurrentStatus;
+    private String peerCurrentLastSeenAt;
+    private final CompositeDisposable statusDisposables = new CompositeDisposable();
+    /** {@link #CHAT_MODE_DM} or {@link #CHAT_MODE_SERVER_TEXT} */
+    private String chatMode = CHAT_MODE_DM;
+    @Nullable private String serverIdForForward;
+    @Nullable private String serverDisplayName;
+    @Nullable private String channelTopic;
+    @Nullable private String serverIconUrlForSheet;
+    @Nullable private String serverOwnerId;
+    @Nullable private String channelParentId;
+    @Nullable private String channelParentName;
+    private boolean channelIsPrivate;
 
     // Emoji/keyboard state (Main)
     private boolean isEmojiPanelVisible = false;
@@ -168,9 +198,41 @@ public class DmChatActivity extends AppCompatActivity {
 
     public static Intent createIntent(Context context, String channelId, String username, String avatarUrl) {
         Intent intent = new Intent(context, DmChatActivity.class);
+        intent.putExtra(EXTRA_CHAT_MODE, CHAT_MODE_DM);
         intent.putExtra(EXTRA_CHANNEL_ID, channelId);
         intent.putExtra(EXTRA_USERNAME, username);
         intent.putExtra(EXTRA_AVATAR_URL, avatarUrl);
+        return intent;
+    }
+
+    /**
+     * Opens the same chat UI used for DMs, for a server text channel (shared REST + STOMP topics per channel id).
+     */
+    public static Intent createIntentForServerText(
+            Context context,
+            String serverId,
+            String serverName,
+            @Nullable String serverIconUrl,
+            @Nullable String serverOwnerId,
+            String channelId,
+            String channelDisplayName,
+            @Nullable String topic,
+            @Nullable String parentId,
+            @Nullable String parentName,
+            boolean isPrivate
+    ) {
+        Intent intent = new Intent(context, DmChatActivity.class);
+        intent.putExtra(EXTRA_CHAT_MODE, CHAT_MODE_SERVER_TEXT);
+        intent.putExtra(EXTRA_SERVER_ID, serverId);
+        intent.putExtra(EXTRA_SERVER_NAME, serverName);
+        intent.putExtra(EXTRA_SERVER_ICON_URL, serverIconUrl);
+        intent.putExtra(EXTRA_SERVER_OWNER_ID, serverOwnerId);
+        intent.putExtra(EXTRA_CHANNEL_ID, channelId);
+        intent.putExtra(EXTRA_USERNAME, channelDisplayName);
+        intent.putExtra(EXTRA_CHANNEL_TOPIC, topic);
+        intent.putExtra(EXTRA_CHANNEL_PARENT_ID, parentId);
+        intent.putExtra(EXTRA_CHANNEL_PARENT_NAME, parentName);
+        intent.putExtra(EXTRA_CHANNEL_IS_PRIVATE, isPrivate);
         return intent;
     }
 
@@ -195,14 +257,30 @@ public class DmChatActivity extends AppCompatActivity {
         if (currentUserName == null) currentUserName = getString(R.string.dm_me);
 
         channelId = getIntent().getStringExtra(EXTRA_CHANNEL_ID);
+        chatMode = firstNonBlank(getIntent().getStringExtra(EXTRA_CHAT_MODE), CHAT_MODE_DM);
+        if (!CHAT_MODE_SERVER_TEXT.equals(chatMode)) {
+            chatMode = CHAT_MODE_DM;
+        }
+        serverIdForForward = getIntent().getStringExtra(EXTRA_SERVER_ID);
+        serverDisplayName = getIntent().getStringExtra(EXTRA_SERVER_NAME);
+        channelTopic = getIntent().getStringExtra(EXTRA_CHANNEL_TOPIC);
+        serverIconUrlForSheet = getIntent().getStringExtra(EXTRA_SERVER_ICON_URL);
+        serverOwnerId = getIntent().getStringExtra(EXTRA_SERVER_OWNER_ID);
+        channelParentId = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_ID);
+        channelParentName = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_NAME);
+        channelIsPrivate = getIntent().getBooleanExtra(EXTRA_CHANNEL_IS_PRIVATE, false);
+
         peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
         if (TextUtils.isEmpty(peerDisplayName)) {
-            peerDisplayName = getString(R.string.dm_default_user);
+            peerDisplayName = isServerTextChannel()
+                    ? getString(R.string.channel_untitled)
+                    : getString(R.string.dm_default_user);
         }
-        peerUsername = null;
-        peerAvatarUrl = toAbsoluteAvatarUrl(getIntent().getStringExtra(EXTRA_AVATAR_URL));
+        peerUsername = isServerTextChannel() ? serverDisplayName : null;
+        peerAvatarUrl = isServerTextChannel() ? null : toAbsoluteAvatarUrl(getIntent().getStringExtra(EXTRA_AVATAR_URL));
 
         setupToolbar();
+        setupChannelHeaderInteractions();
         setupProfileIntro();
         setupMessageList();
         setupComposer();
@@ -210,6 +288,9 @@ public class DmChatActivity extends AppCompatActivity {
         setupKeyboardHeightDetection();
         if (shouldLoadPeerProfile()) {
             loadPeerProfile();
+        }
+        if (!isServerTextChannel()) {
+            subscribeToFriendStatus();
         }
         loadMessageHistory();
 
@@ -249,6 +330,7 @@ public class DmChatActivity extends AppCompatActivity {
         super.onDestroy();
         disconnectStomp();
         disposables.clear();
+        statusDisposables.clear();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -266,7 +348,48 @@ public class DmChatActivity extends AppCompatActivity {
         refreshPeerUi();
     }
 
+    private void setupChannelHeaderInteractions() {
+        binding.ivHeaderChevron.setOnClickListener(v -> {
+            if (isServerTextChannel()) {
+                openChannelProfileSheet();
+            }
+        });
+        binding.btnHeaderSearch.setOnClickListener(v ->
+                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+    }
+
+    private void openChannelProfileSheet() {
+        if (!isServerTextChannel() || TextUtils.isEmpty(serverIdForForward) || TextUtils.isEmpty(channelId)) {
+            return;
+        }
+        String rawName = peerDisplayName != null ? peerDisplayName.replaceFirst("^#\\s*", "").trim() : "";
+        ChannelProfileBottomSheet.newInstance(
+                serverIdForForward,
+                firstNonBlank(serverDisplayName, ""),
+                toAbsoluteAvatarUrl(serverIconUrlForSheet),
+                firstNonBlank(serverOwnerId, ""),
+                channelId,
+                rawName,
+                "TEXT",
+                channelTopic,
+                channelParentId,
+                channelParentName,
+                channelIsPrivate
+        ).show(getSupportFragmentManager(), "ChannelProfile");
+    }
+
     private void setupProfileIntro() {
+        if (isServerTextChannel()) {
+            binding.tvProfileIntroDisplayName.setText(displayChannelTitleForHeader());
+            binding.tvProfileIntroUsername.setText(
+                    !TextUtils.isEmpty(serverDisplayName) ? serverDisplayName : "");
+            binding.tvProfileIntroDesc.setText(
+                    !TextUtils.isEmpty(channelTopic)
+                            ? channelTopic.trim()
+                            : getString(R.string.channel_profile_intro_no_topic));
+            bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, displayChannelTitleForHeader());
+            return;
+        }
         binding.tvProfileIntroDisplayName.setText(peerDisplayName);
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
@@ -288,7 +411,67 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private boolean shouldLoadPeerProfile() {
-        return TextUtils.isEmpty(peerAvatarUrl) || TextUtils.isEmpty(peerUsername);
+        return !isServerTextChannel();
+    }
+
+    private boolean isServerTextChannel() {
+        return CHAT_MODE_SERVER_TEXT.equals(chatMode);
+    }
+
+    private String displayChannelTitleForHeader() {
+        String n = peerDisplayName == null ? "" : peerDisplayName.trim();
+        if (n.startsWith("#")) {
+            return n;
+        }
+        return "#" + n;
+    }
+
+    private String getComposerHint() {
+        if (isServerTextChannel()) {
+            String ch = peerDisplayName == null ? "" : peerDisplayName.trim();
+            if (ch.startsWith("#")) {
+                ch = ch.substring(1).trim();
+            }
+            return getString(R.string.channel_message_hint, ch);
+        }
+        String mentionTarget = firstNonBlank(stripLeadingAt(peerUsername), peerDisplayName);
+        return getString(R.string.dm_message_hint, mentionTarget);
+    }
+
+    private DmMessageItem buildListIntroItem() {
+        if (isServerTextChannel()) {
+            String hashTitle = displayChannelTitleForHeader();
+            String welcomeTitle = getString(R.string.channel_welcome_title, hashTitle);
+            String welcomeSubtitle = getString(R.string.channel_welcome_subtitle, hashTitle);
+            return DmMessageItem.createChannelWelcome(welcomeTitle, welcomeSubtitle);
+        }
+        return DmMessageItem.createIntro(
+                peerDisplayName,
+                formatUsername(peerUsername),
+                getString(R.string.dm_profile_intro_desc, peerDisplayName));
+    }
+
+    /** Channel slug for toolbar (no leading #; the hash is shown in {@code tvHeaderHashMark}). */
+    private String stripLeadingHashForToolbar(String name) {
+        if (name == null) return "";
+        String t = name.trim();
+        while (t.startsWith("#")) {
+            t = t.substring(1).trim();
+        }
+        return t.isEmpty() ? getString(R.string.channel_untitled) : t;
+    }
+
+    private String resolveSenderLabelForMessage(MessageDto dto, boolean mine) {
+        if (mine) {
+            return currentUserName;
+        }
+        if (!isServerTextChannel()) {
+            return peerDisplayName;
+        }
+        return firstNonBlank(
+                dto.getAuthorDisplayName(),
+                dto.getAuthorUsername(),
+                getString(R.string.channel_unknown_author));
     }
 
     private void applyPeerProfile(ChannelDto channel) {
@@ -296,7 +479,11 @@ public class DmChatActivity extends AppCompatActivity {
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
         peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
+        if (channel.getPeerUserId() != null) peerUserId = channel.getPeerUserId();
+        if (channel.getPeerStatus() != null) peerCurrentStatus = channel.getPeerStatus();
+        if (channel.getPeerLastSeenAt() != null) peerCurrentLastSeenAt = channel.getPeerLastSeenAt();
         refreshPeerUi();
+        updateHeaderStatus();
     }
 
     private void openConversationDetails() {
@@ -314,13 +501,48 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void refreshPeerUi() {
+        if (isServerTextChannel()) {
+            if (TextUtils.isEmpty(peerDisplayName)) {
+                peerDisplayName = getString(R.string.channel_untitled);
+            }
+            binding.tvHeaderHashMark.setVisibility(View.VISIBLE);
+            binding.headerAvatarContainer.setVisibility(View.GONE);
+            binding.viewHeaderStatusDot.setVisibility(View.GONE);
+            binding.tvHeaderName.setText(stripLeadingHashForToolbar(peerDisplayName));
+            binding.btnHeaderSearch.setVisibility(View.VISIBLE);
+            binding.btnCall.setVisibility(View.GONE);
+            binding.btnVideo.setVisibility(View.GONE);
+
+            binding.etComposer.setHint(getComposerHint());
+            binding.tvProfileIntroDisplayName.setText(displayChannelTitleForHeader());
+            binding.tvProfileIntroUsername.setText(
+                    !TextUtils.isEmpty(serverDisplayName) ? serverDisplayName : "");
+            binding.tvProfileIntroDesc.setText(
+                    !TextUtils.isEmpty(channelTopic)
+                            ? channelTopic.trim()
+                            : getString(R.string.channel_profile_intro_no_topic));
+            bindAvatar(binding.ivHeaderAvatar, peerAvatarUrl, displayChannelTitleForHeader());
+            bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, displayChannelTitleForHeader());
+            if (adapter != null) {
+                adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
+                adapter.setIntroItem(buildListIntroItem());
+            }
+            return;
+        }
+
+        binding.tvHeaderHashMark.setVisibility(View.GONE);
+        binding.headerAvatarContainer.setVisibility(View.VISIBLE);
+        binding.btnHeaderSearch.setVisibility(View.GONE);
+        binding.btnCall.setVisibility(View.VISIBLE);
+        binding.btnVideo.setVisibility(View.VISIBLE);
+
         if (TextUtils.isEmpty(peerDisplayName)) {
             peerDisplayName = getString(R.string.dm_default_user);
         }
         String mentionTarget = firstNonBlank(stripLeadingAt(peerUsername), peerDisplayName);
 
         binding.tvHeaderName.setText(peerDisplayName);
-        binding.etComposer.setHint(getString(R.string.dm_message_hint, mentionTarget));
+        binding.etComposer.setHint(getComposerHint());
         binding.tvProfileIntroDisplayName.setText(peerDisplayName);
         binding.tvProfileIntroUsername.setText(formatUsername(peerUsername));
         binding.tvProfileIntroDesc.setText(getString(R.string.dm_profile_intro_desc, peerDisplayName));
@@ -328,10 +550,7 @@ public class DmChatActivity extends AppCompatActivity {
         bindAvatar(binding.ivProfileIntroAvatar, peerAvatarUrl, peerDisplayName);
         if (adapter != null) {
             adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
-            adapter.setIntroItem(DmMessageItem.createIntro(
-                    peerDisplayName,
-                    formatUsername(peerUsername),
-                    getString(R.string.dm_profile_intro_desc, peerDisplayName)));
+            adapter.setIntroItem(buildListIntroItem());
         }
     }
 
@@ -398,11 +617,9 @@ public class DmChatActivity extends AppCompatActivity {
     private void setupMessageList() {
         adapter = new DmMessageAdapter(this);
         adapter.setCurrentUserId(currentUserId);
+        adapter.setShowMineMessageStatus(!isServerTextChannel());
         adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
-        adapter.setIntroItem(DmMessageItem.createIntro(
-                peerDisplayName,
-                formatUsername(peerUsername),
-                getString(R.string.dm_profile_intro_desc, peerDisplayName)));
+        adapter.setIntroItem(buildListIntroItem());
         adapter.setOnMessageLongClickListener((item, anchorView) -> showMessageActionsSheet(item));
         adapter.setOnReactionClickListener((item, emoji) -> toggleReaction(item.getId(), emoji));
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -762,7 +979,7 @@ public class DmChatActivity extends AppCompatActivity {
         pendingAttachmentTypes.clear();
         binding.attachmentPreviewBar.setVisibility(View.GONE);
         binding.llAttachmentPreviews.removeAllViews();
-        binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.etComposer.setHint(getComposerHint());
         binding.btnAttach.setEnabled(true);
         updateComposerState();
     }
@@ -816,7 +1033,7 @@ public class DmChatActivity extends AppCompatActivity {
             }
 
             recordHandler.removeCallbacks(recordRunnable);
-            binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+            binding.etComposer.setHint(getComposerHint());
 
             if (audioFile != null && audioFile.exists() && audioFile.length() > 0 && recordTicks >= 1) {
                 uploadVoiceAndSend(audioFile);
@@ -1199,17 +1416,35 @@ public class DmChatActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) { forwardAdapter.applyFilter(s == null ? "" : s.toString()); }
         });
 
-        dmRepository.getDirectChannels(result -> runOnUiThread(() -> {
+        dmRepository.getDirectChannels(result -> {
             List<ForwardTargetAdapter.TargetItem> targets = new ArrayList<>();
             List<ChannelDto> channels = result.getData();
             if (channels != null) {
                 for (ChannelDto channel : channels) {
-                    if (channel.getId() == null) continue;
+                    if (channel.getId() == null || channel.getId().equals(channelId)) continue;
                     targets.add(new ForwardTargetAdapter.TargetItem(channel.getId(), buildForwardTargetTitle(channel), buildForwardTargetSubtitle(channel)));
                 }
             }
-            forwardAdapter.setItems(targets);
-        }));
+            if (TextUtils.isEmpty(serverIdForForward)) {
+                runOnUiThread(() -> forwardAdapter.setItems(targets));
+                return;
+            }
+            new ServerRepository(this).getServerChannels(serverIdForForward, srvRes -> {
+                if (srvRes.getStatus() == AuthResult.Status.SUCCESS && srvRes.getData() != null) {
+                    for (ChannelDto ch : srvRes.getData()) {
+                        if (ch == null || ch.getId() == null || ch.getId().equals(channelId)) continue;
+                        if (!"TEXT".equalsIgnoreCase(ch.getType())) continue;
+                        String nm = ch.getName() != null ? ch.getName().trim() : "";
+                        String title = nm.startsWith("#") ? nm : "#" + nm;
+                        String subtitle = !TextUtils.isEmpty(serverDisplayName)
+                                ? serverDisplayName
+                                : getString(R.string.forward_target_server_channel);
+                        targets.add(new ForwardTargetAdapter.TargetItem(ch.getId(), title, subtitle));
+                    }
+                }
+                runOnUiThread(() -> forwardAdapter.setItems(targets));
+            });
+        });
 
         sheet.btnSendForward.setOnClickListener(v -> {
             Set<String> targetIds = forwardAdapter.getSelectedIds();
@@ -1292,6 +1527,66 @@ public class DmChatActivity extends AppCompatActivity {
             binding.copyBanner.setAlpha(1f);
             binding.copyBanner.setTranslationY(0f);
         }).start();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Peer status (realtime header subtitle)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void subscribeToFriendStatus() {
+        statusDisposables.clear();
+        statusDisposables.add(
+            ServerEventWebSocketManager.getInstance().getFriendStatusEvents()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    if (event != null && event.getUserId() != null
+                            && event.getUserId().equals(peerUserId)) {
+                        peerCurrentStatus = event.getStatus();
+                        peerCurrentLastSeenAt = event.getLastSeenAt();
+                        updateHeaderStatus();
+                    }
+                }, throwable -> {})
+        );
+    }
+
+    private void updateHeaderStatus() {
+        if (isServerTextChannel()) return;
+        String label = formatStatusLabel(peerCurrentStatus, peerCurrentLastSeenAt);
+        if (label != null && !label.isEmpty()) {
+            binding.tvHeaderStatus.setVisibility(View.VISIBLE);
+            binding.tvHeaderStatus.setText(label);
+        } else {
+            binding.tvHeaderStatus.setVisibility(View.GONE);
+        }
+    }
+
+    private String formatStatusLabel(String status, String lastSeenAt) {
+        if (status == null) return null;
+        switch (status.toUpperCase(Locale.ROOT)) {
+            case "ONLINE": return getString(R.string.status_online);
+            case "IDLE":   return getString(R.string.status_idle);
+            case "DND":    return getString(R.string.status_dnd);
+            case "OFFLINE":
+            case "INVISIBLE": return formatLastSeen(lastSeenAt);
+            default: return null;
+        }
+    }
+
+    private String formatLastSeen(String lastSeenAt) {
+        if (lastSeenAt == null) return getString(R.string.status_offline);
+        try {
+            LocalDateTime ldt = LocalDateTime.parse(lastSeenAt);
+            long diffMinutes = ChronoUnit.MINUTES.between(ldt, LocalDateTime.now());
+            if (diffMinutes < 1) return getString(R.string.status_just_now);
+            if (diffMinutes < 60) return getString(R.string.status_minutes_ago, diffMinutes);
+            long diffHours = diffMinutes / 60;
+            if (diffHours < 24) return getString(R.string.status_hours_ago, diffHours);
+            long diffDays = diffHours / 24;
+            return getString(R.string.status_days_ago, diffDays);
+        } catch (Exception e) {
+            return getString(R.string.status_offline);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1422,7 +1717,13 @@ public class DmChatActivity extends AppCompatActivity {
                     try {
                         TypingEventDto event = gson.fromJson(stompMessage.getPayload(), TypingEventDto.class);
                         if (event != null && !TextUtils.equals(event.userId, currentUserId)) {
-                            showTypingIndicator(peerDisplayName);
+                            String label = firstNonBlank(event.displayName, event.username);
+                            if (TextUtils.isEmpty(label)) {
+                                label = isServerTextChannel()
+                                        ? getString(R.string.channel_unknown_author)
+                                        : firstNonBlank(peerDisplayName, getString(R.string.dm_default_user));
+                            }
+                            showTypingIndicator(label);
                         }
                     } catch (Exception ignored) {}
                 }, throwable -> {}));
@@ -1496,15 +1797,29 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void sendTypingEvent() {
         if (stompClient == null || TextUtils.isEmpty(channelId) || TextUtils.isEmpty(currentUserId)) return;
-        String payload = "{\"userId\":\"" + currentUserId + "\"}";
+        LinkedHashMap<String, String> body = new LinkedHashMap<>();
+        body.put("userId", currentUserId);
+        UserResponse u = tokenManager.getUser();
+        if (u != null) {
+            body.put("username", u.getUsername() != null ? u.getUsername() : "");
+            body.put("displayName", firstNonBlank(u.getDisplayName(), u.getUsername(), ""));
+        } else {
+            body.put("username", "");
+            body.put("displayName", firstNonBlank(currentUserName, ""));
+        }
+        String payload = gson.toJson(body);
         disposables.add(stompClient.send("/app/channels/" + channelId + "/typing", payload)
                 .subscribeOn(Schedulers.io())
                 .subscribe(() -> {}, throwable -> {}));
     }
 
-    private void showTypingIndicator(String displayName) {
+    private void showTypingIndicator(String who) {
         uiHandler.removeCallbacks(hideTypingRunnable);
-        binding.tvTypingLabel.setText(getString(R.string.typing_indicator, displayName));
+        String label = firstNonBlank(who,
+                isServerTextChannel() ? getString(R.string.channel_unknown_author) : null,
+                peerDisplayName,
+                getString(R.string.dm_default_user));
+        binding.tvTypingLabel.setText(getString(R.string.typing_indicator, label));
         if (binding.typingIndicatorBar.getVisibility() != View.VISIBLE) {
             binding.typingIndicatorBar.setVisibility(View.VISIBLE);
             startTypingDotsAnimation();
@@ -1540,6 +1855,8 @@ public class DmChatActivity extends AppCompatActivity {
 
     private static class TypingEventDto {
         String userId;
+        String username;
+        String displayName;
     }
 
     private static class ReactionEventDto {
@@ -1557,6 +1874,9 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void fetchPeerReadStatusIntoAdapter() {
+        if (isServerTextChannel()) {
+            return;
+        }
         if (TextUtils.isEmpty(channelId)) return;
         dmRepository.getPeerReadStatus(channelId, result -> runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
@@ -1686,7 +2006,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private DmMessageItem mapMessage(MessageDto dto) {
         boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-        String sender = mine ? currentUserName : peerDisplayName;
+        String sender = resolveSenderLabelForMessage(dto, mine);
 
         // Truyền thêm danh sách attachments vào Constructor
         DmMessageItem item = new DmMessageItem(
@@ -1703,6 +2023,7 @@ public class DmChatActivity extends AppCompatActivity {
             if (replyItem != null) {
                 item.setReplyToSenderName(replyItem.getSenderName());
                 item.setReplyToContent(replyItem.getContent());
+                item.setReplyToMine(replyItem.isMine());
             }
         }
         return item;
@@ -1718,7 +2039,7 @@ public class DmChatActivity extends AppCompatActivity {
         for (MessageDto dto : rawMessages) {
             if (Boolean.TRUE.equals(dto.getIsDeleted())) continue;
             boolean mine = currentUserId != null && currentUserId.equals(dto.getAuthorId());
-            String sender = mine ? currentUserName : peerDisplayName;
+            String sender = resolveSenderLabelForMessage(dto, mine);
 
             DmMessageItem item = new DmMessageItem(
                     dto.getId(), sender,
@@ -1734,8 +2055,9 @@ public class DmChatActivity extends AppCompatActivity {
                 MessageDto replyDto = byId.get(dto.getReplyToId());
                 if (replyDto != null) {
                     boolean replyMine = currentUserId != null && currentUserId.equals(replyDto.getAuthorId());
-                    item.setReplyToSenderName(replyMine ? currentUserName : peerDisplayName);
+                    item.setReplyToSenderName(resolveSenderLabelForMessage(replyDto, replyMine));
                     item.setReplyToContent(replyDto.getContent() == null ? "" : replyDto.getContent());
+                    item.setReplyToMine(replyMine);
                 }
             }
             mapped.add(item);
@@ -1820,7 +2142,7 @@ public class DmChatActivity extends AppCompatActivity {
         if (editingItem == null) return;
         editingItem = null;
         binding.editBar.setVisibility(View.GONE);
-        binding.etComposer.setHint(getString(R.string.dm_message_hint, peerDisplayName));
+        binding.etComposer.setHint(getComposerHint());
         if (clearComposerText) binding.etComposer.setText("");
     }
 

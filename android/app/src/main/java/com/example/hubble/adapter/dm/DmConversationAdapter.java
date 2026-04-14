@@ -16,6 +16,7 @@ import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.databinding.ItemDmConversationBinding;
 import com.example.hubble.databinding.ItemDmSectionHeaderBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.UserStatusFormatter;
 import com.google.android.material.color.MaterialColors;
 
 import static com.example.hubble.adapter.dm.DmMessageAdapter.GIF_PREFIX;
@@ -161,7 +162,12 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             binding.tvName.setText(item.getDisplayName());
             binding.tvPreview.setText(formatPreview(item.getLastMessage()));
             binding.tvTime.setText(item.getTimeLabel());
-            binding.viewPresence.setVisibility(item.isOnline() ? View.VISIBLE : View.GONE);
+            String status = item.getStatus();
+            boolean showDot = UserStatusFormatter.isVisibleStatus(status);
+            binding.viewPresence.setVisibility(showDot ? View.VISIBLE : View.GONE);
+            if (showDot) {
+                binding.viewPresence.setBackgroundResource(UserStatusFormatter.getStatusDotDrawable(status));
+            }
             binding.chipOfficial.setVisibility(item.isVerified() ? View.VISIBLE : View.GONE);
             int cardColor = item.isSelected()
                     ? MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorSurfaceContainerHighest)

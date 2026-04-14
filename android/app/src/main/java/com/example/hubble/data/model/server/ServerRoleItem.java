@@ -4,11 +4,13 @@ public class ServerRoleItem {
     private String id;
     private String name;
     private int color;
+    private int memberCount;
 
-    public ServerRoleItem(String id, String name, int color) {
+    public ServerRoleItem(String id, String name, int color, int memberCount) {
         this.id = id;
         this.name = name;
         this.color = color;
+        this.memberCount = memberCount;
     }
 
     public String getId() {
@@ -21,5 +23,9 @@ public class ServerRoleItem {
 
     public int getColor() {
         return color;
+    }
+
+    public int getMemberCount() {
+        return memberCount;
     }
 }

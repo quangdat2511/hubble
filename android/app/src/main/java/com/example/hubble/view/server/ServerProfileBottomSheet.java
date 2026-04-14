@@ -29,6 +29,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
         args.putString("server_name",     server.getName());
         args.putString("server_icon_url", server.getIconUrl());
         args.putString("owner_id",        server.getOwnerId());
+        args.putString("description",     server.getDescription());
         args.putInt("member_count",  memberCount);
         args.putInt("online_count",  onlineCount);
         fragment.setArguments(args);
@@ -52,6 +53,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             String serverName = getArguments().getString("server_name");
             String iconUrl    = getArguments().getString("server_icon_url");
             String ownerId    = getArguments().getString("owner_id");
+            String description = getArguments().getString("description");
             memberCount = getArguments().getInt("member_count", 0);
             onlineCount = getArguments().getInt("online_count", 0);
 
@@ -84,7 +86,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             binding.btnSettings.setOnClickListener(v -> {
                 dismiss();
                 startActivity(ServerSettingsActivity.createIntent(
-                        requireContext(), serverId, serverName, ownerId, iconUrl));
+                        requireContext(), serverId, serverName, ownerId, iconUrl, description));
             });
 
             // Quick action buttons
@@ -98,7 +100,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             binding.rowSettingsQuick.setOnClickListener(v -> {
                 dismiss();
                 startActivity(ServerSettingsActivity.createIntent(
-                        requireContext(), serverId, serverName, ownerId, iconUrl));
+                        requireContext(), serverId, serverName, ownerId, iconUrl, description));
             });
 
             // Show create actions card only to server owner

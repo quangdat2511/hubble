@@ -7,8 +7,10 @@ import com.example.hubble.data.model.server.ChannelRoleResponse;
 import com.example.hubble.data.model.server.CreateChannelRequest;
 import com.example.hubble.data.model.server.ServerResponse;
 import com.example.hubble.data.model.server.UpdateChannelRequest;
+import com.example.hubble.data.model.voice.VoiceParticipant;
 
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -58,6 +60,20 @@ public interface ServerService {
     Call<ApiResponse<ServerResponse>> deleteServerIcon(
             @Header("Authorization") String token,
             @Path("serverId") String serverId
+    );
+
+    @DELETE("api/servers/{serverId}")
+    Call<ApiResponse<Void>> deleteServer(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId
+    );
+
+    // ── Update server info ─────────────────────────────────────────────────
+    @PUT("api/servers/{serverId}")
+    Call<ApiResponse<ServerResponse>> updateServer(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Body Map<String, String> body
     );
 
     // ── Member management ──────────────────────────────────────────────────
@@ -146,5 +162,12 @@ public interface ServerService {
             @Path("serverId") String serverId,
             @Path("channelId") String channelId,
             @Path("roleId") String roleId
+    );
+
+    // ── Voice channel participants ─────────────────────────────────────────
+    @GET("api/voice/{channelId}/participants")
+    Call<ApiResponse<List<VoiceParticipant>>> getVoiceParticipants(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
     );
 }

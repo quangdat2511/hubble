@@ -5,6 +5,7 @@ import com.hubble.configuration.SecurityConfig;
 import com.hubble.dto.request.UpdateCustomStatusRequest;
 import com.hubble.dto.request.UpdateProfileRequest;
 import com.hubble.dto.response.UserResponse;
+import com.hubble.dto.response.UserStatusResponse;
 import com.hubble.enums.UserStatus;
 import com.hubble.repository.UserRepository;
 import com.hubble.repository.UserSessionRepository;
@@ -12,6 +13,7 @@ import com.hubble.security.JwtAuthenticationFilter;
 import com.hubble.security.JwtService;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.UserService;
+import com.hubble.service.UserStatusService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private UserStatusService userStatusService;
 
     @MockBean
     private JwtService jwtService;
@@ -146,13 +151,12 @@ public class UserControllerTest {
         UpdateCustomStatusRequest request = new UpdateCustomStatusRequest();
         request.setCustomStatus("Working from home");
 
-        UserResponse mockResponse = UserResponse.builder()
-                .id(currentUserId)
-                .username("testuser")
+        UserStatusResponse mockResponse = UserStatusResponse.builder()
+                .userId(currentUserId)
                 .customStatus("Working from home")
                 .build();
 
-        when(userService.updateCustomStatus(eq(currentUserId), any(UpdateCustomStatusRequest.class))).thenReturn(mockResponse);
+        when(userStatusService.updateCustomStatus(eq(currentUserId), eq("Working from home"))).thenReturn(mockResponse);
 
         mockMvc.perform(put("/api/users/me/custom-status")
                         .with(authentication(authentication))

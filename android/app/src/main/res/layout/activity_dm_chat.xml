@@ -33,7 +33,20 @@
         app:layout_constraintBottom_toBottomOf="@id/toolbar"
         app:layout_constraintTop_toTopOf="@id/toolbar">
 
+        <TextView
+            android:id="@+id/tvHeaderHashMark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:text="#"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            android:importantForAccessibility="no" />
+
         <FrameLayout
+            android:id="@+id/headerAvatarContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
 
@@ -62,25 +75,42 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvHeaderName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/ivHeaderChevron"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="4dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="?attr/colorOnSurfaceVariant" />
+
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/tvHeaderName"
+                android:id="@+id/tvHeaderStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:maxLines="1"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/ivHeaderChevron"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginStart="4dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_chevron_right"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp"
+                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -96,6 +126,26 @@
         app:layout_constraintBottom_toBottomOf="@id/toolbar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/toolbar">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnHeaderSearch"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:padding="0dp"
+            android:visibility="gone"
+            app:iconPadding="0dp"
+            app:iconGravity="textStart"
+            android:contentDescription="@string/cd_search"
+            app:icon="@drawable/ic_search"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            app:backgroundTint="?attr/colorSurfaceVariant" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCall"

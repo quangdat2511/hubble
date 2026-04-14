@@ -14,6 +14,7 @@ import com.hubble.entity.Channel;
 import com.hubble.entity.Message;
 import com.hubble.enums.ChannelType;
 import com.hubble.enums.SharedContentType;
+import com.hubble.entity.User;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.MessageMapper;
@@ -24,6 +25,7 @@ import com.hubble.repository.ChannelRoleRepository;
 import com.hubble.repository.MemberRoleRepository;
 import com.hubble.repository.MessageRepository;
 import com.hubble.repository.ServerMemberRepository;
+import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +62,7 @@ public class MessageService {
     ChannelRoleRepository channelRoleRepository;
     ServerMemberRepository serverMemberRepository;
     MemberRoleRepository memberRoleRepository;
+    UserRepository userRepository;
     SimpMessagingTemplate messagingTemplate;
     SmartReplyService smartReplyService;
     ReactionService reactionService;
@@ -99,11 +103,14 @@ public class MessageService {
         Map<UUID, List<ReactionResponse>> reactionsByMessageId =
                 reactionService.getReactionsForMessages(messageIds);
 
+        Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+
         return messages.stream()
                 .map(msg -> {
                     MessageResponse res = messageMapper.toMessageResponse(msg);
                     res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
                     res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    applyAuthorFields(res, authors.get(msg.getAuthorId()));
                     return res;
                 })
                 .toList();
@@ -139,6 +146,25 @@ public class MessageService {
                     messageRepository.findSharedLinkMessagesByChannelId(channelUuid, pageRequest)
             );
         };
+    }
+
+    private Map<UUID, User> loadAuthors(List<UUID> authorIds) {
+        if (authorIds == null || authorIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, User> map = new HashMap<>();
+        for (User u : userRepository.findAllById(authorIds)) {
+            map.put(u.getId(), u);
+        }
+        return map;
+    }
+
+    private void applyAuthorFields(MessageResponse res, User author) {
+        if (res == null || author == null) {
+            return;
+        }
+        res.setAuthorUsername(author.getUsername());
+        res.setAuthorDisplayName(author.getDisplayName());
     }
 
     @Transactional
@@ -378,6 +404,7 @@ public class MessageService {
         MessageResponse res = messageMapper.toMessageResponse(message);
         res.setAttachments(attachments);
         res.setReactions(reactionService.getReactionsForMessage(message.getId()));
+        userRepository.findById(message.getAuthorId()).ifPresent(u -> applyAuthorFields(res, u));
         return res;
     }
 

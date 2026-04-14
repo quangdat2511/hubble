@@ -55,6 +55,8 @@
             app:boxCornerRadiusTopEnd="@dimen/radius_md"
             app:boxCornerRadiusTopStart="@dimen/radius_md"
             app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:expandedHintEnabled="false"
             app:hintEnabled="false"
             app:startIconDrawable="@drawable/ic_search"
             app:startIconTint="?attr/colorOnSurfaceVariant">
@@ -65,6 +67,8 @@
                 android:layout_height="wrap_content"
                 android:hint="@string/create_role_members_search_hint"
                 android:inputType="text"
+                android:paddingTop="@dimen/spacing_md"
+                android:paddingBottom="@dimen/spacing_md"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurface"
                 android:textColorHint="?attr/colorOnSurfaceVariant" />

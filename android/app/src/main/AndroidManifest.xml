@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:name=".HubbleApplication"
@@ -208,8 +211,6 @@
             android:name=".view.dm.ImageViewerActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
-
-
         <service
             android:name=".service.HubbleFcmService"
             android:exported="false">
@@ -218,6 +219,13 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name=".view.voice.VoiceCallActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

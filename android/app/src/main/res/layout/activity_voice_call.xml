@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/spacing_sm">
+
+        <!-- Close / minimize -->
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:src="@drawable/ic_chevron_right"
+            android:rotation="90"
+            android:scaleType="centerInside"
+            app:tint="@color/color_text_primary" />
+
+        <!-- Channel name -->
+        <LinearLayout
+            android:id="@+id/btnChannelName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/spacing_sm"
+            android:paddingEnd="@dimen/spacing_sm">
+
+            <TextView
+                android:id="@+id/tvChannelName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="@color/color_text_primary"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/color_text_secondary" />
+        </LinearLayout>
+
+        <!-- Audio output toggle -->
+        <ImageButton
+            android:id="@+id/btnAudioOutput"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Toggle audio output"
+            android:src="@drawable/ic_volume_up"
+            app:tint="@color/color_text_primary" />
+
+        <!-- Add user -->
+        <ImageButton
+            android:id="@+id/btnAddUser"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Add user"
+            android:src="@drawable/ic_person_add"
+            app:tint="@color/color_text_primary" />
+    </LinearLayout>
+
+    <!-- Main area: participant grid -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvParticipants"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="@dimen/spacing_md" />
+    </FrameLayout>
+
+    <!-- Bottom bar: controls -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_xl"
+        android:paddingEnd="@dimen/spacing_xl"
+        android:paddingTop="@dimen/spacing_md"
+        android:paddingBottom="@dimen/spacing_lg">
+
+        <!-- Camera toggle -->
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <ImageButton
+                android:id="@+id/btnCameraToggle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_circle_dark"
+                android:contentDescription="Toggle camera"
+                android:src="@drawable/ic_videocam_off"
+                android:scaleType="centerInside"
+                app:tint="@color/color_text_primary" />
+        </FrameLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Mic toggle -->
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <ImageButton
+                android:id="@+id/btnMicToggle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_circle_dark"
+                android:contentDescription="Toggle mic"
+                android:src="@drawable/ic_mic_on"
+                android:scaleType="centerInside"
+                app:tint="@color/color_text_primary" />
+        </FrameLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- End call -->
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <ImageButton
+                android:id="@+id/btnEndCall"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_circle_dark"
+                android:backgroundTint="@color/color_error"
+                android:contentDescription="End call"
+                android:src="@drawable/ic_call_end"
+                android:scaleType="centerInside"
+                app:tint="@android:color/white" />
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

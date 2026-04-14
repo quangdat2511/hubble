@@ -57,7 +57,7 @@ public class RoleAdapter extends RecyclerView.Adapter<RoleAdapter.RoleViewHolder
         void bind(ServerRoleItem role) {
             binding.tvRoleName.setText(role.getName());
             binding.tvRoleMemberCount.setText(
-                    itemView.getContext().getString(R.string.roles_member_count, 1));
+                    itemView.getContext().getString(R.string.roles_member_count, role.getMemberCount()));
 
             // Set role color circle
             GradientDrawable circle = new GradientDrawable();

@@ -34,6 +34,7 @@ public class ServerEventWebSocketManager {
     // DmChatActivity observes this to mark the sender's messages as DELIVERED.
     private final PublishSubject<String> dmDeliverySubject = PublishSubject.create();
     private final PublishSubject<NotificationResponse> notificationSubject = PublishSubject.create();
+    private final PublishSubject<FriendStatusEvent> friendStatusSubject = PublishSubject.create();
 
     private String savedBaseUrl;
     private String savedUserId;
@@ -67,6 +68,10 @@ public class ServerEventWebSocketManager {
 
     public Observable<NotificationResponse> getNotificationEvents() {
         return notificationSubject.hide();
+    }
+
+    public Observable<FriendStatusEvent> getFriendStatusEvents() {
+        return friendStatusSubject.hide();
     }
 
     public void connect(String baseUrl, String userId, String token) {
@@ -133,6 +138,7 @@ public class ServerEventWebSocketManager {
         subscribeToServerEvents();
         subscribeToDmDelivery();
         subscribeToNotifications();
+        subscribeToFriendStatus();
     }
 
     private void subscribeToServerEvents() {
@@ -229,6 +235,37 @@ public class ServerEventWebSocketManager {
                         }
                     },
                     t -> Log.e(TAG, "Notification subscription error", t)
+                )
+        );
+    }
+
+    private void subscribeToFriendStatus() {
+        String topic = "/topic/users/" + savedUserId + "/friend-status";
+        Log.d(TAG, "Subscribing to friend-status topic: " + topic);
+
+        disposables.add(
+            stompClient.topic(topic)
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                    stompMessage -> {
+                        try {
+                            JSONObject json = new JSONObject(stompMessage.getPayload());
+                            String userId = json.optString("userId", "");
+                            String status = json.optString("status", "");
+                            String customStatus = json.isNull("customStatus")
+                                    ? null : json.optString("customStatus", null);
+                            String lastSeenAt = json.isNull("lastSeenAt")
+                                    ? null : json.optString("lastSeenAt", null);
+                            if (!userId.isEmpty()) {
+                                Log.d(TAG, "Friend status update: " + userId + " -> " + status);
+                                friendStatusSubject.onNext(
+                                        new FriendStatusEvent(userId, status, customStatus, lastSeenAt));
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "Failed to parse friend-status event", e);
+                        }
+                    },
+                    t -> Log.e(TAG, "Friend status subscription error", t)
                 )
         );
     }

@@ -5,6 +5,9 @@ import java.util.List;
 
 public class DmMessageItem {
 
+    public static final String TYPE_INTRO = "INTRO";
+    public static final String TYPE_INTRO_CHANNEL = "INTRO_CHANNEL";
+
     public enum MessageStatus {
         SENDING,
         SENT,
@@ -26,6 +29,7 @@ public class DmMessageItem {
     private boolean deleted;
     private String replyToSenderName;
     private String replyToContent;
+    private boolean replyToMine;
     private MessageStatus status;
 
     public DmMessageItem(String id, String senderName, String content, String timestamp, boolean mine) {
@@ -93,7 +97,11 @@ public class DmMessageItem {
     }
 
     public boolean isIntro() {
-        return "INTRO".equals(type);
+        return TYPE_INTRO.equals(type) || TYPE_INTRO_CHANNEL.equals(type);
+    }
+
+    public boolean isChannelWelcomeIntro() {
+        return TYPE_INTRO_CHANNEL.equals(type);
     }
 
     /**
@@ -101,7 +109,15 @@ public class DmMessageItem {
      * senderName = displayName, timestamp = username, content = description
      */
     public static DmMessageItem createIntro(String displayName, String username, String description) {
-        return new DmMessageItem("__intro__", displayName, description, username, "INTRO", -1L, false, null);
+        return new DmMessageItem("__intro__", displayName, description, username, TYPE_INTRO, -1L, false, null);
+    }
+
+    /**
+     * Discord-style “Welcome to #channel” block for server text channels.
+     * senderName = welcome title, content = subtitle body.
+     */
+    public static DmMessageItem createChannelWelcome(String welcomeTitle, String welcomeSubtitle) {
+        return new DmMessageItem("__intro__", welcomeTitle, welcomeSubtitle, "", TYPE_INTRO_CHANNEL, -1L, false, null);
     }
 
     public boolean isMine() {
@@ -143,6 +159,14 @@ public class DmMessageItem {
 
     public void setReplyToContent(String replyToContent) {
         this.replyToContent = replyToContent;
+    }
+
+    public boolean isReplyToMine() {
+        return replyToMine;
+    }
+
+    public void setReplyToMine(boolean replyToMine) {
+        this.replyToMine = replyToMine;
     }
 
     public boolean hasReply() {
