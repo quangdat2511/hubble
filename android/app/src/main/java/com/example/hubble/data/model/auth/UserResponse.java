@@ -9,6 +9,7 @@ public class UserResponse {
     private String avatarUrl;
     private String bio;
     private String status;
+    private String customStatus;
     private String createdAt;
 
     // Getters
@@ -48,6 +49,10 @@ public class UserResponse {
         return createdAt;
     }
 
+    public String getCustomStatus() {
+        return customStatus;
+    }
+
     public void setId(String id) { this.id = id; }
     public void setUsername(String username) { this.username = username; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
@@ -56,5 +61,6 @@ public class UserResponse {
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public void setBio(String bio) { this.bio = bio; }
     public void setStatus(String status) { this.status = status; }
+    public void setCustomStatus(String customStatus) { this.customStatus = customStatus; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

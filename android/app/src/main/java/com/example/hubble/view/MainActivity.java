@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,6 +21,8 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.R;
 import com.example.hubble.data.api.NetworkConfig;
+import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.repository.AuthRepository;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.NotificationRepository;
@@ -38,7 +42,18 @@ import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends BaseAuthActivity {
 
+    private static final long HEARTBEAT_INTERVAL_MS = 60_000;
+
     private ActivityMainBinding binding;
+    private String authToken;
+    private final Handler heartbeatHandler = new Handler(Looper.getMainLooper());
+    private final Runnable heartbeatRunnable = new Runnable() {
+        @Override
+        public void run() {
+            sendHeartbeat();
+            heartbeatHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS);
+        }
+    };
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
                 if (result) {
@@ -94,11 +109,16 @@ public class MainActivity extends BaseAuthActivity {
         // Connect server-event WebSocket for real-time updates (kick, etc.)
         TokenManager tokenManager = new TokenManager(this);
         if (tokenManager.getUser() != null) {
+            authToken = "Bearer " + tokenManager.getAccessToken();
             ServerEventWebSocketManager.getInstance().connect(
                     NetworkConfig.getApiBaseUrl(),
                     tokenManager.getUser().getId(),
                     tokenManager.getAccessToken()
             );
+
+            // Signal online status and start periodic heartbeat
+            callGoOnline();
+            heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
 
             NotificationRepository notificationRepo = new NotificationRepository(this);
             FirebaseMessaging.getInstance().getToken().addOnSuccessListener(notificationRepo::registerDeviceToken);
@@ -181,9 +201,49 @@ public class MainActivity extends BaseAuthActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        heartbeatHandler.removeCallbacks(heartbeatRunnable);
         // Disconnect WebSocket when the app is fully closed
         if (isFinishing()) {
+            callGoOffline();
             ServerEventWebSocketManager.getInstance().disconnect();
         }
+    }
+
+    // ── Status heartbeat ─────────────────────────────────────────────────
+
+    private void sendHeartbeat() {
+        if (authToken == null) return;
+        RetrofitClient.getApiService(this).heartbeat(authToken)
+                .enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<ApiResponse<Void>> call,
+                                           retrofit2.Response<ApiResponse<Void>> response) {
+                        // no-op
+                    }
+                    @Override
+                    public void onFailure(retrofit2.Call<ApiResponse<Void>> call, Throwable t) {
+                        // no-op, will retry next interval
+                    }
+                });
+    }
+
+    private void callGoOnline() {
+        if (authToken == null) return;
+        RetrofitClient.getApiService(this).goOnline(authToken)
+                .enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<ApiResponse<Void>> call,
+                                           retrofit2.Response<ApiResponse<Void>> response) {}
+                    @Override
+                    public void onFailure(retrofit2.Call<ApiResponse<Void>> call, Throwable t) {}
+                });
+    }
+
+    private void callGoOffline() {
+        if (authToken == null) return;
+        try {
+            // Synchronous call since we're in onDestroy
+            RetrofitClient.getApiService(this).goOffline(authToken).execute();
+        } catch (Exception ignored) {}
     }
 }

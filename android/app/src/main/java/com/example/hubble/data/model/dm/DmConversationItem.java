@@ -9,7 +9,8 @@ public class DmConversationItem {
     private final String avatarUrl;
     private final String lastMessage;
     private final String timeLabel;
-    private final boolean online;
+    private final String status;
+    private final String customStatus;
     private final boolean verified;
     private final boolean selected;
     private final boolean favorite;
@@ -24,7 +25,8 @@ public class DmConversationItem {
             String avatarUrl,
             String lastMessage,
             String timeLabel,
-            boolean online,
+            String status,
+            String customStatus,
             boolean verified,
             boolean selected,
             boolean favorite,
@@ -38,7 +40,8 @@ public class DmConversationItem {
         this.avatarUrl = avatarUrl;
         this.lastMessage = lastMessage;
         this.timeLabel = timeLabel;
-        this.online = online;
+        this.status = status;
+        this.customStatus = customStatus;
         this.verified = verified;
         this.selected = selected;
         this.favorite = favorite;
@@ -79,7 +82,15 @@ public class DmConversationItem {
     }
 
     public boolean isOnline() {
-        return online;
+        return "ONLINE".equalsIgnoreCase(status);
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getCustomStatus() {
+        return customStatus;
     }
 
     public boolean isVerified() {
