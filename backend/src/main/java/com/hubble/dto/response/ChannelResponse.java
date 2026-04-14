@@ -24,6 +24,7 @@ public class ChannelResponse {
     String peerDisplayName;
     String peerAvatarUrl;
     String peerStatus;
+    String peerLastSeenAt;
     /** Incoming messages (from others) after the user's last_read_at; null if not computed */
     Integer unreadCount;
 }

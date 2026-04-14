@@ -16,6 +16,7 @@ public class ChannelDto {
     private String peerDisplayName;
     private String peerAvatarUrl;
     private String peerStatus;
+    private String peerLastSeenAt;
     private Integer unreadCount;
 
     public String getId() {
@@ -76,6 +77,10 @@ public class ChannelDto {
 
     public String getPeerStatus() {
         return peerStatus;
+    }
+
+    public String getPeerLastSeenAt() {
+        return peerLastSeenAt;
     }
 
     public Integer getUnreadCount() {
