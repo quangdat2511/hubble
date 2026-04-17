@@ -105,6 +105,51 @@ public class MessageService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getMessagesBefore(String channelId, String userId, String beforeId, int size) {
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID userUuid = UUID.fromString(userId);
+        UUID beforeUuid = UUID.fromString(beforeId);
+        checkChannelAccess(channelUuid, userUuid);
+
+        List<Message> messages = messageRepository.findMessagesBefore(channelUuid, beforeUuid, size);
+
+        if (messages.isEmpty()) return List.of();
+
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+
+        Map<UUID, List<AttachmentResponse>> attachmentsByMessageId = attachmentRepository
+                .findByMessageIdIn(messageIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Attachment::getMessageId,
+                        Collectors.mapping(
+                                a -> AttachmentResponse.builder()
+                                        .id(a.getId())
+                                        .filename(a.getFilename())
+                                        .url(a.getUrl())
+                                        .contentType(a.getContentType())
+                                        .sizeBytes(a.getSizeBytes())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        Map<UUID, List<ReactionResponse>> reactionsByMessageId =
+                reactionService.getReactionsForMessages(messageIds);
+        Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+
+        return messages.stream()
+                .map(msg -> {
+                    MessageResponse res = messageMapper.toMessageResponse(msg);
+                    res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    return res;
+                })
+                .toList();
+    }
+
     private Map<UUID, User> loadAuthors(List<UUID> authorIds) {
         if (authorIds == null || authorIds.isEmpty()) {
             return Map.of();
@@ -284,5 +329,61 @@ public class MessageService {
         if (!hasRoleAccess) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
+    }
+
+    // ── Context window ─────────────────────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getMessagesAround(String channelId, String messageId, int limit) {
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID messageUuid = UUID.fromString(messageId);
+
+        // Verify the target message exists and is not deleted
+        Message target = messageRepository.findById(messageUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.MESSAGE_NOT_FOUND));
+        if (Boolean.TRUE.equals(target.getIsDeleted())) {
+            throw new AppException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+
+        int half = Math.max(1, limit / 2);
+        List<Message> messages = messageRepository.findMessagesAroundId(channelUuid, messageUuid, half);
+
+        // Sort by created_at ASC (the native UNION ALL may return unordered)
+        messages = messages.stream()
+                .sorted(java.util.Comparator.comparing(Message::getCreatedAt))
+                .collect(Collectors.toList());
+
+        if (messages.isEmpty()) return List.of();
+
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+        Map<UUID, List<AttachmentResponse>> attachmentsByMessageId = attachmentRepository
+                .findByMessageIdIn(messageIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Attachment::getMessageId,
+                        Collectors.mapping(
+                                a -> AttachmentResponse.builder()
+                                        .id(a.getId())
+                                        .filename(a.getFilename())
+                                        .url(a.getUrl())
+                                        .contentType(a.getContentType())
+                                        .sizeBytes(a.getSizeBytes())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        Map<UUID, List<ReactionResponse>> reactionsByMessageId =
+                reactionService.getReactionsForMessages(messageIds);
+        Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+
+        return messages.stream()
+                .map(msg -> {
+                    MessageResponse res = messageMapper.toMessageResponse(msg);
+                    res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    return res;
+                })
+                .toList();
     }
 }

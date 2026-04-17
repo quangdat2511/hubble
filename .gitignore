@@ -88,3 +88,7 @@ backend/.m2/
 backend/src/main/resources/firebase-service-account.json
 
 .github/agents
+.github/prompts
+.github/skills
+
+openspec/

@@ -43,7 +43,10 @@ import com.example.hubble.view.server.CategoryProfileBottomSheet;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
+import com.example.hubble.view.search.SearchActivity;
+import com.example.hubble.view.server.InvitePeopleBottomSheet;
 import com.example.hubble.view.voice.VoiceChannelBottomSheet;
+import com.example.hubble.viewmodel.SearchViewModel;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.utils.ServerChannelNameFormatter;
@@ -329,6 +332,21 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        binding.cardServerSearch.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId());
+            }
+        });
+
+        binding.btnServerInvite.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                InvitePeopleBottomSheet.newInstance(server.getId(), server.getName())
+                        .show(getParentFragmentManager(), "invite_people");
+            }
+        });
+
         viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
@@ -504,7 +522,7 @@ public class HomeFragment extends Fragment {
 
     private void setupActions(View view) {
         binding.btnSearch.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.DM, null));
 
         binding.btnAddFriend.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.AddFriendActivity.class);

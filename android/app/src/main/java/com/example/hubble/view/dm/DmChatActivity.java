@@ -40,6 +40,7 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
@@ -117,6 +118,8 @@ public class DmChatActivity extends AppCompatActivity {
     private static final String EXTRA_CHANNEL_PARENT_ID = "extra_channel_parent_id";
     private static final String EXTRA_CHANNEL_PARENT_NAME = "extra_channel_parent_name";
     private static final String EXTRA_CHANNEL_IS_PRIVATE = "extra_channel_is_private";
+    public static final String EXTRA_JUMP_MESSAGE_ID = "extra_jump_message_id";
+    public static final String EXTRA_HIGHLIGHT_QUERY = "extra_highlight_query";
     private static final String CHAT_MODE_DM = "dm";
     private static final String CHAT_MODE_SERVER_TEXT = "server_text";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
@@ -197,6 +200,12 @@ public class DmChatActivity extends AppCompatActivity {
     private long lastTypingSentMillis = 0L;
     private final ObjectAnimator[] dotAnimators = new ObjectAnimator[3];
     private final Runnable hideTypingRunnable = this::hideTypingIndicator;
+
+    // Context-window infinite scroll (task 8.7)
+    private boolean isContextWindowMode = false;
+    private String contextWindowOldestMessageId = null;
+    private boolean isLoadingContextOlder = false;
+    private boolean contextWindowReachedTop = false;
 
     public static Intent createIntent(Context context, String channelId, String username) {
         return createIntent(context, channelId, username, null);
@@ -299,7 +308,13 @@ public class DmChatActivity extends AppCompatActivity {
         if (!isServerTextChannel()) {
             subscribeToFriendStatus();
         }
-        loadMessageHistory();
+        String jumpMessageId = getIntent().getStringExtra(EXTRA_JUMP_MESSAGE_ID);
+        if (!TextUtils.isEmpty(jumpMessageId)) {
+            String highlightQuery = getIntent().getStringExtra(EXTRA_HIGHLIGHT_QUERY);
+            jumpToMessage(jumpMessageId, highlightQuery);
+        } else {
+            loadMessageHistory();
+        }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -376,8 +391,7 @@ public class DmChatActivity extends AppCompatActivity {
                 openChannelProfileSheet();
             }
         });
-        binding.btnHeaderSearch.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+        binding.btnHeaderSearch.setOnClickListener(v -> openSearch());
     }
 
     private void openChannelProfileSheet() {
@@ -643,6 +657,19 @@ public class DmChatActivity extends AppCompatActivity {
         binding.rvMessages.setOnTouchListener((v, event) -> {
             if (isEmojiPanelVisible) hideEmojiPanel(false);
             return false;
+        });
+
+        // Scroll listener: trigger load-older when user scrolls to the top in context-window mode.
+        binding.rvMessages.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (!isContextWindowMode || isLoadingContextOlder || contextWindowReachedTop) return;
+                LinearLayoutManager lm = (LinearLayoutManager) rv.getLayoutManager();
+                if (lm == null) return;
+                if (lm.findFirstVisibleItemPosition() == 0) {
+                    loadMessagesBeforeContextWindow();
+                }
+            }
         });
 
         // No scroll-based intro visibility — intro is inside the RecyclerView as first item.
@@ -1314,6 +1341,7 @@ public class DmChatActivity extends AppCompatActivity {
 
     private void loadMessageHistory() {
         if (TextUtils.isEmpty(channelId)) return;
+        isContextWindowMode = false;
         dmRepository.getMessages(channelId, 0, 50, result -> {
             if (result.getData() != null) {
                 List<MessageDto> ordered = new ArrayList<>(result.getData());
@@ -1329,6 +1357,104 @@ public class DmChatActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void loadMessagesBeforeContextWindow() {
+        if (TextUtils.isEmpty(channelId) || TextUtils.isEmpty(contextWindowOldestMessageId)) return;
+        isLoadingContextOlder = true;
+        String beforeId = contextWindowOldestMessageId;
+        dmRepository.getMessagesBefore(channelId, beforeId, 30, result -> {
+            runOnUiThread(() -> {
+                isLoadingContextOlder = false;
+                if (result.getData() == null || result.getData().isEmpty()) {
+                    contextWindowReachedTop = true;
+                    return;
+                }
+                List<MessageDto> incoming = result.getData(); // DESC order from backend (newest first)
+                List<DmMessageItem> mappedItems = mapMessages(incoming); // same DESC order
+
+                LinearLayoutManager lm = (LinearLayoutManager) binding.rvMessages.getLayoutManager();
+                int firstVisible = lm != null ? lm.findFirstVisibleItemPosition() : 0;
+                View firstView = lm != null ? lm.findViewByPosition(firstVisible) : null;
+                int offset = firstView != null ? firstView.getTop() : 0;
+
+                // prependItems expects DESC (newest-first) order and reverses internally
+                int inserted = adapter.prependItems(mappedItems);
+
+                if (inserted > 0 && lm != null) {
+                    lm.scrollToPositionWithOffset(firstVisible + inserted, offset);
+                }
+
+                // Update oldest-message cursor: last item in DESC list is oldest
+                for (int i = incoming.size() - 1; i >= 0; i--) {
+                    MessageDto dto = incoming.get(i);
+                    if (!Boolean.TRUE.equals(dto.getIsDeleted()) && !TextUtils.isEmpty(dto.getId())) {
+                        contextWindowOldestMessageId = dto.getId();
+                        break;
+                    }
+                }
+
+                if (incoming.size() < 30) {
+                    contextWindowReachedTop = true;
+                }
+            });
+        });
+    }
+
+    private void jumpToMessage(String targetMessageId, @Nullable String highlightQuery) {
+        if (TextUtils.isEmpty(channelId) || TextUtils.isEmpty(targetMessageId)) {
+            loadMessageHistory();
+            return;
+        }
+        dmRepository.loadContextWindow(channelId, targetMessageId, 30, result -> {
+            if (result.getData() != null) {
+                List<DmMessageItem> items = mapMessages(result.getData());
+                runOnUiThread(() -> {
+                    adapter.setHighlightQuery(highlightQuery);
+                    adapter.setItems(items);
+
+                    // Enter context-window mode for infinite-scroll-up support
+                    isContextWindowMode = true;
+                    contextWindowReachedTop = false;
+                    contextWindowOldestMessageId = null;
+                    for (DmMessageItem it : items) {
+                        if (!it.isDateSeparator() && !it.isIntro()) {
+                            contextWindowOldestMessageId = it.getId();
+                            break;
+                        }
+                    }
+
+                    // scroll to the target message
+                    int targetPos = -1;
+                    for (int i = 0; i < items.size(); i++) {
+                        DmMessageItem it = items.get(i);
+                        if (!it.isDateSeparator() && !it.isIntro()
+                                && targetMessageId.equals(it.getId())) {
+                            targetPos = i;
+                            break;
+                        }
+                    }
+                    if (targetPos >= 0) {
+                        binding.rvMessages.scrollToPosition(
+                                adapter.positionInAdapter(targetPos));
+                    } else if (adapter.getItemCount() > 0) {
+                        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+                    }
+                });
+            } else {
+                loadMessageHistory();
+            }
+        });
+    }
+
+    private void openSearch() {
+        if (TextUtils.isEmpty(channelId)) return;
+        com.example.hubble.view.search.SearchActivity.start(
+                this,
+                isServerTextChannel()
+                        ? com.example.hubble.viewmodel.SearchViewModel.ScopeType.SERVER
+                        : com.example.hubble.viewmodel.SearchViewModel.ScopeType.CHANNEL,
+                isServerTextChannel() ? serverIdForForward : channelId);
     }
 
     private void sendMessage(String content) {

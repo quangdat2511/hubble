@@ -326,6 +326,54 @@ public class DmRepository {
         });
     }
 
+    public void loadContextWindow(String channelId, String messageId, int limit,
+                                  RepositoryCallback<List<MessageDto>> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+
+        apiService.getMessagesAround(token, channelId, messageId, limit)
+                .enqueue(new Callback<ApiResponse<List<MessageDto>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<MessageDto>>> call,
+                                           Response<ApiResponse<List<MessageDto>>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.dm_messages_load_error)));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<MessageDto>>> call, Throwable t) {
+                        callback.onResult(AuthResult.error(buildNetworkError(t)));
+                    }
+                });
+    }
+
+    public void getMessagesBefore(String channelId, String beforeId, int size,
+                                   RepositoryCallback<List<MessageDto>> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+
+        apiService.getMessagesBefore(token, channelId, beforeId, size)
+                .enqueue(new Callback<ApiResponse<List<MessageDto>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<MessageDto>>> call,
+                                           Response<ApiResponse<List<MessageDto>>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.dm_messages_load_error)));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<MessageDto>>> call, Throwable t) {
+                        callback.onResult(AuthResult.error(buildNetworkError(t)));
+                    }
+                });
+    }
+
     // Gộp tất cả SendMessage cũ thành 1 hàm duy nhất nhận đủ tham số
     public void sendMessage(String channelId, String replyToId, String content,
                             List<String> attachmentIds, String type,

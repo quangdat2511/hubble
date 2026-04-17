@@ -21,6 +21,7 @@
     <color name="color_otp_border">#D4D7DC</color>
     <color name="color_otp_border_focused">#5865F2</color>
     <color name="color_link">#0057D8</color>
+    <color name="color_highlight">#FFFF00</color>
 
     <!-- Server sidebar palette -->
     <color name="server_color_green">#57F287</color>

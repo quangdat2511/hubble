@@ -43,6 +43,7 @@ import com.example.hubble.utils.LocalizedTimeUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -81,6 +82,10 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
      * When false (e.g. server text channel), outbound rows do not show sending/sent/delivered/read.
      */
     private boolean showMineMessageStatus = true;
+
+    /** When non-null, matching text in message content will be highlighted. */
+    @Nullable
+    private String highlightQuery;
 
     private static MediaPlayer currentMediaPlayer;
     private static AudioProximityManager currentProximityManager;
@@ -165,6 +170,56 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(millis);
         return cal.get(Calendar.YEAR) + "-" + cal.get(Calendar.DAY_OF_YEAR);
+    }
+
+    /**
+     * Prepends older messages to the top of the list.
+     * @param olderItemsDesc items in DESC order (most recent first) as returned by the backend.
+     * @return the number of items inserted, for scroll-position adjustment.
+     */
+    public int prependItems(List<DmMessageItem> olderItemsDesc) {
+        if (olderItemsDesc == null || olderItemsDesc.isEmpty()) return 0;
+
+        // Reverse to ASC order (oldest first), matching the list order
+        List<DmMessageItem> ordered = new ArrayList<>(olderItemsDesc);
+        Collections.reverse(ordered);
+
+        // Build the sub-list to prepend, including date separators
+        List<DmMessageItem> toInsert = new ArrayList<>();
+        String lastDateKey = null;
+        for (DmMessageItem item : ordered) {
+            if (item == null || item.isDeleted()) continue;
+            String dateKey = getDateKey(item.getCreatedAtMillis());
+            if (dateKey != null && !dateKey.equals(lastDateKey)) {
+                toInsert.add(DmMessageItem.createDateSeparator(
+                        LocalizedTimeUtils.formatConversationDateLabel(context, item.getCreatedAtMillis())
+                ));
+                lastDateKey = dateKey;
+            }
+            toInsert.add(item);
+        }
+
+        if (toInsert.isEmpty()) return 0;
+
+        // If the current first item in `items` is a date separator that would be a
+        // duplicate of the last date group we're inserting, remove it first.
+        if (!items.isEmpty() && items.get(0).isDateSeparator() && lastDateKey != null) {
+            DmMessageItem firstMsg = null;
+            for (int i = 1; i < items.size(); i++) {
+                if (!items.get(i).isDateSeparator()) {
+                    firstMsg = items.get(i);
+                    break;
+                }
+            }
+            if (firstMsg != null && lastDateKey.equals(getDateKey(firstMsg.getCreatedAtMillis()))) {
+                items.remove(0);
+                notifyItemRemoved(introOffset());
+            }
+        }
+
+        items.addAll(0, toInsert);
+        notifyItemRangeInserted(introOffset(), toInsert.size());
+        return toInsert.size();
     }
 
     public void appendItem(DmMessageItem item) {
@@ -256,6 +311,15 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     /** Offset to convert items-list index → adapter position. */
     private int introOffset() {
         return introItem != null ? 1 : 0;
+    }
+
+    public void setHighlightQuery(@Nullable String query) {
+        this.highlightQuery = (query != null && !query.trim().isEmpty()) ? query.trim() : null;
+    }
+
+    /** Converts an items-list index to its adapter position. */
+    public int positionInAdapter(int itemsIndex) {
+        return itemsIndex + introOffset();
     }
 
     public void setOnMessageLongClickListener(@Nullable OnMessageLongClickListener listener) {
@@ -476,7 +540,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         if (holder instanceof MessageRowHolder) {
             ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl,
-                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus);
+                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus, highlightQuery);
         }
     }
 
@@ -892,7 +956,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
                   @Nullable String replyAvatarUrl,
                   @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis,
-                  boolean showMineMessageStatus) {
+                  boolean showMineMessageStatus, @Nullable String highlightQuery) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
@@ -952,7 +1016,12 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 } else {
                     if (content != null && !content.isEmpty()) {
                         b.tvMessage.setVisibility(View.VISIBLE);
-                        b.tvMessage.setText(content);
+                        if (highlightQuery != null && !highlightQuery.isEmpty()) {
+                            b.tvMessage.setText(applyHighlight(content, highlightQuery,
+                                    b.tvMessage.getContext()));
+                        } else {
+                            b.tvMessage.setText(content);
+                        }
                     } else {
                         b.tvMessage.setVisibility(View.GONE);
                     }
@@ -1110,5 +1179,22 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     .circleCrop()
                     .into(b.ivAvatar);
         }
+    }
+
+    private static android.text.SpannableString applyHighlight(
+            String text, String query, Context ctx) {
+        android.text.SpannableString spannable = new android.text.SpannableString(text);
+        String lowerText = text.toLowerCase(java.util.Locale.getDefault());
+        String lowerQuery = query.toLowerCase(java.util.Locale.getDefault());
+        int start = 0;
+        int highlightColor = ctx.getResources().getColor(
+                com.example.hubble.R.color.color_highlight, ctx.getTheme());
+        while ((start = lowerText.indexOf(lowerQuery, start)) != -1) {
+            int end = start + lowerQuery.length();
+            spannable.setSpan(new android.text.style.BackgroundColorSpan(highlightColor),
+                    start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            start = end;
+        }
+        return spannable;
     }
 }

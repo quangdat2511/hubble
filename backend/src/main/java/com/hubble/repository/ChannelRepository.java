@@ -1,8 +1,10 @@
 package com.hubble.repository;
 
 import com.hubble.entity.Channel;
-import com.hubble.entity.ChannelMember;
+import com.hubble.enums.ChannelType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,4 +14,15 @@ import java.util.UUID;
 public interface ChannelRepository extends JpaRepository<Channel, UUID> {
     List<Channel> findByServerId(UUID serverId);
     List<Channel> findByParentId(UUID parentId);
+
+    // ── DM-scope search: get all DM/GROUP_DM channel IDs the user is a member of
+    @Query("""
+            SELECT cm.channelId FROM ChannelMember cm
+            WHERE cm.userId = :userId
+              AND cm.channel.type IN :types
+            """)
+    List<UUID> findChannelIdsByUserIdAndTypeIn(@Param("userId") UUID userId, @Param("types") List<ChannelType> types);
+
+    // ── Server channels accessible to a user (for name-based channel search) ──
+    List<Channel> findByServerIdAndNameContainingIgnoreCase(UUID serverId, String name);
 }

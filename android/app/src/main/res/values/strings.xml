@@ -808,4 +808,15 @@
     <string name="voice_speaker_on">Loa ngoài</string>
     <string name="voice_speaker_off">Loa trong</string>
     <string name="voice_permission_required">Cần quyền truy cập micro để tham gia kênh thoại</string>
+
+    <!-- Search -->
+    <string name="search_hint">Tìm kiếm…</string>
+    <string name="search_no_results">Không tìm thấy kết quả</string>
+    <string name="search_tab_messages">Tin nhắn</string>
+    <string name="search_tab_members">Thành viên</string>
+    <string name="search_tab_channels">Kênh</string>
+    <string name="search_tab_media">Media</string>
+    <string name="search_tab_files">Tệp</string>
+    <string name="search_tab_pins">Ghim</string>
+    <string name="search_tab_friends">Bạn bè</string>
 </resources>
