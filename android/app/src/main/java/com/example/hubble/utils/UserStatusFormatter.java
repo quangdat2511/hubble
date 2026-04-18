@@ -3,6 +3,7 @@ package com.example.hubble.utils;
 import android.content.Context;
 import android.text.TextUtils;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -83,5 +84,25 @@ public final class UserStatusFormatter {
             default:
                 return R.string.status_online;
         }
+    }
+
+    @DrawableRes
+    public static int getStatusDotDrawable(@Nullable String status) {
+        String normalized = normalize(status);
+        switch (normalized) {
+            case STATUS_IDLE:
+                return R.drawable.bg_status_dot_idle;
+            case STATUS_DND:
+                return R.drawable.bg_status_dot_dnd;
+            case STATUS_OFFLINE:
+                return R.drawable.bg_status_dot_offline;
+            default:
+                return R.drawable.bg_status_dot_online;
+        }
+    }
+
+    public static boolean isVisibleStatus(@Nullable String status) {
+        String normalized = normalize(status);
+        return !STATUS_OFFLINE.equals(normalized);
     }
 }

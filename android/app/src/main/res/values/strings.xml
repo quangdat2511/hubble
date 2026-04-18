@@ -125,6 +125,25 @@
     <string name="status_idle">Rảnh</string>
     <string name="status_offline">Ngoại tuyến</string>
     <string name="status_dnd">Không làm phiền</string>
+    <string name="status_invisible">Ẩn</string>
+    <string name="status_just_now">Vừa mới hoạt động</string>
+    <string name="status_minutes_ago">%d phút trước</string>
+    <string name="status_hours_ago">%d giờ trước</string>
+    <string name="status_days_ago">%d ngày trước</string>
+
+    <!-- Status selection bottom sheet -->
+    <string name="status_selection_title">Đặt trạng thái</string>
+    <string name="status_online_desc">Mọi người sẽ thấy bạn đang hoạt động</string>
+    <string name="status_idle_desc">Hiển thị bạn đang rảnh</string>
+    <string name="status_dnd_desc">Tắt mọi thông báo</string>
+    <string name="status_invisible_desc">Hiển thị ngoại tuyến nhưng vẫn dùng app</string>
+    <string name="status_set_custom">Đặt trạng thái tùy chỉnh</string>
+    <string name="status_custom_title">Trạng thái tùy chỉnh</string>
+    <string name="status_custom_hint">Bạn đang làm gì?</string>
+    <string name="status_custom_save">Lưu</string>
+    <string name="status_custom_clear">Xóa trạng thái</string>
+    <string name="status_updated">Đã cập nhật trạng thái</string>
+    <string name="status_update_failed">Không thể cập nhật trạng thái</string>
 
     <string name="me_joined_since">Gia Nhập Từ</string>
     <string name="me_friends">Bạn Bè</string>

@@ -53,6 +53,7 @@ import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
@@ -75,6 +76,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -138,6 +140,10 @@ public class DmChatActivity extends AppCompatActivity {
     private String peerDisplayName;
     private String peerUsername;
     private String peerAvatarUrl;
+    private String peerUserId;
+    private String peerCurrentStatus;
+    private String peerCurrentLastSeenAt;
+    private final CompositeDisposable statusDisposables = new CompositeDisposable();
     /** {@link #CHAT_MODE_DM} or {@link #CHAT_MODE_SERVER_TEXT} */
     private String chatMode = CHAT_MODE_DM;
     @Nullable private String serverIdForForward;
@@ -283,6 +289,9 @@ public class DmChatActivity extends AppCompatActivity {
         if (shouldLoadPeerProfile()) {
             loadPeerProfile();
         }
+        if (!isServerTextChannel()) {
+            subscribeToFriendStatus();
+        }
         loadMessageHistory();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -321,6 +330,7 @@ public class DmChatActivity extends AppCompatActivity {
         super.onDestroy();
         disconnectStomp();
         disposables.clear();
+        statusDisposables.clear();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -399,10 +409,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private boolean shouldLoadPeerProfile() {
-        if (isServerTextChannel()) {
-            return false;
-        }
-        return TextUtils.isEmpty(peerAvatarUrl) || TextUtils.isEmpty(peerUsername);
+        return !isServerTextChannel();
     }
 
     private boolean isServerTextChannel() {
@@ -469,7 +476,11 @@ public class DmChatActivity extends AppCompatActivity {
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
         peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
+        if (channel.getPeerUserId() != null) peerUserId = channel.getPeerUserId();
+        if (channel.getPeerStatus() != null) peerCurrentStatus = channel.getPeerStatus();
+        if (channel.getPeerLastSeenAt() != null) peerCurrentLastSeenAt = channel.getPeerLastSeenAt();
         refreshPeerUi();
+        updateHeaderStatus();
     }
 
     private void refreshPeerUi() {
@@ -1499,6 +1510,66 @@ public class DmChatActivity extends AppCompatActivity {
             binding.copyBanner.setAlpha(1f);
             binding.copyBanner.setTranslationY(0f);
         }).start();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Peer status (realtime header subtitle)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void subscribeToFriendStatus() {
+        statusDisposables.clear();
+        statusDisposables.add(
+            ServerEventWebSocketManager.getInstance().getFriendStatusEvents()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(event -> {
+                    if (event != null && event.getUserId() != null
+                            && event.getUserId().equals(peerUserId)) {
+                        peerCurrentStatus = event.getStatus();
+                        peerCurrentLastSeenAt = event.getLastSeenAt();
+                        updateHeaderStatus();
+                    }
+                }, throwable -> {})
+        );
+    }
+
+    private void updateHeaderStatus() {
+        if (isServerTextChannel()) return;
+        String label = formatStatusLabel(peerCurrentStatus, peerCurrentLastSeenAt);
+        if (label != null && !label.isEmpty()) {
+            binding.tvHeaderStatus.setVisibility(View.VISIBLE);
+            binding.tvHeaderStatus.setText(label);
+        } else {
+            binding.tvHeaderStatus.setVisibility(View.GONE);
+        }
+    }
+
+    private String formatStatusLabel(String status, String lastSeenAt) {
+        if (status == null) return null;
+        switch (status.toUpperCase(Locale.ROOT)) {
+            case "ONLINE": return getString(R.string.status_online);
+            case "IDLE":   return getString(R.string.status_idle);
+            case "DND":    return getString(R.string.status_dnd);
+            case "OFFLINE":
+            case "INVISIBLE": return formatLastSeen(lastSeenAt);
+            default: return null;
+        }
+    }
+
+    private String formatLastSeen(String lastSeenAt) {
+        if (lastSeenAt == null) return getString(R.string.status_offline);
+        try {
+            LocalDateTime ldt = LocalDateTime.parse(lastSeenAt);
+            long diffMinutes = ChronoUnit.MINUTES.between(ldt, LocalDateTime.now());
+            if (diffMinutes < 1) return getString(R.string.status_just_now);
+            if (diffMinutes < 60) return getString(R.string.status_minutes_ago, diffMinutes);
+            long diffHours = diffMinutes / 60;
+            if (diffHours < 24) return getString(R.string.status_hours_ago, diffHours);
+            long diffDays = diffHours / 24;
+            return getString(R.string.status_days_ago, diffDays);
+        } catch (Exception e) {
+            return getString(R.string.status_offline);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

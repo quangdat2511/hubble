@@ -65,6 +65,11 @@ public class User {
     @Column(name = "custom_status")
     String customStatus;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "previous_status")
+    UserStatus previousStatus;
+
     @Column(name = "last_seen_at")
     LocalDateTime lastSeenAt;
 

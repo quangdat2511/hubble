@@ -21,12 +21,84 @@
                 android:layout_height="156dp"
                 android:background="@drawable/bg_profile_header" />
 
-            <FrameLayout
-                android:id="@+id/avatarFragmentContainer"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="88dp" />
+                android:layout_marginTop="88dp"
+                android:gravity="bottom"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/spacing_lg">
+
+                <FrameLayout
+                    android:id="@+id/avatarFragmentContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Thought bubble for custom status -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@drawable/bg_status_bubble_dot" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardCustomStatusBubble"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="#CC1E1F22"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="4dp"
+                        app:strokeWidth="0dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="12dp"
+                            android:paddingTop="8dp"
+                            android:paddingEnd="12dp"
+                            android:paddingBottom="8dp">
+
+                            <ImageView
+                                android:id="@+id/ivCustomStatusAdd"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:layout_marginEnd="6dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_add"
+                                app:tint="@color/white" />
+
+                            <TextView
+                                android:id="@+id/tvCustomStatusBubble"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:maxWidth="180dp"
+                                android:text="@string/me_add_status"
+                                android:textColor="@color/white"
+                                android:textSize="14sp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"

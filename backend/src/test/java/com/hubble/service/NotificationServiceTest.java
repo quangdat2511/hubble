@@ -165,4 +165,32 @@ class NotificationServiceTest {
         notificationService.markAllAsRead(userId);
         verify(notificationRepository).markAllAsReadByUserId(userId);
     }
+
+    @Test
+    void dispatchNotification_PushAndEmailDisabled_ShouldSaveButNotSendExternal() {
+        String refId = UUID.randomUUID().toString();
+
+        when(notificationRepository.findRecentNotification(userId, NotificationType.FRIEND_REQUEST, refId))
+                .thenReturn(Optional.empty());
+        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
+        when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
+
+        notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", false, false);
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/users/" + userId + "/notifications"), any(NotificationResponse.class));
+
+        verify(pushNotificationService, never()).sendPushNotification(any(), any(), any());
+        verify(emailService, never()).sendNotificationEmail(any(), any(), any());
+    }
+
+    @Test
+    void markAsRead_AlreadyRead_ShouldNotUpdateAgain() {
+        notification.setIsRead(true);
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        notificationService.markAsRead(userId, notificationId);
+
+        verify(notificationRepository, never()).save(notification);
+    }
 }
