@@ -15,4 +15,5 @@ public class SearchMemberResponse {
     String displayName;
     String avatarUrl;
     String status;
+    boolean isSelf;
 }

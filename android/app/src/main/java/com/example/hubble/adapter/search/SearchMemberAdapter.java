@@ -11,25 +11,104 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.search.SearchMemberDto;
+import com.example.hubble.databinding.ItemMembersHeaderBinding;
 import com.example.hubble.databinding.ItemSearchMemberBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class SearchMemberAdapter
-        extends RecyclerView.Adapter<SearchMemberAdapter.ViewHolder> {
+        extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    private static final int TYPE_HEADER = 0;
+    private static final int TYPE_MEMBER = 1;
 
     public interface OnItemClickListener {
         void onMemberClick(SearchMemberDto item);
     }
 
-    private final List<SearchMemberDto> items = new ArrayList<>();
+    // ── Flat list item ────────────────────────────────────────────────────────
+
+    public static class ListItem {
+        final int type;
+        @Nullable final String header;
+        @Nullable final SearchMemberDto member;
+
+        private ListItem(String header) {
+            this.type   = TYPE_HEADER;
+            this.header = header;
+            this.member = null;
+        }
+
+        private ListItem(SearchMemberDto member) {
+            this.type   = TYPE_MEMBER;
+            this.header = null;
+            this.member = member;
+        }
+
+        static ListItem ofHeader(String label) { return new ListItem(label); }
+        static ListItem ofMember(SearchMemberDto m) { return new ListItem(m); }
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    private final List<ListItem> flatList = new ArrayList<>();
     @Nullable private OnItemClickListener listener;
 
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    /** Plain list without clustering (used for DM friends). */
     public void setItems(List<SearchMemberDto> newItems) {
-        items.clear();
-        if (newItems != null) items.addAll(newItems);
+        flatList.clear();
+        if (newItems != null) {
+            for (SearchMemberDto m : newItems) {
+                flatList.add(ListItem.ofMember(m));
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Builds a clustered list: "Me" section at the top, then A–Z sections
+     * sorted alphabetically by display name / username.
+     */
+    public void setItemsWithClustering(List<SearchMemberDto> members) {
+        flatList.clear();
+        if (members == null || members.isEmpty()) {
+            notifyDataSetChanged();
+            return;
+        }
+
+        List<SearchMemberDto> meList  = new ArrayList<>();
+        List<SearchMemberDto> others  = new ArrayList<>();
+        for (SearchMemberDto m : members) {
+            if (m.isSelf()) meList.add(m); else others.add(m);
+        }
+
+        others.sort(Comparator.comparing(
+                m -> (m.getDisplayName() != null ? m.getDisplayName() : m.getUsername()),
+                String.CASE_INSENSITIVE_ORDER));
+
+        if (!meList.isEmpty()) {
+            flatList.add(ListItem.ofHeader("Me"));
+            for (SearchMemberDto m : meList) flatList.add(ListItem.ofMember(m));
+        }
+
+        String currentLetter = null;
+        for (SearchMemberDto m : others) {
+            String name = m.getDisplayName() != null ? m.getDisplayName() : m.getUsername();
+            String letter = (name != null && !name.isEmpty())
+                    ? String.valueOf(name.charAt(0)).toUpperCase()
+                    : "#";
+            if (!letter.equals(currentLetter)) {
+                currentLetter = letter;
+                flatList.add(ListItem.ofHeader(letter));
+            }
+            flatList.add(ListItem.ofMember(m));
+        }
+
         notifyDataSetChanged();
     }
 
@@ -37,26 +116,59 @@ public class SearchMemberAdapter
         this.listener = l;
     }
 
+    // ── RecyclerView.Adapter ──────────────────────────────────────────────────
+
+    @Override
+    public int getItemViewType(int position) {
+        return flatList.get(position).type;
+    }
+
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemSearchMemberBinding binding = ItemSearchMemberBinding.inflate(
-                LayoutInflater.from(parent.getContext()), parent, false);
-        return new ViewHolder(binding);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        if (viewType == TYPE_HEADER) {
+            ItemMembersHeaderBinding b =
+                    ItemMembersHeaderBinding.inflate(inflater, parent, false);
+            return new HeaderViewHolder(b);
+        }
+        ItemSearchMemberBinding b =
+                ItemSearchMemberBinding.inflate(inflater, parent, false);
+        return new MemberViewHolder(b);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(items.get(position));
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        ListItem item = flatList.get(position);
+        if (holder instanceof HeaderViewHolder) {
+            ((HeaderViewHolder) holder).bind(item.header);
+        } else if (holder instanceof MemberViewHolder) {
+            ((MemberViewHolder) holder).bind(item.member);
+        }
     }
 
     @Override
-    public int getItemCount() { return items.size(); }
+    public int getItemCount() { return flatList.size(); }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    // ── ViewHolders ───────────────────────────────────────────────────────────
+
+    static class HeaderViewHolder extends RecyclerView.ViewHolder {
+        private final ItemMembersHeaderBinding b;
+
+        HeaderViewHolder(ItemMembersHeaderBinding b) {
+            super(b.getRoot());
+            this.b = b;
+        }
+
+        void bind(String label) {
+            b.tvSectionLabel.setText(label);
+        }
+    }
+
+    class MemberViewHolder extends RecyclerView.ViewHolder {
         private final ItemSearchMemberBinding b;
 
-        ViewHolder(ItemSearchMemberBinding b) {
+        MemberViewHolder(ItemSearchMemberBinding b) {
             super(b.getRoot());
             this.b = b;
         }

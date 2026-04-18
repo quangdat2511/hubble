@@ -14,8 +14,11 @@ import com.hubble.exception.ErrorCode;
 import com.hubble.repository.AttachmentRepository;
 import com.hubble.repository.ChannelMemberRepository;
 import com.hubble.repository.ChannelRepository;
+import com.hubble.repository.ChannelRoleRepository;
 import com.hubble.repository.FriendshipRepository;
+import com.hubble.repository.MemberRoleRepository;
 import com.hubble.repository.MessageRepository;
+import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,9 @@ public class SearchService {
     ChannelRepository channelRepository;
     FriendshipRepository friendshipRepository;
     UserRepository userRepository;
+    ServerMemberRepository serverMemberRepository;
+    MemberRoleRepository memberRoleRepository;
+    ChannelRoleRepository channelRoleRepository;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Channel scope
@@ -52,7 +58,7 @@ public class SearchService {
             String userId, String channelId, String q, int page, int size) {
         UUID channelUuid = UUID.fromString(channelId);
         UUID userUuid = UUID.fromString(userId);
-        requireChannelMember(channelUuid, userUuid);
+        canAccessChannel(channelUuid, userUuid);
         validateQuery(q);
 
         Channel channel = channelRepository.findById(channelUuid)
@@ -70,17 +76,27 @@ public class SearchService {
             String userId, String channelId, String q) {
         UUID channelUuid = UUID.fromString(channelId);
         UUID userUuid = UUID.fromString(userId);
-        requireChannelMember(channelUuid, userUuid);
+        canAccessChannel(channelUuid, userUuid);
 
-        List<User> users = channelMemberRepository
-                .findUsersByChannelIdAndNameContaining(channelUuid, q);
-        return users.stream().map(this::toSearchMemberResponse).toList();
+        Channel channel = channelRepository.findById(channelUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+
+        String safeQ = q == null ? "" : q;
+        List<User> users;
+        if (Boolean.TRUE.equals(channel.getIsPrivate())) {
+            users = channelMemberRepository
+                    .findUsersByChannelIdAndNameContaining(channelUuid, safeQ);
+        } else {
+            users = serverMemberRepository
+                    .findUsersByServerIdAndNameContaining(channel.getServerId(), safeQ);
+        }
+        return users.stream().map(u -> toSearchMemberResponse(u, userUuid)).toList();
     }
 
     @Transactional(readOnly = true)
     public List<SearchAttachmentResponse> searchChannelMedia(String userId, String channelId) {
         UUID channelUuid = UUID.fromString(channelId);
-        requireChannelMember(channelUuid, UUID.fromString(userId));
+        canAccessChannel(channelUuid, UUID.fromString(userId));
         List<Attachment> attachments = attachmentRepository.findMediaByChannelId(channelUuid);
         return toSearchAttachmentResponses(attachments, channelUuid);
     }
@@ -88,14 +104,14 @@ public class SearchService {
     @Transactional(readOnly = true)
     public List<SearchAttachmentResponse> searchChannelFiles(String userId, String channelId) {
         UUID channelUuid = UUID.fromString(channelId);
-        requireChannelMember(channelUuid, UUID.fromString(userId));
+        canAccessChannel(channelUuid, UUID.fromString(userId));
         return toSearchAttachmentResponses(attachmentRepository.findFilesByChannelId(channelUuid), channelUuid);
     }
 
     @Transactional(readOnly = true)
     public List<SearchMessageResponse> searchChannelPins(String userId, String channelId, String q) {
         UUID channelUuid = UUID.fromString(channelId);
-        requireChannelMember(channelUuid, UUID.fromString(userId));
+        canAccessChannel(channelUuid, UUID.fromString(userId));
         Channel channel = channelRepository.findById(channelUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
 
@@ -135,12 +151,13 @@ public class SearchService {
             String userId, String serverId, String q) {
         UUID serverUuid = UUID.fromString(serverId);
         UUID userUuid = UUID.fromString(userId);
-        List<UUID> channelIds = getMemberChannelIds(userUuid, serverUuid);
-        if (channelIds.isEmpty()) return List.of();
-
-        List<User> users = channelMemberRepository
-                .findDistinctUsersByChannelIdsAndNameContaining(channelIds, q);
-        return users.stream().map(this::toSearchMemberResponse).toList();
+        if (!serverMemberRepository.existsByServerIdAndUserId(serverUuid, userUuid)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        String safeQ = q == null ? "" : q;
+        List<User> users = serverMemberRepository
+                .findUsersByServerIdAndNameContaining(serverUuid, safeQ);
+        return users.stream().map(u -> toSearchMemberResponse(u, userUuid)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -208,7 +225,7 @@ public class SearchService {
                 .filter(u -> queryLower.isBlank()
                         || (u.getDisplayName() != null && u.getDisplayName().toLowerCase().contains(queryLower))
                         || u.getUsername().toLowerCase().contains(queryLower))
-                .map(this::toSearchMemberResponse)
+                .map(u -> toSearchMemberResponse(u, userUuid))
                 .toList();
     }
 
@@ -234,10 +251,48 @@ public class SearchService {
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private void requireChannelMember(UUID channelId, UUID userId) {
-        if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) {
+    /**
+     * Checks if {@code userId} is allowed to access {@code channelId}.<br>
+     * <ul>
+     *   <li>DM channel → must be an explicit channel member</li>
+     *   <li>Non-private server channel → any server member can access</li>
+     *   <li>Private server channel → must be an explicit channel member OR hold a role that has access</li>
+     * </ul>
+     */
+    private void canAccessChannel(UUID channelId, UUID userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+
+        // DM / GROUP_DM — gate on explicit channel membership
+        if (channel.getServerId() == null) {
+            if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+            return;
+        }
+
+        // Must be in the server at all
+        if (!serverMemberRepository.existsByServerIdAndUserId(channel.getServerId(), userId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
+
+        // Non-private: any server member can access
+        if (!Boolean.TRUE.equals(channel.getIsPrivate())) return;
+
+        // Private: explicit channel member
+        if (channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) return;
+
+        // Private: role-based access
+        boolean hasRole = serverMemberRepository
+                .findByServerIdAndUserId(channel.getServerId(), userId)
+                .map(m -> {
+                    List<UUID> roles = memberRoleRepository.findRoleIdsByMemberId(m.getId());
+                    return !roles.isEmpty()
+                            && channelRoleRepository.existsByChannelIdAndRoleIdIn(channelId, roles);
+                })
+                .orElse(false);
+
+        if (!hasRole) throw new AppException(ErrorCode.UNAUTHORIZED);
     }
 
     private void validateQuery(String q) {
@@ -246,8 +301,16 @@ public class SearchService {
         }
     }
 
+    /**
+     * Returns all channel IDs the user can access within a server:
+     * public channels + private channels with explicit membership.
+     * Returns empty list if the user is not a server member.
+     */
     private List<UUID> getMemberChannelIds(UUID userId, UUID serverId) {
-        return channelMemberRepository.findChannelIdsByUserIdAndServerId(userId, serverId);
+        if (!serverMemberRepository.existsByServerIdAndUserId(serverId, userId)) {
+            return List.of();
+        }
+        return channelRepository.findAccessibleChannelIdsByServerId(serverId, userId);
     }
 
     private List<UUID> getDmChannelIds(UUID userId) {
@@ -285,13 +348,14 @@ public class SearchService {
                 .build();
     }
 
-    private SearchMemberResponse toSearchMemberResponse(User u) {
+    private SearchMemberResponse toSearchMemberResponse(User u, UUID currentUserId) {
         return SearchMemberResponse.builder()
                 .id(u.getId().toString())
                 .username(u.getUsername())
                 .displayName(u.getDisplayName())
                 .avatarUrl(u.getAvatarUrl())
                 .status(u.getStatus() != null ? u.getStatus().name() : null)
+                .isSelf(u.getId().equals(currentUserId))
                 .build();
     }
 
@@ -336,3 +400,5 @@ public class SearchService {
                 .build()).toList();
     }
 }
+
+

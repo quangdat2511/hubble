@@ -193,7 +193,11 @@ public class SearchResultFragment extends Fragment {
                     if (result == null) return;
                     if (result.isSuccess()) {
                         List<SearchMemberDto> data = result.getData();
-                        memberAdapter.setItems(data);
+                        if (category == Category.MEMBERS) {
+                            memberAdapter.setItemsWithClustering(data);
+                        } else {
+                            memberAdapter.setItems(data);
+                        }
                         setEmpty(data == null || data.isEmpty());
                     } else if (result.isError()) {
                         setEmpty(true);

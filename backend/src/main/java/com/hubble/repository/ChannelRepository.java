@@ -25,4 +25,15 @@ public interface ChannelRepository extends JpaRepository<Channel, UUID> {
 
     // ── Server channels accessible to a user (for name-based channel search) ──
     List<Channel> findByServerIdAndNameContainingIgnoreCase(UUID serverId, String name);
+
+    // ── Accessible channel IDs for server scope: public channels + explicit membership ──
+    @Query("""
+            SELECT c.id FROM Channel c
+            WHERE c.serverId = :serverId
+              AND (c.isPrivate = false
+                   OR EXISTS (SELECT 1 FROM ChannelMember cm
+                              WHERE cm.channelId = c.id AND cm.userId = :userId))
+            """)
+    List<UUID> findAccessibleChannelIdsByServerId(
+            @Param("serverId") UUID serverId, @Param("userId") UUID userId);
 }
