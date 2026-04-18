@@ -18,6 +18,7 @@ public class ChannelDto {
     private String peerStatus;
     private String peerLastSeenAt;
     private Integer unreadCount;
+    private Integer mentionCount;
 
     public String getId() {
         return id;
@@ -89,6 +90,14 @@ public class ChannelDto {
 
     public void setUnreadCount(Integer unreadCount) {
         this.unreadCount = unreadCount;
+    }
+
+    public Integer getMentionCount() {
+        return mentionCount;
+    }
+
+    public void setMentionCount(Integer mentionCount) {
+        this.mentionCount = mentionCount;
     }
 }
 

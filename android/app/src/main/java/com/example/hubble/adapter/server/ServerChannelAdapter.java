@@ -1,5 +1,6 @@
 package com.example.hubble.adapter.server;
 
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +12,7 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.databinding.ItemChannelBinding;
 import com.example.hubble.databinding.ItemChannelCategoryBinding;
 import com.example.hubble.utils.ServerChannelNameFormatter;
+import com.google.android.material.color.MaterialColors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -249,23 +251,45 @@ public class ServerChannelAdapter extends RecyclerView.Adapter<RecyclerView.View
                     channel
             ));
 
-            // Set icon based on channel type
             if (viewType == VIEW_TYPE_TEXT_CHANNEL) {
                 binding.ivChannelIcon.setImageResource(com.example.hubble.R.drawable.ic_hashtag);
             } else {
                 binding.ivChannelIcon.setImageResource(com.example.hubble.R.drawable.ic_sound);
             }
 
-            Integer u = channel.getUnreadCount();
-            int unread = u != null ? u : 0;
-            if (viewType == VIEW_TYPE_TEXT_CHANNEL && unread > 0) {
+            Integer unreadRaw = channel.getUnreadCount();
+            int unread = unreadRaw != null ? unreadRaw : 0;
+            Integer mentionRaw = channel.getMentionCount();
+            int mentions = mentionRaw != null ? mentionRaw : 0;
+
+            // Discord rule: the "unread" state (bold + left-edge pill) only applies
+            // to text channels. Voice channels never take the unread state.
+            boolean hasUnread = viewType == VIEW_TYPE_TEXT_CHANNEL && unread > 0;
+            boolean hasMentions = viewType == VIEW_TYPE_TEXT_CHANNEL && mentions > 0;
+
+            // Absolute left-edge indicator: visible for any unread OR mention state.
+            binding.viewChannelUnreadDot.setVisibility(
+                    (hasUnread || hasMentions) ? View.VISIBLE : View.GONE);
+
+            // Channel name: bold + high-contrast color when unread/mentioned.
+            boolean bright = hasUnread || hasMentions;
+            binding.tvChannelName.setTypeface(null, bright ? Typeface.BOLD : Typeface.NORMAL);
+            int nameColor = MaterialColors.getColor(
+                    binding.getRoot(),
+                    bright
+                            ? com.google.android.material.R.attr.colorOnSurface
+                            : com.google.android.material.R.attr.colorOnSurfaceVariant);
+            binding.tvChannelName.setTextColor(nameColor);
+
+            // Red pill badge: ONLY for mention counts. Plain unread never shows a number.
+            if (hasMentions) {
                 binding.tvChannelUnreadBadge.setVisibility(View.VISIBLE);
-                binding.tvChannelUnreadBadge.setText(unread > 99 ? "99+" : String.valueOf(unread));
+                binding.tvChannelUnreadBadge.setText(
+                        mentions > 99 ? "99+" : String.valueOf(mentions));
             } else {
                 binding.tvChannelUnreadBadge.setVisibility(View.GONE);
             }
 
-            // Show lock badge for private channels
             binding.ivLockBadge.setVisibility(
                     Boolean.TRUE.equals(channel.getIsPrivate()) ? View.VISIBLE : View.GONE);
         }
