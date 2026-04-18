@@ -9,6 +9,10 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -45,12 +49,22 @@ public class SearchActivity extends AppCompatActivity {
 
     private final List<Category> categories = new ArrayList<>();
     private final List<String> tabTitles = new ArrayList<>();
+    private TabLayoutMediator tabLayoutMediator;
+    private boolean messagesTabVisible = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         binding = ActivitySearchBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         String scopeTypeName = getIntent().getStringExtra(EXTRA_SCOPE_TYPE);
         scopeType = scopeTypeName != null ? ScopeType.valueOf(scopeTypeName) : ScopeType.CHANNEL;
@@ -59,19 +73,27 @@ public class SearchActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         viewModel.init(this, scopeType, scopeId);
 
-        buildTabs();
+        buildTabs(false);
         setupViewPager();
         setupToolbar();
         setupSearchInput();
+
+        viewModel.currentQuery.observe(this, query -> {
+            boolean hasQuery = query != null && !query.trim().isEmpty();
+            boolean shouldShow = hasQuery && (scopeType == ScopeType.CHANNEL || scopeType == ScopeType.SERVER);
+            rebuildAdapter(shouldShow);
+        });
     }
 
-    private void buildTabs() {
+    private void buildTabs(boolean includeMessages) {
         categories.clear();
         tabTitles.clear();
         switch (scopeType) {
             case CHANNEL:
-                categories.add(Category.MESSAGES);
-                tabTitles.add(getString(R.string.search_tab_messages));
+                if (includeMessages) {
+                    categories.add(Category.MESSAGES);
+                    tabTitles.add(getString(R.string.search_tab_messages));
+                }
                 categories.add(Category.MEMBERS);
                 tabTitles.add(getString(R.string.search_tab_members));
                 categories.add(Category.MEDIA);
@@ -82,8 +104,10 @@ public class SearchActivity extends AppCompatActivity {
                 tabTitles.add(getString(R.string.search_tab_pins));
                 break;
             case SERVER:
-                categories.add(Category.MESSAGES);
-                tabTitles.add(getString(R.string.search_tab_messages));
+                if (includeMessages) {
+                    categories.add(Category.MESSAGES);
+                    tabTitles.add(getString(R.string.search_tab_messages));
+                }
                 categories.add(Category.MEMBERS);
                 tabTitles.add(getString(R.string.search_tab_members));
                 categories.add(Category.CHANNELS);
@@ -108,9 +132,21 @@ public class SearchActivity extends AppCompatActivity {
 
     private void setupViewPager() {
         binding.viewPager.setAdapter(new SearchPagerAdapter(this));
-        new TabLayoutMediator(binding.tabLayout, binding.viewPager,
-                (tab, position) -> tab.setText(tabTitles.get(position))
-        ).attach();
+        tabLayoutMediator = new TabLayoutMediator(binding.tabLayout, binding.viewPager,
+                (tab, position) -> tab.setText(tabTitles.get(position)));
+        tabLayoutMediator.attach();
+    }
+
+    private void rebuildAdapter(boolean showMessages) {
+        if (messagesTabVisible == showMessages) return;
+        messagesTabVisible = showMessages;
+        buildTabs(showMessages);
+        if (tabLayoutMediator != null) tabLayoutMediator.detach();
+        binding.viewPager.setAdapter(new SearchPagerAdapter(this));
+        tabLayoutMediator = new TabLayoutMediator(binding.tabLayout, binding.viewPager,
+                (tab, position) -> tab.setText(tabTitles.get(position)));
+        tabLayoutMediator.attach();
+        if (showMessages) binding.viewPager.setCurrentItem(0, false);
     }
 
     private void setupToolbar() {

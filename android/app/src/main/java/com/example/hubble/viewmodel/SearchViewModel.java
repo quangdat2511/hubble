@@ -105,7 +105,8 @@ public class SearchViewModel extends ViewModel {
 
     public void searchAll(String query) {
         ScopeType scope = _scopeType.getValue();
-        if (scope == null || scopeId == null) return;
+        if (scope == null) return;
+        if (scope != ScopeType.DM && scopeId == null) return;
 
         String trimmed = query == null ? "" : query.trim();
         lastMessageQuery = trimmed;
