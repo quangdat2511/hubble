@@ -350,4 +350,40 @@ public class FriendServiceTest {
         assertEquals(targetUserId, responses.get(0).getId());
         assertEquals("FRIEND", responses.get(0).getRelationStatus());
     }
+
+    @Test
+    void declineRequest_NotAddressee_ThrowsException() {
+        UUID requestId = UUID.randomUUID();
+        Friendship request = Friendship.builder()
+                .id(requestId)
+                .requesterId(currentUserId)
+                .addresseeId(targetUserId)
+                .status(FriendshipStatus.PENDING)
+                .build();
+
+        when(friendshipRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+        AppException exception = assertThrows(AppException.class,
+                () -> friendService.declineRequest(currentUserId, requestId));
+
+        assertEquals(ErrorCode.FRIEND_REQUEST_NOT_FOUND, exception.getErrorCode());
+        verify(friendshipRepository, never()).delete(any());
+    }
+
+    @Test
+    void acceptRequest_NotPendingStatus_ThrowsException() {
+        UUID requestId = UUID.randomUUID();
+        Friendship request = Friendship.builder()
+                .id(requestId)
+                .requesterId(targetUserId)
+                .addresseeId(currentUserId)
+                .status(FriendshipStatus.ACCEPTED)
+                .build();
+
+        when(friendshipRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+        AppException exception = assertThrows(AppException.class,
+                () -> friendService.acceptRequest(currentUserId, requestId));
+        assertNotNull(exception.getErrorCode());
+    }
 }
