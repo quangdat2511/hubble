@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -788,9 +789,18 @@ public class DmChatActivity extends AppCompatActivity {
         btnListen.setOnClickListener(v -> {
             if (previewPlayer == null) {
                 previewPlayer = new android.media.MediaPlayer();
+                previewPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+                proximityManager.setMediaPlayer(previewPlayer);
                 try {
                     previewPlayer.setDataSource(audioFile.getAbsolutePath());
-                    previewPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                        previewPlayer.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                .build());
+                    } else {
+                        previewPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+                    }
                     previewPlayer.prepare();
                     previewPlayer.setOnCompletionListener(mp -> {
                         ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
@@ -803,9 +813,9 @@ public class DmChatActivity extends AppCompatActivity {
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
                 proximityManager.stop();
             } else {
+                proximityManager.start();
                 previewPlayer.start();
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_pause);
-                proximityManager.start();
             }
         });
 

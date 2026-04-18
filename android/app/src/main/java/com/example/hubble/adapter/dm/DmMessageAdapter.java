@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -655,9 +656,22 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             currentMediaPlayer = new MediaPlayer();
+            currentMediaPlayer.setWakeMode(btnPlayPause.getContext().getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+            currentProximityManager.setMediaPlayer(currentMediaPlayer);
             currentPlayButton = btnPlayPause;
             currentMediaPlayer.setDataSource(url);
-            currentMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+            currentProximityManager.start();
+
+            // 2. [MỚI] THAY THẾ SET_AUDIO_STREAM_TYPE BẰNG AUDIO_ATTRIBUTES (API Hiện đại)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                currentMediaPlayer.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .build());
+            } else {
+                // Dành cho máy Android quá cổ
+                currentMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+            }
             currentMediaPlayer.prepareAsync();
             btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync);
 
@@ -665,7 +679,6 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 seekBar.setMax(mp.getDuration());
                 mp.start();
                 btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
-                currentProximityManager.start();
 
                 updateSeekBarRunnable = new Runnable() {
                     @Override

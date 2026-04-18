@@ -6,6 +6,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.PowerManager;
 
 public class AudioProximityManager implements SensorEventListener {
@@ -16,6 +17,8 @@ public class AudioProximityManager implements SensorEventListener {
     private PowerManager.WakeLock wakeLock;
     private boolean isPlaying = false;
 
+    private MediaPlayer mediaPlayer;
+
     public AudioProximityManager(Context context) {
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
@@ -23,18 +26,20 @@ public class AudioProximityManager implements SensorEventListener {
 
         PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         if (powerManager != null && powerManager.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) {
-            // Khởi tạo WakeLock để tắt màn hình khi áp tai
             wakeLock = powerManager.newWakeLock(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "Hubble:ProximityAudio");
         }
     }
 
-    // Bắt đầu lắng nghe cảm biến khi bấm Play
+    // [MỚI] Hàm để Adapter truyền MediaPlayer vào
+    public void setMediaPlayer(MediaPlayer player) {
+        this.mediaPlayer = player;
+    }
+
     public void start() {
         if (isPlaying) return;
         isPlaying = true;
 
-        // Khóa hệ thống ở chế độ Giao tiếp (Thoại) và ép mở loa ngoài từ đầu
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        audioManager.setMode(AudioManager.MODE_NORMAL);
         audioManager.setSpeakerphoneOn(true);
 
         if (proximitySensor != null) {
@@ -42,21 +47,20 @@ public class AudioProximityManager implements SensorEventListener {
         }
     }
 
-    // Dừng lắng nghe khi bấm Pause hoặc hết Audio
     public void stop() {
         if (!isPlaying) return;
         isPlaying = false;
+        mediaPlayer = null; // Giải phóng bộ nhớ
 
         if (proximitySensor != null) {
             sensorManager.unregisterListener(this);
         }
 
-        // Trả hệ thống về mặc định (Loa ngoài bình thường)
         audioManager.setMode(AudioManager.MODE_NORMAL);
         audioManager.setSpeakerphoneOn(false);
 
         if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release(); // Bật lại màn hình nếu đang tắt
+            wakeLock.release();
         }
     }
 
@@ -65,23 +69,40 @@ public class AudioProximityManager implements SensorEventListener {
         if (!isPlaying) return;
 
         float distance = event.values[0];
-        // Khoảng cách < 5cm nghĩa là đang áp tai vào
         boolean isNear = distance < proximitySensor.getMaximumRange() && distance < 5f;
 
         if (isNear) {
-            // 1. Tắt màn hình
+            // TẮT MÀN HÌNH
             if (wakeLock != null && !wakeLock.isHeld()) {
                 wakeLock.acquire(10 * 60 * 1000L);
             }
-            // 2. Chuyển sang loa trong (Earpiece) bằng cách tắt loa ngoài
-            audioManager.setSpeakerphoneOn(false);
+
+            // KỸ THUẬT: PAUSE -> ĐỔI LOA -> PLAY
+            if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                mediaPlayer.pause();
+                audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                audioManager.setSpeakerphoneOn(false); // Ép ra loa trong
+                mediaPlayer.start();
+            } else {
+                audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                audioManager.setSpeakerphoneOn(false);
+            }
         } else {
-            // 1. Bật lại màn hình
+            // BẬT LẠI MÀN HÌNH
             if (wakeLock != null && wakeLock.isHeld()) {
                 wakeLock.release();
             }
-            // 2. Chuyển lại loa ngoài (Loudspeaker)
-            audioManager.setSpeakerphoneOn(true);
+
+            // KỸ THUẬT: PAUSE -> ĐỔI LOA -> PLAY
+            if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                mediaPlayer.pause();
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(true); // Ép ra loa ngoài
+                mediaPlayer.start();
+            } else {
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(true);
+            }
         }
     }
 
