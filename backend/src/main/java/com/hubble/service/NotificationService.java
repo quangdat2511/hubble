@@ -37,9 +37,7 @@ public class NotificationService {
     @Transactional
     public void dispatchNotification(UUID userId, NotificationType type, String referenceId, String content, boolean sendEmail, boolean sendPush) {
         log.info("Dispatching {} notification to user {} | Content: {}", type, userId, content);
-        
-        // Prevent duplicate FRIEND_REQUEST notifications within 60 seconds
-        // Same user won't receive duplicate friend request notifications from the same requester
+
         if (type == NotificationType.FRIEND_REQUEST && referenceId != null) {
             Optional<Notification> existing = notificationRepository.findRecentNotification(userId, type, referenceId);
             if (existing.isPresent()) {
@@ -102,6 +100,10 @@ public class NotificationService {
 
         if (!notification.getUserId().equals(userId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (Boolean.TRUE.equals(notification.getIsRead())) {
+            return;
         }
 
         notification.setIsRead(true);

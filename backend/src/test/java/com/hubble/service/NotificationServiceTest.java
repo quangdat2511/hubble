@@ -175,9 +175,6 @@ class NotificationServiceTest {
         when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
         when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
 
-        User user = new User();
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
         notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", false, false);
 
         verify(notificationRepository).save(any(Notification.class));

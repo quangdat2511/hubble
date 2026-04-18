@@ -352,12 +352,12 @@ public class FriendServiceTest {
     }
 
     @Test
-    void declineRequest_NotAddressee_ThrowsException() {
+    void declineRequest_NotRelatedUser_ThrowsException() {
         UUID requestId = UUID.randomUUID();
         Friendship request = Friendship.builder()
                 .id(requestId)
-                .requesterId(currentUserId)
-                .addresseeId(targetUserId)
+                .requesterId(UUID.randomUUID())
+                .addresseeId(UUID.randomUUID())
                 .status(FriendshipStatus.PENDING)
                 .build();
 
