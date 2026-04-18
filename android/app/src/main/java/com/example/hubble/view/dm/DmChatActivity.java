@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
+import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
@@ -58,6 +59,7 @@ import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
 import com.example.hubble.databinding.DialogDeleteMessageBinding;
+import com.example.hubble.utils.AudioProximityManager;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
@@ -177,6 +179,7 @@ public class DmChatActivity extends AppCompatActivity {
     private boolean isRecording = false;
     private int recordTicks = 0;
     private android.media.MediaPlayer previewPlayer ;
+    private AudioProximityManager proximityManager;
 
     private Handler recordHandler = new Handler(Looper.getMainLooper());
     private Runnable recordRunnable;
@@ -247,6 +250,7 @@ public class DmChatActivity extends AppCompatActivity {
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
         mediaViewModel = new ViewModelProvider(this).get(MediaViewModel.class);
+        proximityManager = new AudioProximityManager(this);
         currentUserId = dmRepository.getCurrentUserId();
 
         UserResponse user = tokenManager.getUser();
@@ -331,6 +335,11 @@ public class DmChatActivity extends AppCompatActivity {
         disconnectStomp();
         disposables.clear();
         statusDisposables.clear();
+
+        DmMessageAdapter.releaseAudio();
+        if (proximityManager != null) {
+            proximityManager.stop();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -781,16 +790,22 @@ public class DmChatActivity extends AppCompatActivity {
                 previewPlayer = new android.media.MediaPlayer();
                 try {
                     previewPlayer.setDataSource(audioFile.getAbsolutePath());
+                    previewPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
                     previewPlayer.prepare();
-                    previewPlayer.setOnCompletionListener(mp -> ivListenIcon.setImageResource(android.R.drawable.ic_media_play));
+                    previewPlayer.setOnCompletionListener(mp -> {
+                        ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+                        proximityManager.stop();
+                    });
                 } catch (IOException e) { e.printStackTrace(); }
             }
             if (previewPlayer.isPlaying()) {
                 previewPlayer.pause();
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+                proximityManager.stop();
             } else {
                 previewPlayer.start();
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_pause);
+                proximityManager.start();
             }
         });
 
@@ -799,6 +814,7 @@ public class DmChatActivity extends AppCompatActivity {
             if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
             if (state[0] != 0 && audioFile != null && audioFile.exists()) audioFile.delete(); // Xóa file nháp
             recordHandler.removeCallbacks(recordRunnable);
+            proximityManager.stop();
         });
 
         updateUI.run();

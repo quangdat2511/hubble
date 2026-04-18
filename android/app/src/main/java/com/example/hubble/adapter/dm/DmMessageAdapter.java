@@ -4,6 +4,7 @@ import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Environment;
@@ -32,6 +33,7 @@ import com.example.hubble.databinding.ItemDmDateSeparatorBinding;
 import com.example.hubble.databinding.ItemDmMessageBinding;
 import com.example.hubble.databinding.ItemChannelWelcomeIntroBinding;
 import com.example.hubble.databinding.ItemDmProfileIntroBinding;
+import com.example.hubble.utils.AudioProximityManager;
 import com.google.android.material.chip.Chip;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.InAppMessageUtils;
@@ -80,9 +82,11 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private boolean showMineMessageStatus = true;
 
     private static MediaPlayer currentMediaPlayer;
+    private static AudioProximityManager currentProximityManager;
     private static ImageView currentPlayButton;
     private static Handler audioHandler = new Handler(Looper.getMainLooper());
     private static Runnable updateSeekBarRunnable;
+    private AudioProximityManager proximityManager;
 
     public DmMessageAdapter(@NonNull Context context) {
         this.context = context;
@@ -622,14 +626,20 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
         try {
+            if (currentProximityManager == null) {
+                currentProximityManager = new com.example.hubble.utils.AudioProximityManager(
+                        btnPlayPause.getContext().getApplicationContext());
+            }
             if (currentMediaPlayer != null && currentPlayButton == btnPlayPause) {
                 if (currentMediaPlayer.isPlaying()) {
                     currentMediaPlayer.pause();
                     btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                    currentProximityManager.stop();
                 } else {
                     currentMediaPlayer.start();
                     btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
                     audioHandler.post(updateSeekBarRunnable);
+                    currentProximityManager.start();
                 }
                 return;
             }
@@ -641,11 +651,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     currentPlayButton.setImageResource(android.R.drawable.ic_media_play);
                 }
                 audioHandler.removeCallbacks(updateSeekBarRunnable);
+                currentProximityManager.stop();
             }
 
             currentMediaPlayer = new MediaPlayer();
             currentPlayButton = btnPlayPause;
             currentMediaPlayer.setDataSource(url);
+            currentMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
             currentMediaPlayer.prepareAsync();
             btnPlayPause.setImageResource(android.R.drawable.ic_popup_sync);
 
@@ -653,6 +665,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 seekBar.setMax(mp.getDuration());
                 mp.start();
                 btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+                currentProximityManager.start();
 
                 updateSeekBarRunnable = new Runnable() {
                     @Override
@@ -673,6 +686,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 seekBar.setProgress(0);
                 tvDuration.setText("0:00");
                 audioHandler.removeCallbacks(updateSeekBarRunnable);
+                currentProximityManager.stop();
             });
 
             seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -689,6 +703,31 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void releaseAudio() {
+        // 1. Tắt và dọn dẹp Trình phát nhạc
+        if (currentMediaPlayer != null) {
+            if (currentMediaPlayer.isPlaying()) {
+                currentMediaPlayer.stop();
+            }
+            currentMediaPlayer.release();
+            currentMediaPlayer = null; // Gán bằng null để giải phóng RAM
+        }
+
+        // 2. Dọn dẹp luồng chạy ngầm của thanh thời gian (SeekBar)
+        if (audioHandler != null && updateSeekBarRunnable != null) {
+            audioHandler.removeCallbacks(updateSeekBarRunnable);
+        }
+
+        // 3. TẮT CẢM BIẾN TIỆM CẬN (Cực kỳ quan trọng để không bị lỗi đen màn hình)
+        if (currentProximityManager != null) {
+            currentProximityManager.stop();
+            currentProximityManager = null; // Giải phóng Context
+        }
+
+        // 4. Reset nút Play
+        currentPlayButton = null;
     }
 
     private static void openAttachment(Context context, String url, String mimeType) {
