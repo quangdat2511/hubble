@@ -53,6 +53,8 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.ReactionDto;
+import com.example.hubble.data.realtime.ActiveDmChannelTracker;
+import com.example.hubble.data.realtime.ActiveServerChannelTracker;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
@@ -315,6 +317,13 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        if (!isServerTextChannel() && !TextUtils.isEmpty(channelId)) {
+            ActiveDmChannelTracker.setActiveChannelId(channelId);
+        }
+        if (isServerTextChannel() && !TextUtils.isEmpty(channelId)) {
+            ActiveServerChannelTracker.setActiveChannelId(channelId);
+            ActiveServerChannelTracker.notifyChannelRead(channelId);
+        }
         connectStomp();
     }
 
@@ -327,6 +336,11 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        if (!isServerTextChannel()) {
+            ActiveDmChannelTracker.clearIfMatch(channelId);
+        } else {
+            ActiveServerChannelTracker.clearIfMatch(channelId);
+        }
         disconnectStomp();
     }
 
@@ -1912,7 +1926,13 @@ public class DmChatActivity extends AppCompatActivity {
         if (id == null) return;
         if (id.equals(lastMarkedReadMessageId)) return;
         lastMarkedReadMessageId = id;
-        dmRepository.markChannelRead(channelId, id, result -> { });
+        final String readChannelId = channelId;
+        final boolean isServerChannel = isServerTextChannel();
+        dmRepository.markChannelRead(readChannelId, id, result -> {
+            if (isServerChannel) {
+                ActiveServerChannelTracker.notifyChannelRead(readChannelId);
+            }
+        });
     }
 
     private MessageDto parseMessagePayload(String payload) {

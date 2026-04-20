@@ -3,6 +3,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <color name="color_auth_background">#313338</color>
     <color name="color_background">#313338</color>
     <color name="color_surface">#2B2D31</color>
     <color name="color_surface_elevated">#383A40</color>

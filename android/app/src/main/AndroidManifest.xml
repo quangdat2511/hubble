@@ -46,6 +46,7 @@
         <activity
             android:name=".view.auth.LoginActivity"
             android:exported="false"
+            android:theme="@style/Theme.Hubble.Login"
             android:windowSoftInputMode="adjustResize" />
 
         <activity

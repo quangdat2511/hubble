@@ -18,13 +18,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.util.Date;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,26 +29,20 @@ public class UserService {
 
     UserRepository userRepository;
     UserMapper userMapper;
+    AvatarStorageService avatarStorageService;
+
     private static final String QR_SECRET = "zrsOcuJF0vzlwiCePOFSzQ3yijl2tbQIabcefdfsPHe6wZA9dfVZvxZA6UruGfMKYLr3RM9q";
 
-    static final Path AVATAR_FOLDER = Paths.get(System.getProperty("user.dir"), "uploads", "avatars")
-            .toAbsolutePath()
-            .normalize();
-    static final String AVATAR_URL_PREFIX = "/uploads/avatars/";
-    static final long MAX_SIZE_BYTES = 5 * 1024 * 1024;
-    static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-    );
-
     public UserResponse getUserById(UUID userId) {
-        return userMapper.toUserResponse(findById(userId));
+        User user = findById(userId);
+        migrateLegacyAvatarIfNeeded(user);
+        return userMapper.toUserResponse(user);
     }
 
     public UserResponse getUserByEmail(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        migrateLegacyAvatarIfNeeded(user);
         return userMapper.toUserResponse(user);
     }
 
@@ -62,46 +51,30 @@ public class UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
-    public UserResponse updateAvatar(UUID userId, MultipartFile file) throws IOException {
-        validateAvatarFile(file);
-
+    public UserResponse updateAvatar(UUID userId, MultipartFile file) {
         User user = findById(userId);
-        Files.createDirectories(AVATAR_FOLDER);
-
-        String fileName = UUID.randomUUID() + resolveExtension(file);
-        Path newAvatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
-        if (!newAvatarPath.startsWith(AVATAR_FOLDER)) {
-            throw new AppException(ErrorCode.INVALID_FILE);
-        }
-
-        file.transferTo(newAvatarPath.toFile());
-
         String oldAvatarUrl = user.getAvatarUrl();
-        user.setAvatarUrl(AVATAR_URL_PREFIX + fileName);
-        userRepository.save(user);
+        String newAvatarUrl = avatarStorageService.uploadAvatar(userId, file);
 
+        user.setAvatarUrl(newAvatarUrl);
+        userRepository.save(user);
         deleteOldAvatar(oldAvatarUrl);
+
         return userMapper.toUserResponse(user);
     }
 
-    public AvatarResponse getAvatarResponse(UUID userId) throws IOException {
+    public AvatarResponse getAvatarResponse(UUID userId) {
         User user = findById(userId);
-        String avatarUrl = user.getAvatarUrl();
+        String avatarUrl = migrateLegacyAvatarIfNeeded(user);
         if (avatarUrl == null || avatarUrl.isBlank()) {
             throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
         }
 
-        Path avatarPath = getAvatarPath(user);
-        String fileName = avatarPath.getFileName().toString();
-        String contentType = Files.probeContentType(avatarPath);
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
+        String fileName = avatarStorageService.extractFileName(avatarUrl);
         return AvatarResponse.builder()
                 .avatarUrl(avatarUrl)
                 .fileName(fileName)
-                .contentType(contentType)
+                .contentType(avatarStorageService.detectContentType(fileName))
                 .build();
     }
 
@@ -132,50 +105,24 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
-    private Path getAvatarPath(User user) {
+    private String migrateLegacyAvatarIfNeeded(User user) {
         String avatarUrl = user.getAvatarUrl();
         if (avatarUrl == null || avatarUrl.isBlank()) {
-            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+            return avatarUrl;
         }
 
-        String fileName = Paths.get(avatarUrl).getFileName().toString();
-        Path avatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
-
-        if (!avatarPath.startsWith(AVATAR_FOLDER)) {
-            throw new AppException(ErrorCode.INVALID_FILE);
-        }
-        if (!Files.exists(avatarPath) || !Files.isRegularFile(avatarPath)) {
-            throw new AppException(ErrorCode.AVATAR_NOT_FOUND);
+        if (!avatarStorageService.isLegacyAvatarUrl(avatarUrl)) {
+            return avatarUrl;
         }
 
-        return avatarPath;
-    }
-
-    private void validateAvatarFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_FILE);
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE);
-        }
-        if (file.getSize() > MAX_SIZE_BYTES) {
-            throw new AppException(ErrorCode.FILE_TOO_LARGE);
-        }
-    }
-
-    private String resolveExtension(MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            return ".jpg";
-        }
-
-        return switch (contentType) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
+        String migratedUrl = avatarStorageService.migrateLegacyAvatar(
+                user.getId(),
+                avatarStorageService.resolveLegacyPath(avatarUrl)
+        );
+        user.setAvatarUrl(migratedUrl);
+        userRepository.save(user);
+        avatarStorageService.deleteLegacyAvatarQuietly(avatarUrl);
+        return migratedUrl;
     }
 
     private void deleteOldAvatar(String avatarUrl) {
@@ -183,15 +130,12 @@ public class UserService {
             return;
         }
 
-        try {
-            String fileName = Paths.get(avatarUrl).getFileName().toString();
-            Path oldAvatarPath = AVATAR_FOLDER.resolve(fileName).normalize();
-            if (oldAvatarPath.startsWith(AVATAR_FOLDER)) {
-                Files.deleteIfExists(oldAvatarPath);
-            }
-        } catch (Exception ignored) {
-            // Keep the new avatar even if the old file cleanup fails.
+        if (avatarStorageService.isLegacyAvatarUrl(avatarUrl)) {
+            avatarStorageService.deleteLegacyAvatarQuietly(avatarUrl);
+            return;
         }
+
+        avatarStorageService.deleteAvatarByUrl(avatarUrl);
     }
 
     private String normalize(String value) {
