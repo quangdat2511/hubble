@@ -13,6 +13,8 @@ import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.realtime.ActiveDmChannelTracker;
+import com.example.hubble.data.realtime.ActiveServerChannelTracker;
 import com.example.hubble.data.model.server.ChannelEvent;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
@@ -110,6 +112,10 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<Map<String, Integer>> _serverUnreadByServerId = new MutableLiveData<>(new HashMap<>());
     public final LiveData<Map<String, Integer>> serverUnreadByServerId = _serverUnreadByServerId;
 
+    /** Aggregate mention counts per server. Used to drive the red circular badge. */
+    private final MutableLiveData<Map<String, Integer>> _serverMentionByServerId = new MutableLiveData<>(new HashMap<>());
+    public final LiveData<Map<String, Integer>> serverMentionByServerId = _serverMentionByServerId;
+
     private final Set<String> collapsedCategories = new HashSet<>();
     private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
@@ -120,6 +126,10 @@ public class MainViewModel extends ViewModel {
     private volatile String subscribedServerChannelServerId = null;
     private Disposable serverChannelTopicDisposable = null;
 
+    // Per-server-channel message topic subscriptions used to bump unread badges.
+    private final Map<String, Disposable> serverChannelMessageSubscriptions = new HashMap<>();
+    private final Set<String> desiredServerChannelIds = new HashSet<>();
+
 
     public MainViewModel(Context appContext, DmRepository dmRepository, ServerRepository serverRepository) {
         this.appContext = appContext.getApplicationContext();
@@ -129,8 +139,18 @@ public class MainViewModel extends ViewModel {
         _servers.setValue(new ArrayList<>());
         _selectedServer.setValue(null);
         observeServerEvents();
+        observeServerChannelReadEvents();
         refreshServers();
         refreshDirectMessages();
+    }
+
+    private void observeServerChannelReadEvents() {
+        wsDisposables.add(
+                ActiveServerChannelTracker.observeChannelRead()
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::markServerChannelReadLocally, throwable -> {})
+        );
     }
 
     private void observeServerEvents() {
@@ -255,6 +275,7 @@ public class MainViewModel extends ViewModel {
                         _serverChannels.postValue(AuthResult.success(result.getData()));
                     }
                     postServerUnreadSummaries();
+                    syncServerChannelMessageSubscriptions();
                 }
             });
         }
@@ -265,25 +286,35 @@ public class MainViewModel extends ViewModel {
         if (serverList == null) {
             return;
         }
-        Map<String, Integer> map = new HashMap<>();
+        Map<String, Integer> unreadMap = new HashMap<>();
+        Map<String, Integer> mentionMap = new HashMap<>();
         for (ServerItem s : serverList) {
             if (s == null || TextUtils.isEmpty(s.getId())) continue;
             List<ChannelDto> chs = channelCache.get(s.getId());
-            int sum = 0;
+            int unreadSum = 0;
+            int mentionSum = 0;
             if (chs != null) {
                 for (ChannelDto c : chs) {
                     if (c == null) continue;
                     Integer u = c.getUnreadCount();
                     if (u != null && u > 0) {
-                        sum += u;
+                        unreadSum += u;
+                    }
+                    Integer m = c.getMentionCount();
+                    if (m != null && m > 0) {
+                        mentionSum += m;
                     }
                 }
             }
-            if (sum > 0) {
-                map.put(s.getId(), Math.min(sum, 9999));
+            if (unreadSum > 0) {
+                unreadMap.put(s.getId(), Math.min(unreadSum, 9999));
+            }
+            if (mentionSum > 0) {
+                mentionMap.put(s.getId(), Math.min(mentionSum, 9999));
             }
         }
-        _serverUnreadByServerId.postValue(map);
+        _serverUnreadByServerId.postValue(unreadMap);
+        _serverMentionByServerId.postValue(mentionMap);
     }
 
     public void openOrCreateDirectChannel(String friendId) {
@@ -307,6 +338,48 @@ public class MainViewModel extends ViewModel {
 
     public void consumeErrorMessage() {
         _errorMessage.setValue(null);
+    }
+
+    public void markConversationRead(String channelId, String friendId) {
+        List<DmConversationItem> current = _dmConversations.getValue();
+        if (current == null || current.isEmpty()) {
+            return;
+        }
+
+        List<DmConversationItem> updated = new ArrayList<>(current.size());
+        boolean changed = false;
+        for (DmConversationItem item : current) {
+            if (item == null) {
+                continue;
+            }
+            boolean matched = (!TextUtils.isEmpty(channelId) && channelId.equals(item.getChannelId()))
+                    || (!TextUtils.isEmpty(friendId) && friendId.equals(item.getFriendId()));
+            if (matched && item.getUnreadCount() > 0) {
+                updated.add(new DmConversationItem(
+                        item.getId(),
+                        item.getChannelId(),
+                        item.getFriendId(),
+                        item.getDisplayName(),
+                        item.getAvatarUrl(),
+                        item.getLastMessage(),
+                        item.getTimeLabel(),
+                        item.getStatus(),
+                        item.getCustomStatus(),
+                        item.isVerified(),
+                        item.isSelected(),
+                        item.isFavorite(),
+                        0,
+                        item.getLastMessageAtMillis()
+                ));
+                changed = true;
+            } else {
+                updated.add(item);
+            }
+        }
+
+        if (changed) {
+            publishConversations(updated);
+        }
     }
 
     public void setServers(List<ServerItem> servers) {
@@ -556,6 +629,7 @@ public class MainViewModel extends ViewModel {
                     if (event.getType() == LifecycleEvent.Type.OPENED) {
                         dmRealtimeConnected = true;
                         syncDmTopicSubscriptions();
+                        applyServerChannelMessageSubscriptions();
                         subscribeToServerChannelTopic(desiredServerChannelServerId);
                         // STOMP does not replay missed messages. Pull latest previews from REST
                         // so B sees new messages on the home list without opening the chat.
@@ -566,6 +640,7 @@ public class MainViewModel extends ViewModel {
                         subscribedServerChannelServerId = null;
                         serverChannelTopicDisposable = null;
                         clearDmTopicSubscriptions();
+                        clearServerChannelMessageSubscriptions();
                         scheduleDmRealtimeReconnect();
                     }
                 }, throwable -> {
@@ -762,7 +837,11 @@ public class MainViewModel extends ViewModel {
                 timeLabel = seededItem.getTimeLabel();
             }
 
-            int seedUnread = currentUserId != null && currentUserId.equals(message.getAuthorId()) ? 0 : 1;
+            String activeChannelId = ActiveDmChannelTracker.getActiveChannelId();
+            boolean isIncomingFromPeer = currentUserId == null || !currentUserId.equals(message.getAuthorId());
+            boolean isCurrentlyOpened = !TextUtils.isEmpty(activeChannelId)
+                    && activeChannelId.equals(message.getChannelId());
+            int seedUnread = (isIncomingFromPeer && !isCurrentlyOpened) ? 1 : 0;
             DmConversationItem inserted = new DmConversationItem(
                     seededItem.getId(),
                     seededItem.getChannelId(),
@@ -793,9 +872,15 @@ public class MainViewModel extends ViewModel {
             timeLabel = currentItem.getTimeLabel();
         }
 
+        String activeChannelId = ActiveDmChannelTracker.getActiveChannelId();
+        boolean isIncomingFromPeer = currentUserId == null || !currentUserId.equals(message.getAuthorId());
+        boolean isCurrentlyOpened = !TextUtils.isEmpty(activeChannelId)
+                && activeChannelId.equals(message.getChannelId());
         int nextUnread = currentItem.getUnreadCount();
-        if (currentUserId == null || !currentUserId.equals(message.getAuthorId())) {
+        if (isIncomingFromPeer && !isCurrentlyOpened) {
             nextUnread = Math.min(999, nextUnread + 1);
+        } else if (isCurrentlyOpened) {
+            nextUnread = 0;
         }
         DmConversationItem updated = new DmConversationItem(
                 currentItem.getId(),
@@ -1138,6 +1223,7 @@ public class MainViewModel extends ViewModel {
                     _serverChannels.postValue(AuthResult.success(result.getData()));
                 }
                 postServerUnreadSummaries();
+                syncServerChannelMessageSubscriptions();
                 return;
             }
             if (result.getStatus() == AuthResult.Status.ERROR && cached == null
@@ -1148,6 +1234,175 @@ public class MainViewModel extends ViewModel {
 
         ensureDmRealtimeConnected();
         subscribeToServerChannelTopic(serverId);
+    }
+
+    /**
+     * Public hook used by UI right before navigating into a server text channel:
+     * optimistically zero its unread count and tell the backend we've read through
+     * the latest message id we know about.
+     */
+    public void markServerChannelRead(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return;
+        }
+        markServerChannelReadLocally(channelId);
+        dmRepository.markChannelRead(channelId, null, result -> {});
+    }
+
+    /**
+     * Find the channel across every cached server, reset its unreadCount to 0,
+     * and broadcast the updated channel list + aggregate summary.
+     */
+    private void markServerChannelReadLocally(String channelId) {
+        if (TextUtils.isEmpty(channelId)) {
+            return;
+        }
+        boolean changed = false;
+        for (Map.Entry<String, List<ChannelDto>> entry : channelCache.entrySet()) {
+            List<ChannelDto> list = entry.getValue();
+            if (list == null) continue;
+            for (int i = 0; i < list.size(); i++) {
+                ChannelDto c = list.get(i);
+                if (c == null || !channelId.equals(c.getId())) continue;
+
+                boolean hadUnread = c.getUnreadCount() != null && c.getUnreadCount() > 0;
+                boolean hadMention = c.getMentionCount() != null && c.getMentionCount() > 0;
+                if (!hadUnread && !hadMention) continue;
+
+                c.setUnreadCount(0);
+                c.setMentionCount(0);
+                changed = true;
+                if (entry.getKey() != null && entry.getKey().equals(activeServerId)) {
+                    _serverChannels.postValue(AuthResult.success(new ArrayList<>(list)));
+                }
+            }
+        }
+        if (changed) {
+            postServerUnreadSummaries();
+        }
+    }
+
+    /**
+     * Ensure we have a STOMP subscription for every text channel across every
+     * cached server so incoming messages can bump per-channel unread counts even
+     * when the user isn't viewing that server.
+     */
+    private void syncServerChannelMessageSubscriptions() {
+        Set<String> desired = new HashSet<>();
+        for (List<ChannelDto> list : channelCache.values()) {
+            if (list == null) continue;
+            for (ChannelDto c : list) {
+                if (c == null || TextUtils.isEmpty(c.getId())) continue;
+                if (!"TEXT".equalsIgnoreCase(c.getType())) continue;
+                desired.add(c.getId());
+            }
+        }
+        desiredServerChannelIds.clear();
+        desiredServerChannelIds.addAll(desired);
+
+        if (desiredServerChannelIds.isEmpty()) {
+            clearServerChannelMessageSubscriptions();
+            return;
+        }
+
+        ensureDmRealtimeConnected();
+        if (dmRealtimeConnected) {
+            applyServerChannelMessageSubscriptions();
+        }
+    }
+
+    private void applyServerChannelMessageSubscriptions() {
+        if (!dmRealtimeConnected || dmRealtimeClient == null) {
+            return;
+        }
+        List<String> current = new ArrayList<>(serverChannelMessageSubscriptions.keySet());
+        for (String channelId : current) {
+            if (!desiredServerChannelIds.contains(channelId)) {
+                Disposable d = serverChannelMessageSubscriptions.remove(channelId);
+                if (d != null && !d.isDisposed()) d.dispose();
+            }
+        }
+
+        for (String channelId : desiredServerChannelIds) {
+            if (serverChannelMessageSubscriptions.containsKey(channelId)) continue;
+            if (desiredDmChannelIds.contains(channelId)) continue; // DM subscription already handles it
+
+            final String cid = channelId;
+            Disposable d = dmRealtimeClient
+                    .topic("/topic/channels/" + cid)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(stompMessage -> {
+                        MessageDto dto = parseServerChannelMessage(stompMessage.getPayload());
+                        if (dto == null) return;
+                        if (TextUtils.isEmpty(dto.getChannelId())) {
+                            dto.setChannelId(cid);
+                        }
+                        onIncomingServerChannelMessage(dto);
+                    }, throwable -> {});
+            serverChannelMessageSubscriptions.put(cid, d);
+            dmRealtimeDisposables.add(d);
+        }
+    }
+
+    private void clearServerChannelMessageSubscriptions() {
+        for (Disposable d : serverChannelMessageSubscriptions.values()) {
+            if (d != null && !d.isDisposed()) d.dispose();
+        }
+        serverChannelMessageSubscriptions.clear();
+    }
+
+    private MessageDto parseServerChannelMessage(String payload) {
+        if (payload == null) return null;
+        try {
+            MessageDto direct = gson.fromJson(payload, MessageDto.class);
+            if (direct != null && !TextUtils.isEmpty(direct.getChannelId())) {
+                return direct;
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Bump the unreadCount for the channel the incoming message belongs to,
+     * unless it was authored by us or the user is currently viewing that channel.
+     */
+    private void onIncomingServerChannelMessage(MessageDto message) {
+        if (message == null || TextUtils.isEmpty(message.getChannelId())) return;
+
+        boolean authoredBySelf = currentUserId != null
+                && currentUserId.equals(message.getAuthorId());
+        String active = ActiveServerChannelTracker.getActiveChannelId();
+        boolean isCurrentlyOpened = !TextUtils.isEmpty(active)
+                && active.equals(message.getChannelId());
+        if (authoredBySelf || isCurrentlyOpened) {
+            return;
+        }
+
+        boolean changed = false;
+        String ownerServerId = null;
+        List<ChannelDto> ownerList = null;
+        for (Map.Entry<String, List<ChannelDto>> entry : channelCache.entrySet()) {
+            List<ChannelDto> list = entry.getValue();
+            if (list == null) continue;
+            for (ChannelDto c : list) {
+                if (c != null && message.getChannelId().equals(c.getId())) {
+                    int u = c.getUnreadCount() != null ? c.getUnreadCount() : 0;
+                    c.setUnreadCount(Math.min(9999, u + 1));
+                    ownerServerId = entry.getKey();
+                    ownerList = list;
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed) break;
+        }
+        if (!changed) return;
+
+        if (ownerServerId != null && ownerServerId.equals(activeServerId) && ownerList != null) {
+            _serverChannels.postValue(AuthResult.success(new ArrayList<>(ownerList)));
+        }
+        postServerUnreadSummaries();
     }
 
     private void subscribeToServerChannelTopic(String serverId) {
@@ -1198,6 +1453,7 @@ public class MainViewModel extends ViewModel {
         if (serverId.equals(activeServerId)) {
             _serverChannels.postValue(AuthResult.success(updated));
         }
+        syncServerChannelMessageSubscriptions();
     }
 
     private void onServerChannelUpdated(String serverId, ChannelDto updatedChannel) {
@@ -1239,6 +1495,8 @@ public class MainViewModel extends ViewModel {
         if (serverId.equals(activeServerId)) {
             _serverChannels.postValue(AuthResult.success(updated));
         }
+        postServerUnreadSummaries();
+        syncServerChannelMessageSubscriptions();
     }
 
     public void toggleCategoryCollapse(String categoryId) {
@@ -1267,9 +1525,11 @@ public class MainViewModel extends ViewModel {
     protected void onCleared() {
         dmRealtimeReconnectPending = false;
         clearDmTopicSubscriptions();
+        clearServerChannelMessageSubscriptions();
         if (serverChannelTopicDisposable != null && !serverChannelTopicDisposable.isDisposed()) {
             serverChannelTopicDisposable.dispose();
         }
+        wsDisposables.clear();
         dmRealtimeDisposables.clear();
         if (dmRealtimeClient != null) {
             dmRealtimeClient.disconnect();

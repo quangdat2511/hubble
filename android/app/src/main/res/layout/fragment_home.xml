@@ -70,13 +70,6 @@
 
         </FrameLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:layout_marginEnd="@dimen/spacing_sm"
-            android:background="?attr/colorOutline" />
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvServers"
             android:layout_width="@dimen/sidebar_width"

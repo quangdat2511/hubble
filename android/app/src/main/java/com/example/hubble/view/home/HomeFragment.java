@@ -141,6 +141,18 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        viewModel.serverMentionByServerId.observe(getViewLifecycleOwner(), map -> {
+            if (serverAdapter != null) {
+                serverAdapter.setMentionsByServerId(map);
+            }
+        });
+
+        viewModel.dmConversations.observe(getViewLifecycleOwner(), conversations -> {
+            if (serverAdapter != null) {
+                serverAdapter.setDmItems(toSidebarUnreadDmItems(conversations));
+            }
+        });
+
         viewModel.dmTotalUnread.observe(getViewLifecycleOwner(), n -> syncDmSidebarBadges());
 
         viewModel.selectedServer.observe(getViewLifecycleOwner(), selectedServer -> {
@@ -149,6 +161,7 @@ public class HomeFragment extends Fragment {
         });
 
         serverAdapter.setOnServerClickListener((server, position) -> viewModel.selectServer(server));
+        serverAdapter.setOnDmClickListener(this::openConversation);
 
         binding.btnDmView.setOnClickListener(v -> viewModel.selectDmPanel());
 
@@ -175,16 +188,9 @@ public class HomeFragment extends Fragment {
     /** Discord-style: red count on DM icon + white left pill when unread and a server is selected. */
     private void syncDmSidebarBadges() {
         if (binding == null || viewModel == null) return;
-        Integer total = viewModel.dmTotalUnread.getValue();
-        int t = total != null ? total : 0;
-        boolean dmPanel = viewModel.selectedServer.getValue() == null;
-        binding.viewDmUnreadPill.setVisibility(t > 0 && !dmPanel ? View.VISIBLE : View.GONE);
-        if (t > 0 && !dmPanel) {
-            binding.tvDmSidebarBadge.setVisibility(View.VISIBLE);
-            binding.tvDmSidebarBadge.setText(t > 99 ? "99+" : String.valueOf(t));
-        } else {
-            binding.tvDmSidebarBadge.setVisibility(View.GONE);
-        }
+        // Keep the top DM button badge-free (Discord behavior).
+        binding.viewDmUnreadPill.setVisibility(View.GONE);
+        binding.tvDmSidebarBadge.setVisibility(View.GONE);
     }
 
     private void syncSelectedServer(@Nullable ServerItem selectedServer) {
@@ -234,6 +240,7 @@ public class HomeFragment extends Fragment {
                                 }
                             }
                         }
+                        viewModel.markServerChannelRead(channel.getId());
                         startActivity(DmChatActivity.createIntentForServerText(
                                 requireContext(),
                                 server.getId(),
@@ -406,6 +413,7 @@ public class HomeFragment extends Fragment {
                 : getString(R.string.dm_default_user);
 
         if (item.hasChannelId()) {
+            viewModel.markConversationRead(item.getChannelId(), item.getFriendId());
             startActivity(DmChatActivity.createIntent(
                     requireContext(),
                     item.getChannelId(),
@@ -423,7 +431,22 @@ public class HomeFragment extends Fragment {
 
         pendingDmDisplayName = displayName;
         pendingDmAvatarUrl = item.getAvatarUrl();
+        viewModel.markConversationRead(item.getChannelId(), item.getFriendId());
         viewModel.openOrCreateDirectChannel(friendId);
+    }
+
+    @NonNull
+    private List<DmConversationItem> toSidebarUnreadDmItems(@Nullable List<DmConversationItem> conversations) {
+        List<DmConversationItem> unreadItems = new ArrayList<>();
+        if (conversations == null || conversations.isEmpty()) {
+            return unreadItems;
+        }
+        for (DmConversationItem item : conversations) {
+            if (item != null && item.getUnreadCount() > 0) {
+                unreadItems.add(item);
+            }
+        }
+        return unreadItems;
     }
 
     private void showConversationActionsSheet(DmConversationItem item) {

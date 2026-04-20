@@ -179,24 +179,13 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             int onSurfaceVariant = MaterialColors.getColor(binding.getRoot(), com.google.android.material.R.attr.colorOnSurfaceVariant);
 
             boolean unread = item.hasUnread();
-            binding.viewUnreadDot.setVisibility(unread ? View.VISIBLE : View.GONE);
+            // Discord behavior: username always bold and high-contrast.
+            binding.tvName.setTypeface(null, Typeface.BOLD);
+            binding.tvName.setTextColor(onSurface);
 
-            if (item.isSelected()) {
-                binding.tvName.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
-                binding.tvPreview.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
-                binding.tvName.setTextColor(onSurface);
-                binding.tvPreview.setTextColor(unread ? onSurface : onSurfaceVariant);
-            } else if (unread) {
-                binding.tvName.setTypeface(null, Typeface.BOLD);
-                binding.tvPreview.setTypeface(null, Typeface.BOLD);
-                binding.tvName.setTextColor(onSurface);
-                binding.tvPreview.setTextColor(onSurface);
-            } else {
-                binding.tvName.setTypeface(null, Typeface.NORMAL);
-                binding.tvPreview.setTypeface(null, Typeface.NORMAL);
-                binding.tvName.setTextColor(onSurfaceVariant);
-                binding.tvPreview.setTextColor(onSurfaceVariant);
-            }
+            // Only preview text changes between unread/read.
+            binding.tvPreview.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
+            binding.tvPreview.setTextColor(unread ? onSurface : onSurfaceVariant);
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
             int avatarSize = binding.ivAvatar.getLayoutParams() != null
                     ? binding.ivAvatar.getLayoutParams().width
