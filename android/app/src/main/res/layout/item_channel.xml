@@ -1,64 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_channel_item"
     android:clickable="true"
-    android:focusable="true"
-    android:gravity="center_vertical"
-    android:minHeight="48dp"
-    android:orientation="horizontal"
-    android:paddingStart="@dimen/spacing_md"
-    android:paddingEnd="@dimen/spacing_md"
-    android:paddingTop="@dimen/spacing_xs"
-    android:paddingBottom="@dimen/spacing_xs">
+    android:focusable="true">
 
-    <FrameLayout
-        android:layout_width="@dimen/channel_icon_size"
-        android:layout_height="@dimen/channel_icon_size"
-        android:layout_marginEnd="@dimen/spacing_sm">
-
-        <ImageView
-            android:id="@+id/ivChannelIcon"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_sound"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageView
-            android:id="@+id/ivLockBadge"
-            android:layout_width="10dp"
-            android:layout_height="10dp"
-            android:layout_gravity="bottom|end"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_lock_outline"
-            android:visibility="gone"
-            app:tint="?attr/colorOnSurface" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/tvChannelName"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textAppearance="?attr/textAppearanceTitleSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_md"
+        android:paddingEnd="@dimen/spacing_md"
+        android:paddingTop="@dimen/spacing_xs"
+        android:paddingBottom="@dimen/spacing_xs">
 
-    <TextView
-        android:id="@+id/tvChannelUnreadBadge"
-        android:layout_width="wrap_content"
+        <FrameLayout
+            android:layout_width="@dimen/channel_icon_size"
+            android:layout_height="@dimen/channel_icon_size"
+            android:layout_marginEnd="@dimen/spacing_sm">
+
+            <ImageView
+                android:id="@+id/ivChannelIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_hashtag"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
+            <ImageView
+                android:id="@+id/ivLockBadge"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="bottom|end"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_lock_outline"
+                android:visibility="gone"
+                app:tint="?attr/colorOnSurface" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvChannelName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/tvChannelUnreadBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:background="@drawable/bg_unread_badge_red"
+            android:gravity="center"
+            android:minWidth="20dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <View
+        android:id="@+id/viewChannelUnreadDot"
+        android:layout_width="3dp"
         android:layout_height="20dp"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:background="@drawable/bg_unread_badge_red"
-        android:gravity="center"
-        android:minWidth="20dp"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:textColor="@color/white"
-        android:textSize="12sp"
-        android:textStyle="bold"
+        android:layout_gravity="start|center_vertical"
+        android:background="@drawable/bg_channel_unread_pill"
         android:visibility="gone" />
 
-</LinearLayout>
+</FrameLayout>

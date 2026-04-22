@@ -10,6 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SmartReplyResponse {
+    private String contextTag;
     private List<String> suggestions;
     private String messageAuthorId;
 }

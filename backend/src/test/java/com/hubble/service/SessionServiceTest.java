@@ -120,4 +120,16 @@ public class SessionServiceTest {
         assertEquals(ErrorCode.NOT_FOUND, exception.getErrorCode());
         verify(userSessionRepository, never()).save(any(UserSession.class));
     }
+
+    @Test
+    void revokeSession_SessionAlreadyInactive_ThrowsException() {
+        when(userSessionRepository.findByIdAndUserIdAndIsActiveTrue(sessionId, userId))
+                .thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class,
+                () -> sessionService.revokeSession(userId, sessionId));
+
+        assertEquals(ErrorCode.NOT_FOUND, exception.getErrorCode());
+        verify(userSessionRepository, never()).save(any(UserSession.class));
+    }
 }

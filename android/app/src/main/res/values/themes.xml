@@ -50,6 +50,15 @@
         <item name="android:windowFullscreen">true</item>
     </style>
 
+    <style name="Theme.Hubble.Login" parent="Theme.Hubble">
+        <item name="android:colorBackground">@color/color_auth_background</item>
+        <item name="android:windowBackground">@color/color_auth_background</item>
+        <item name="android:statusBarColor">@color/color_auth_background</item>
+        <item name="android:navigationBarColor">@color/color_auth_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
     <style name="Widget.Hubble.Button.Primary" parent="Widget.Material3.Button">
         <item name="android:background">@drawable/bg_button_primary</item>
         <item name="android:textColor">@color/white</item>

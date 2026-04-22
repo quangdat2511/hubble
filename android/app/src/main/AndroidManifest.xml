@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".HubbleApplication"
@@ -44,6 +46,7 @@
         <activity
             android:name=".view.auth.LoginActivity"
             android:exported="false"
+            android:theme="@style/Theme.Hubble.Login"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
