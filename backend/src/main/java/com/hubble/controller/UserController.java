@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -125,21 +124,21 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
             Authentication authentication,
             @RequestParam("file") MultipartFile file
-    ) throws IOException {
+    ) {
         UUID userId = UUID.fromString(authentication.getName());
         UserResponse response = userService.updateAvatar(userId, file);
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder().result(response).build());
     }
 
     @GetMapping("/me/avatar")
-    public ResponseEntity<ApiResponse<AvatarResponse>> getMyAvatar(Authentication authentication) throws IOException {
+    public ResponseEntity<ApiResponse<AvatarResponse>> getMyAvatar(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
         AvatarResponse avatarResponse = userService.getAvatarResponse(userId);
         return ResponseEntity.ok(ApiResponse.<AvatarResponse>builder().result(avatarResponse).build());
     }
 
     @GetMapping("/{userId}/avatar")
-    public ResponseEntity<ApiResponse<AvatarResponse>> getUserAvatar(@PathVariable UUID userId) throws IOException {
+    public ResponseEntity<ApiResponse<AvatarResponse>> getUserAvatar(@PathVariable UUID userId) {
         AvatarResponse avatarResponse = userService.getAvatarResponse(userId);
         return ResponseEntity.ok(ApiResponse.<AvatarResponse>builder().result(avatarResponse).build());
     }

@@ -53,6 +53,7 @@ supabase:
     url: ${SUPABASE_URL:https://qexzpkwrfjlblrvtqvuh.supabase.co}
     service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleHpwa3dyZmpsYmxydnRxdnVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAwNTA2OSwiZXhwIjoyMDg3NTgxMDY5fQ.tLfe8yT9-6We1krUyTXgyxXNnvOEMuUxN3eLYDGWo14}
     server-icon-bucket: ${SUPABASE_SERVER_ICON_BUCKET:server-icon}
+    avatar-bucket: ${SUPABASE_AVATAR_BUCKET:avatars}
 
 google:
     client-id: ${GOOGLE_CLIENT_ID:571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com}

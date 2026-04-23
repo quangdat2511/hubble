@@ -18,10 +18,10 @@
 
     <View
         android:id="@+id/viewUnreadPill"
-        android:layout_width="@dimen/server_active_indicator_width"
-        android:layout_height="@dimen/server_unread_indicator_height"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
         android:layout_gravity="start|center_vertical"
-        android:background="@drawable/bg_server_unread_pill"
+        android:background="@drawable/bg_unread_dot"
         android:visibility="gone" />
 
     <FrameLayout

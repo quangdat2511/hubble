@@ -8,11 +8,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
+import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -51,6 +53,8 @@ import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.DmMessageItem;
 import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.ReactionDto;
+import com.example.hubble.data.realtime.ActiveDmChannelTracker;
+import com.example.hubble.data.realtime.ActiveServerChannelTracker;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
@@ -58,6 +62,7 @@ import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
 import com.example.hubble.databinding.BottomSheetMessageActionsBinding;
 import com.example.hubble.databinding.DialogDeleteMessageBinding;
+import com.example.hubble.utils.AudioProximityManager;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
@@ -177,6 +182,7 @@ public class DmChatActivity extends AppCompatActivity {
     private boolean isRecording = false;
     private int recordTicks = 0;
     private android.media.MediaPlayer previewPlayer ;
+    private AudioProximityManager proximityManager;
 
     private Handler recordHandler = new Handler(Looper.getMainLooper());
     private Runnable recordRunnable;
@@ -247,6 +253,7 @@ public class DmChatActivity extends AppCompatActivity {
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
         mediaViewModel = new ViewModelProvider(this).get(MediaViewModel.class);
+        proximityManager = new AudioProximityManager(this);
         currentUserId = dmRepository.getCurrentUserId();
 
         UserResponse user = tokenManager.getUser();
@@ -310,6 +317,13 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        if (!isServerTextChannel() && !TextUtils.isEmpty(channelId)) {
+            ActiveDmChannelTracker.setActiveChannelId(channelId);
+        }
+        if (isServerTextChannel() && !TextUtils.isEmpty(channelId)) {
+            ActiveServerChannelTracker.setActiveChannelId(channelId);
+            ActiveServerChannelTracker.notifyChannelRead(channelId);
+        }
         connectStomp();
     }
 
@@ -322,6 +336,11 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        if (!isServerTextChannel()) {
+            ActiveDmChannelTracker.clearIfMatch(channelId);
+        } else {
+            ActiveServerChannelTracker.clearIfMatch(channelId);
+        }
         disconnectStomp();
     }
 
@@ -331,6 +350,11 @@ public class DmChatActivity extends AppCompatActivity {
         disconnectStomp();
         disposables.clear();
         statusDisposables.clear();
+
+        DmMessageAdapter.releaseAudio();
+        if (proximityManager != null) {
+            proximityManager.stop();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -796,16 +820,31 @@ public class DmChatActivity extends AppCompatActivity {
         btnListen.setOnClickListener(v -> {
             if (previewPlayer == null) {
                 previewPlayer = new android.media.MediaPlayer();
+                previewPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+                proximityManager.setMediaPlayer(previewPlayer);
                 try {
                     previewPlayer.setDataSource(audioFile.getAbsolutePath());
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                        previewPlayer.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                .build());
+                    } else {
+                        previewPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+                    }
                     previewPlayer.prepare();
-                    previewPlayer.setOnCompletionListener(mp -> ivListenIcon.setImageResource(android.R.drawable.ic_media_play));
+                    previewPlayer.setOnCompletionListener(mp -> {
+                        ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+                        proximityManager.stop();
+                    });
                 } catch (IOException e) { e.printStackTrace(); }
             }
             if (previewPlayer.isPlaying()) {
                 previewPlayer.pause();
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_play);
+                proximityManager.stop();
             } else {
+                proximityManager.start();
                 previewPlayer.start();
                 ivListenIcon.setImageResource(android.R.drawable.ic_media_pause);
             }
@@ -816,6 +855,7 @@ public class DmChatActivity extends AppCompatActivity {
             if (previewPlayer != null) { previewPlayer.release(); previewPlayer = null; }
             if (state[0] != 0 && audioFile != null && audioFile.exists()) audioFile.delete(); // Xóa file nháp
             recordHandler.removeCallbacks(recordRunnable);
+            proximityManager.stop();
         });
 
         updateUI.run();
@@ -1772,7 +1812,7 @@ public class DmChatActivity extends AppCompatActivity {
                         if (response != null) {
                             android.util.Log.d("SmartReply", "Author: " + response.getMessageAuthorId() + ", Me: " + currentUserId);
                             if (!currentUserId.equals(response.getMessageAuthorId())) {
-                                runOnUiThread(() -> showSmartReplies(response.getSuggestions()));
+                                runOnUiThread(() -> showSmartReplies(response.getSuggestions(), response.getContextTag()));
                             }
                         }
                     } catch (Exception e) {
@@ -1903,7 +1943,13 @@ public class DmChatActivity extends AppCompatActivity {
         if (id == null) return;
         if (id.equals(lastMarkedReadMessageId)) return;
         lastMarkedReadMessageId = id;
-        dmRepository.markChannelRead(channelId, id, result -> { });
+        final String readChannelId = channelId;
+        final boolean isServerChannel = isServerTextChannel();
+        dmRepository.markChannelRead(readChannelId, id, result -> {
+            if (isServerChannel) {
+                ActiveServerChannelTracker.notifyChannelRead(readChannelId);
+            }
+        });
     }
 
     private MessageDto parseMessagePayload(String payload) {
@@ -2065,10 +2111,17 @@ public class DmChatActivity extends AppCompatActivity {
         return mapped;
     }
 
-    private void showSmartReplies(List<String> suggestions) {
+    private void showSmartReplies(List<String> suggestions, String contextTag) {
         if (suggestions == null || suggestions.isEmpty()) {
             binding.suggestionBar.setVisibility(View.GONE);
             return;
+        }
+        if (!TextUtils.isEmpty(contextTag)) {
+            binding.tvContextTag.setVisibility(View.VISIBLE);
+            binding.tvContextTag.setText("🧠 " + contextTag + ":");
+            binding.tvContextTag.setTextColor(ContextCompat.getColor(this, R.color.color_primary));
+        } else {
+            binding.tvContextTag.setVisibility(View.GONE);
         }
 
         binding.cgSuggestions.removeAllViews();

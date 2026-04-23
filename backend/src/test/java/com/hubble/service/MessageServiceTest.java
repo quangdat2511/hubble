@@ -297,7 +297,7 @@ class MessageServiceTest {
                 .type("TEXT")
                 .build();
 
-        when(smartReplyService.generateSuggestions(anyString())).thenReturn(List.of());
+        when(smartReplyService.generateSuggestions(anyString())).thenReturn(null);
 
         MessageResponse out = messageService.sendMessage(authorId.toString(), req);
 

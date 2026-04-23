@@ -7,6 +7,7 @@ import android.util.Patterns;
 import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.hubble.R;
 import com.example.hubble.data.repository.AuthRepository;
@@ -53,6 +54,8 @@ public class LoginActivity extends BaseAuthActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Keep the login screen in dark mode so it never falls back to the light auth palette.
+        getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         super.onCreate(savedInstanceState);
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
