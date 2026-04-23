@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -342,13 +343,7 @@ public class AuthService {
         }
 
         boolean sendPush = settings == null || Boolean.TRUE.equals(settings.getNotificationEnabled());
-        String safeDeviceName = hasText(deviceName) ? deviceName : "Thiết bị mới";
-        String safeIpAddress = hasText(ipAddress) ? ipAddress : "IP không xác định";
-        String content = String.format(
-                "Phát hiện đăng nhập trên thiết bị mới: %s (%s). Nếu không phải bạn, hãy đổi mật khẩu ngay.",
-                safeDeviceName,
-                safeIpAddress
-        );
+        String content = localizeNewDeviceAlertContent(settings, deviceName, ipAddress);
 
         notificationService.dispatchNotification(
                 userId,
@@ -368,6 +363,32 @@ public class AuthService {
             return userSessionRepository.existsByUserIdAndDeviceName(userId, deviceName.trim());
         }
         return false;
+    }
+
+    private String localizeNewDeviceAlertContent(UserSettings settings, String deviceName, String ipAddress) {
+        String locale = settings != null && hasText(settings.getLocale())
+                ? settings.getLocale().trim().toLowerCase(Locale.ROOT)
+                : "vi";
+
+        if ("en".equals(locale)) {
+            String safeDeviceName = hasText(deviceName) ? deviceName : "New device";
+            String safeIpAddress = hasText(ipAddress) ? ipAddress : "Unknown IP";
+            return String.format(
+                    Locale.ROOT,
+                    "New login detected on %s (%s). If this wasn't you, change your password now.",
+                    safeDeviceName,
+                    safeIpAddress
+            );
+        }
+
+        String safeDeviceName = hasText(deviceName) ? deviceName : "Thiết bị mới";
+        String safeIpAddress = hasText(ipAddress) ? ipAddress : "IP không xác định";
+        return String.format(
+                Locale.ROOT,
+                "Phát hiện đăng nhập trên thiết bị mới: %s (%s). Nếu không phải bạn, hãy đổi mật khẩu ngay.",
+                safeDeviceName,
+                safeIpAddress
+        );
     }
 
     private boolean hasText(String value) {

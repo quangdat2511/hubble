@@ -22,6 +22,10 @@ public final class NotificationTextFormatter {
             Pattern.compile("^(.+?) đã mời bạn tham gia (.+)\\.$");
     private static final Pattern SERVER_INVITE_EN_PATTERN =
             Pattern.compile("^(.+?) invited you to join (.+)\\.$");
+    private static final Pattern DEVICE_ALERT_VI_PATTERN =
+            Pattern.compile("^Phát hiện đăng nhập trên thiết bị mới: (.+?) \\((.+?)\\)\\. Nếu không phải bạn, hãy đổi mật khẩu ngay\\.$");
+    private static final Pattern DEVICE_ALERT_EN_PATTERN =
+            Pattern.compile("^New login detected on (.+?) \\((.+?)\\)\\. If this wasn't you, change your password now\\.$");
 
     private NotificationTextFormatter() {
     }
@@ -42,6 +46,11 @@ public final class NotificationTextFormatter {
             }
         } else if ("SERVER_INVITE".equals(type)) {
             String localized = formatServerInvite(context, content);
+            if (localized != null) {
+                return localized;
+            }
+        } else if ("SYSTEM_ALERT".equals(type)) {
+            String localized = formatSystemAlert(context, content);
             if (localized != null) {
                 return localized;
             }
@@ -86,6 +95,29 @@ public final class NotificationTextFormatter {
         if (englishMatcher.matches()) {
             return context.getString(
                     R.string.notification_server_invite_text,
+                    englishMatcher.group(1),
+                    englishMatcher.group(2)
+            );
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static String formatSystemAlert(@NonNull Context context, @NonNull String content) {
+        Matcher vietnameseMatcher = DEVICE_ALERT_VI_PATTERN.matcher(content);
+        if (vietnameseMatcher.matches()) {
+            return context.getString(
+                    R.string.notification_new_device_alert_text,
+                    vietnameseMatcher.group(1),
+                    vietnameseMatcher.group(2)
+            );
+        }
+
+        Matcher englishMatcher = DEVICE_ALERT_EN_PATTERN.matcher(content);
+        if (englishMatcher.matches()) {
+            return context.getString(
+                    R.string.notification_new_device_alert_text,
                     englishMatcher.group(1),
                     englishMatcher.group(2)
             );

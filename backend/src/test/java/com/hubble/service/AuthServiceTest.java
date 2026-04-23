@@ -4,13 +4,16 @@ import com.hubble.dto.request.*;
 import com.hubble.dto.response.TokenResponse;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
+import com.hubble.entity.UserSettings;
 import com.hubble.entity.UserSession;
 import com.hubble.enums.AuthProvider;
+import com.hubble.enums.NotificationType;
 import com.hubble.enums.OtpType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.UserMapper;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSettingsRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.GoogleTokenVerifier;
 import com.hubble.security.JwtService;
@@ -20,7 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -36,12 +42,14 @@ public class AuthServiceTest {
 
     @Mock UserRepository userRepository;
     @Mock UserSessionRepository userSessionRepository;
+    @Mock UserSettingsRepository userSettingsRepository;
     @Mock UserMapper userMapper;
     @Mock JwtService jwtService;
     @Mock PasswordEncoder passwordEncoder;
     @Mock GoogleTokenVerifier googleTokenVerifier;
     @Mock OtpService otpService;
     @Mock EmailService emailService;
+    @Mock NotificationService notificationService;
 
     @InjectMocks AuthService authService;
 
@@ -50,6 +58,7 @@ public class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        RequestContextHolder.resetRequestAttributes();
         userId = UUID.randomUUID();
         mockUser = User.builder()
                 .id(userId)
@@ -168,6 +177,46 @@ public class AuthServiceTest {
 
         assertNotNull(response);
         assertEquals("mock_access_token", response.getAccessToken());
+    }
+
+    @Test
+    void login_SendsEnglishNewDeviceAlert_WhenLocaleIsEnglish() {
+        LoginRequest request = new LoginRequest("test@example.com", "correct_password");
+        UserSession savedSession = UserSession.builder().id(UUID.randomUUID()).build();
+        MockHttpServletRequest servletRequest = new MockHttpServletRequest();
+        servletRequest.addHeader("X-Device-Name", "Google sdk_gphone64_x86_64");
+        servletRequest.addHeader("X-Forwarded-For", "113.172.63.162");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(servletRequest));
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+        when(jwtService.generateRefreshToken(any())).thenReturn("mock_refresh_token");
+        when(userSessionRepository.existsByUserId(userId)).thenReturn(true);
+        when(userSessionRepository.existsByUserIdAndDeviceName(userId, "Google sdk_gphone64_x86_64")).thenReturn(false);
+        when(userSessionRepository.save(any(UserSession.class))).thenReturn(savedSession);
+        when(userSettingsRepository.findById(userId)).thenReturn(Optional.of(
+                UserSettings.builder()
+                        .userId(userId)
+                        .locale("en")
+                        .notificationEnabled(true)
+                        .newDeviceLoginAlertsEnabled(true)
+                        .build()
+        ));
+        when(jwtService.generateAccessToken(any(), any(), any())).thenReturn("mock_access_token");
+        when(jwtService.getAccessTokenExpiration()).thenReturn(3600L);
+        when(userMapper.toUserResponse(any())).thenReturn(new UserResponse());
+
+        TokenResponse response = authService.login(request);
+
+        assertNotNull(response);
+        verify(notificationService).dispatchNotification(
+                eq(userId),
+                eq(NotificationType.SYSTEM_ALERT),
+                eq(savedSession.getId().toString()),
+                eq("New login detected on Google sdk_gphone64_x86_64 (113.172.63.162). If this wasn't you, change your password now."),
+                eq(false),
+                eq(true)
+        );
     }
 
     @Test

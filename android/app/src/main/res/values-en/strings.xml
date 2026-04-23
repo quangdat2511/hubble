@@ -91,6 +91,7 @@
     <string name="notification_friend_request_text">%1$s sent you a friend request.</string>
     <string name="notification_server_invite_text">%1$s invited you to join %2$s.</string>
     <string name="notification_friend_accepted_text">%1$s accepted your friend request.</string>
+    <string name="notification_new_device_alert_text">New login detected on %1$s (%2$s). If this wasn\'t you, change your password now.</string>
     <string name="notification_channel_name">Hubble notifications</string>
     <string name="notification_channel_desc">Notifications from the Hubble app</string>
     <string name="notification_system_section">System notifications</string>

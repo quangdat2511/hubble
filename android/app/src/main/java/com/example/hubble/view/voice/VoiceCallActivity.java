@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -134,6 +135,20 @@ public class VoiceCallActivity extends AppCompatActivity {
 
     private void setupUI() {
         binding.tvChannelName.setText(channelName);
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (!isInPictureInPictureMode()) {
+                    minimizeToBackground();
+                    return;
+                }
+
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
+        });
 
         // Top bar buttons
         binding.btnClose.setOnClickListener(v -> minimizeToBackground());
@@ -533,16 +548,6 @@ public class VoiceCallActivity extends AppCompatActivity {
         super.onUserLeaveHint();
         // Auto-enter PiP when user presses Home or switches apps
         enterPictureInPictureMode(buildPipParams());
-    }
-
-    @Override
-    public void onBackPressed() {
-        // Back in full-screen → minimize; Back while in PiP → system handles dismissal
-        if (!isInPictureInPictureMode()) {
-            minimizeToBackground();
-        } else {
-            super.onBackPressed();
-        }
     }
 
     @Override
