@@ -23,13 +23,18 @@ import com.hubble.repository.MessageRepository;
 import com.hubble.repository.ServerMemberRepository;
 import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +43,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SearchService {
@@ -51,6 +57,26 @@ public class SearchService {
     ServerMemberRepository serverMemberRepository;
     MemberRoleRepository memberRoleRepository;
     ChannelRoleRepository channelRoleRepository;
+
+    @NonFinal
+    @Value("${app.search.hybrid.enabled:true}")
+    boolean hybridSearchEnabled;
+
+    @NonFinal
+    @Value("${app.search.hybrid.fts-candidate-cap:80}")
+    int hybridFtsCandidateCap;
+
+    @NonFinal
+    @Value("${app.search.hybrid.fuzzy-candidate-cap:30}")
+    int hybridFuzzyCandidateCap;
+
+    @NonFinal
+    @Value("${app.search.hybrid.fuzzy-min-query-length:3}")
+    int hybridFuzzyMinQueryLength;
+
+    @NonFinal
+    @Value("${app.search.hybrid.similarity-threshold:0.22}")
+    double hybridSimilarityThreshold;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Channel scope
@@ -66,10 +92,23 @@ public class SearchService {
 
         Channel channel = channelRepository.findById(channelUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
-        Page<Message> messagePage = messageRepository.searchByChannelId(
+        Instant startedAt = Instant.now();
+        boolean fallbackUsed = hybridSearchEnabled
+                && q.trim().length() >= hybridFuzzyMinQueryLength;
+        Page<Message> messagePage = hybridSearchEnabled
+                ? messageRepository.searchByChannelIdHybrid(
+                channelUuid,
+                q,
+                hybridFtsCandidateCap,
+                hybridFuzzyCandidateCap,
+                hybridFuzzyMinQueryLength,
+                hybridSimilarityThreshold,
+                PageRequest.of(page, size))
+                : messageRepository.searchByChannelIdLegacy(
                 channelUuid, q, PageRequest.of(page, size));
 
         Map<UUID, User> authorMap = loadAuthorMapForMessages(messagePage.getContent());
+        logSearchTelemetry("channel", q, fallbackUsed, messagePage.isEmpty(), startedAt);
 
         return messagePage.map(m -> toSearchMessageResponse(m, channel.getName(), authorMap));
     }
@@ -169,9 +208,22 @@ public class SearchService {
         if (channelIds.isEmpty()) return Page.empty();
 
         Map<UUID, String> channelNames = buildChannelNameMap(channelIds);
-        Page<Message> messagePage = messageRepository.searchByChannelIds(
+        Instant startedAt = Instant.now();
+        boolean fallbackUsed = hybridSearchEnabled
+                && q.trim().length() >= hybridFuzzyMinQueryLength;
+        Page<Message> messagePage = hybridSearchEnabled
+                ? messageRepository.searchByChannelIdsHybrid(
+                channelIds,
+                q,
+                hybridFtsCandidateCap,
+                hybridFuzzyCandidateCap,
+                hybridFuzzyMinQueryLength,
+                hybridSimilarityThreshold,
+                PageRequest.of(page, size))
+                : messageRepository.searchByChannelIdsLegacy(
                 channelIds, q, PageRequest.of(page, size));
         Map<UUID, User> authorMap = loadAuthorMapForMessages(messagePage.getContent());
+        logSearchTelemetry("server", q, fallbackUsed, messagePage.isEmpty(), startedAt);
 
         return messagePage.map(m -> toSearchMessageResponse(
                 m, channelNames.getOrDefault(m.getChannelId(), ""), authorMap));
@@ -274,9 +326,22 @@ public class SearchService {
             return Page.empty();
         }
 
-        Page<Message> messagePage = messageRepository.searchByChannelIds(
+        Instant startedAt = Instant.now();
+        boolean fallbackUsed = hybridSearchEnabled
+                && q.trim().length() >= hybridFuzzyMinQueryLength;
+        Page<Message> messagePage = hybridSearchEnabled
+                ? messageRepository.searchByChannelIdsHybrid(
+                channelIds,
+                q,
+                hybridFtsCandidateCap,
+                hybridFuzzyCandidateCap,
+                hybridFuzzyMinQueryLength,
+                hybridSimilarityThreshold,
+                PageRequest.of(page, size))
+                : messageRepository.searchByChannelIdsLegacy(
                 channelIds, q, PageRequest.of(page, size));
         Map<UUID, User> authorMap = loadAuthorMapForMessages(messagePage.getContent());
+        logSearchTelemetry("dm", q, fallbackUsed, messagePage.isEmpty(), startedAt);
 
         return messagePage.map(m -> toSearchMessageResponse(m, "", authorMap));
     }
@@ -495,6 +560,34 @@ public class SearchService {
                 .sizeBytes(a.getSizeBytes())
                 .createdAt(a.getCreatedAt() != null ? a.getCreatedAt().toString() : null)
                 .build()).toList();
+    }
+
+    private void logSearchTelemetry(
+            String scope,
+            String query,
+            boolean fallbackUsed,
+            boolean zeroResult,
+            Instant startedAt
+    ) {
+        long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
+        String latencyBucket = bucketizeLatency(latencyMs);
+        log.info(
+                "search_quality scope={} latency_ms={} latency_bucket={} fallback_used={} zero_result={} query_length={}",
+                scope,
+                latencyMs,
+                latencyBucket,
+                fallbackUsed,
+                zeroResult,
+                query == null ? 0 : query.trim().length()
+        );
+    }
+
+    private String bucketizeLatency(long latencyMs) {
+        if (latencyMs < 100) return "<100ms";
+        if (latencyMs < 250) return "100-249ms";
+        if (latencyMs < 500) return "250-499ms";
+        if (latencyMs < 1000) return "500-999ms";
+        return ">=1000ms";
     }
 }
 

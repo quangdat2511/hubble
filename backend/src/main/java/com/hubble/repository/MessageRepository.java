@@ -34,7 +34,127 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             """,
         nativeQuery = true
     )
-    Page<Message> searchByChannelId(@Param("channelId") UUID channelId, @Param("query") String query, Pageable pageable);
+    Page<Message> searchByChannelIdLegacy(@Param("channelId") UUID channelId, @Param("query") String query, Pageable pageable);
+
+    @Query(
+        value = """
+            WITH params AS (
+                SELECT trim(:query) AS raw_q,
+                       unaccent_immutable(lower(trim(:query))) AS norm_q,
+                       plainto_tsquery('simple', trim(:query)) AS ts_q
+            ),
+            fts_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id = :channelId
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND to_tsvector('simple', coalesce(m.content, '')) @@ p.ts_q
+                ORDER BY
+                    ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :ftsCandidateCap
+            ),
+            fuzzy_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id = :channelId
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND length(p.norm_q) >= :fuzzyMinQueryLength
+                  AND (
+                        unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%')
+                        OR similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) >= :similarityThreshold
+                  )
+                ORDER BY
+                    CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 1
+                        ELSE 0
+                    END DESC,
+                    similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :fuzzyCandidateCap
+            ),
+            candidates AS (
+                SELECT id FROM fts_hits
+                UNION
+                SELECT id FROM fuzzy_hits
+            )
+            SELECT m.*
+            FROM messages m
+            JOIN candidates c ON c.id = m.id
+            CROSS JOIN params p
+            ORDER BY
+                (
+                    CASE
+                        WHEN lower(coalesce(m.content, '')) LIKE ('%' || lower(p.raw_q) || '%') THEN 1000
+                        ELSE 0
+                    END
+                    + CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 200
+                        ELSE 0
+                    END
+                    + (ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) * 100)
+                    + (similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) * 10)
+                ) DESC,
+                m.created_at DESC,
+                m.id DESC
+            """,
+        countQuery = """
+            WITH params AS (
+                SELECT trim(:query) AS raw_q,
+                       unaccent_immutable(lower(trim(:query))) AS norm_q,
+                       plainto_tsquery('simple', trim(:query)) AS ts_q
+            ),
+            fts_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id = :channelId
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND to_tsvector('simple', coalesce(m.content, '')) @@ p.ts_q
+                ORDER BY
+                    ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :ftsCandidateCap
+            ),
+            fuzzy_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id = :channelId
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND length(p.norm_q) >= :fuzzyMinQueryLength
+                  AND (
+                        unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%')
+                        OR similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) >= :similarityThreshold
+                  )
+                ORDER BY
+                    CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 1
+                        ELSE 0
+                    END DESC,
+                    similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :fuzzyCandidateCap
+            )
+            SELECT COUNT(DISTINCT id)
+            FROM (
+                SELECT id FROM fts_hits
+                UNION
+                SELECT id FROM fuzzy_hits
+            ) candidate_ids
+            """,
+        nativeQuery = true
+    )
+    Page<Message> searchByChannelIdHybrid(
+            @Param("channelId") UUID channelId,
+            @Param("query") String query,
+            @Param("ftsCandidateCap") int ftsCandidateCap,
+            @Param("fuzzyCandidateCap") int fuzzyCandidateCap,
+            @Param("fuzzyMinQueryLength") int fuzzyMinQueryLength,
+            @Param("similarityThreshold") double similarityThreshold,
+            Pageable pageable);
 
     // ── Search: multi-channel FTS (server-scope / DM-scope) ──────────────────
     @Query(
@@ -53,7 +173,149 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             """,
         nativeQuery = true
     )
-    Page<Message> searchByChannelIds(@Param("channelIds") List<UUID> channelIds, @Param("query") String query, Pageable pageable);
+    Page<Message> searchByChannelIdsLegacy(@Param("channelIds") List<UUID> channelIds, @Param("query") String query, Pageable pageable);
+
+    @Query(
+        value = """
+            WITH params AS (
+                SELECT trim(:query) AS raw_q,
+                       unaccent_immutable(lower(trim(:query))) AS norm_q,
+                       plainto_tsquery('simple', trim(:query)) AS ts_q
+            ),
+            fts_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id IN :channelIds
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND to_tsvector('simple', coalesce(m.content, '')) @@ p.ts_q
+                ORDER BY
+                    ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :ftsCandidateCap
+            ),
+            fuzzy_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id IN :channelIds
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND length(p.norm_q) >= :fuzzyMinQueryLength
+                  AND (
+                        unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%')
+                        OR similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) >= :similarityThreshold
+                  )
+                ORDER BY
+                    CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 1
+                        ELSE 0
+                    END DESC,
+                    similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :fuzzyCandidateCap
+            ),
+            candidates AS (
+                SELECT id FROM fts_hits
+                UNION
+                SELECT id FROM fuzzy_hits
+            )
+            SELECT m.*
+            FROM messages m
+            JOIN candidates c ON c.id = m.id
+            CROSS JOIN params p
+            ORDER BY
+                (
+                    CASE
+                        WHEN lower(coalesce(m.content, '')) LIKE ('%' || lower(p.raw_q) || '%') THEN 1000
+                        ELSE 0
+                    END
+                    + CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 200
+                        ELSE 0
+                    END
+                    + (ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) * 100)
+                    + (similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) * 10)
+                ) DESC,
+                m.created_at DESC,
+                m.id DESC
+            """,
+        countQuery = """
+            WITH params AS (
+                SELECT trim(:query) AS raw_q,
+                       unaccent_immutable(lower(trim(:query))) AS norm_q,
+                       plainto_tsquery('simple', trim(:query)) AS ts_q
+            ),
+            fts_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id IN :channelIds
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND to_tsvector('simple', coalesce(m.content, '')) @@ p.ts_q
+                ORDER BY
+                    ts_rank_cd(to_tsvector('simple', coalesce(m.content, '')), p.ts_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :ftsCandidateCap
+            ),
+            fuzzy_hits AS (
+                SELECT m.id
+                FROM messages m, params p
+                WHERE m.channel_id IN :channelIds
+                  AND (m.is_deleted IS NULL OR m.is_deleted = false)
+                  AND length(p.norm_q) >= :fuzzyMinQueryLength
+                  AND (
+                        unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%')
+                        OR similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) >= :similarityThreshold
+                  )
+                ORDER BY
+                    CASE
+                        WHEN unaccent_immutable(lower(coalesce(m.content, ''))) LIKE ('%' || p.norm_q || '%') THEN 1
+                        ELSE 0
+                    END DESC,
+                    similarity(unaccent_immutable(lower(coalesce(m.content, ''))), p.norm_q) DESC,
+                    m.created_at DESC,
+                    m.id DESC
+                LIMIT :fuzzyCandidateCap
+            )
+            SELECT COUNT(DISTINCT id)
+            FROM (
+                SELECT id FROM fts_hits
+                UNION
+                SELECT id FROM fuzzy_hits
+            ) candidate_ids
+            """,
+        nativeQuery = true
+    )
+    Page<Message> searchByChannelIdsHybrid(
+            @Param("channelIds") List<UUID> channelIds,
+            @Param("query") String query,
+            @Param("ftsCandidateCap") int ftsCandidateCap,
+            @Param("fuzzyCandidateCap") int fuzzyCandidateCap,
+            @Param("fuzzyMinQueryLength") int fuzzyMinQueryLength,
+            @Param("similarityThreshold") double similarityThreshold,
+            Pageable pageable);
+
+    @Query(
+        value = """
+            SELECT COUNT(*) FROM messages
+            WHERE channel_id = :channelId
+              AND (is_deleted IS NULL OR is_deleted = false)
+              AND to_tsvector('simple', coalesce(content, '')) @@ plainto_tsquery('simple', :query)
+            """,
+        nativeQuery = true
+    )
+    long countFtsByChannelId(@Param("channelId") UUID channelId, @Param("query") String query);
+
+    @Query(
+        value = """
+            SELECT COUNT(*) FROM messages
+            WHERE channel_id IN :channelIds
+              AND (is_deleted IS NULL OR is_deleted = false)
+              AND to_tsvector('simple', coalesce(content, '')) @@ plainto_tsquery('simple', :query)
+            """,
+        nativeQuery = true
+    )
+    long countFtsByChannelIds(@Param("channelIds") List<UUID> channelIds, @Param("query") String query);
 
     // ── Pinned messages ────────────────────────────────────────────────────────
     @Query("""

@@ -2,6 +2,7 @@ package com.example.hubble.adapter.search;
 
 import android.text.SpannableString;
 import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.Spanned;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import com.example.hubble.data.model.search.SearchMessageDto;
 import com.example.hubble.databinding.ItemSearchMessageBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -112,18 +114,65 @@ public class SearchMessageAdapter
 
         private SpannableString highlight(String text, String query) {
             SpannableString spannable = new SpannableString(text);
-            String lower = text.toLowerCase(Locale.getDefault());
-            String q = query.toLowerCase(Locale.getDefault());
-            int start = 0;
-            int color = b.getRoot().getContext().getResources()
+            NormalizedText normalizedText = normalizeWithMap(text);
+            String normalizedQuery = normalize(query);
+            if (normalizedQuery.isEmpty() || normalizedText.normalized.isEmpty()) {
+                return spannable;
+            }
+            int backgroundColor = b.getRoot().getContext().getResources()
                     .getColor(R.color.color_highlight, b.getRoot().getContext().getTheme());
-            while ((start = lower.indexOf(q, start)) != -1) {
-                int end = start + q.length();
-                spannable.setSpan(new BackgroundColorSpan(color), start, end,
+            int foregroundColor = b.getRoot().getContext().getResources()
+                    .getColor(R.color.color_highlight_text, b.getRoot().getContext().getTheme());
+            int searchFrom = 0;
+            while (true) {
+                int normalizedStart = normalizedText.normalized.indexOf(normalizedQuery, searchFrom);
+                if (normalizedStart < 0) {
+                    break;
+                }
+                int normalizedEnd = normalizedStart + normalizedQuery.length();
+                int originalStart = normalizedText.indexMap.get(normalizedStart);
+                int originalEnd = normalizedText.indexMap.get(normalizedEnd - 1) + 1;
+                spannable.setSpan(new BackgroundColorSpan(backgroundColor), originalStart, originalEnd,
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                start = end;
+                spannable.setSpan(new ForegroundColorSpan(foregroundColor), originalStart, originalEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                searchFrom = normalizedEnd;
             }
             return spannable;
+        }
+
+        private String normalize(String value) {
+            if (value == null || value.isEmpty()) {
+                return "";
+            }
+            String lowered = value.toLowerCase(Locale.getDefault())
+                    .replace('đ', 'd')
+                    .replace('Đ', 'd');
+            String decomposed = Normalizer.normalize(lowered, Normalizer.Form.NFD);
+            return decomposed.replaceAll("\\p{M}+", "");
+        }
+
+        private NormalizedText normalizeWithMap(String original) {
+            StringBuilder normalized = new StringBuilder();
+            List<Integer> indexMap = new ArrayList<>();
+            for (int i = 0; i < original.length(); i++) {
+                String chunk = normalize(String.valueOf(original.charAt(i)));
+                for (int j = 0; j < chunk.length(); j++) {
+                    normalized.append(chunk.charAt(j));
+                    indexMap.add(i);
+                }
+            }
+            return new NormalizedText(normalized.toString(), indexMap);
+        }
+
+        private class NormalizedText {
+            final String normalized;
+            final List<Integer> indexMap;
+
+            NormalizedText(String normalized, List<Integer> indexMap) {
+                this.normalized = normalized;
+                this.indexMap = indexMap;
+            }
         }
 
         private String formatTime(String createdAt) {

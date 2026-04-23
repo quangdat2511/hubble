@@ -25,6 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,7 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,8 +57,32 @@ class SearchServiceTest {
     @InjectMocks
     private SearchService searchService;
 
+    private static final int DEFAULT_FTS_CAP = 80;
+    private static final int DEFAULT_FUZZY_CAP = 30;
+    private static final int DEFAULT_FUZZY_MIN_LENGTH = 3;
+    private static final double DEFAULT_SIMILARITY = 0.22d;
+
+    private void enableHybridDefaults() {
+        setSearchServiceField("hybridSearchEnabled", true);
+        setSearchServiceField("hybridFtsCandidateCap", DEFAULT_FTS_CAP);
+        setSearchServiceField("hybridFuzzyCandidateCap", DEFAULT_FUZZY_CAP);
+        setSearchServiceField("hybridFuzzyMinQueryLength", DEFAULT_FUZZY_MIN_LENGTH);
+        setSearchServiceField("hybridSimilarityThreshold", DEFAULT_SIMILARITY);
+    }
+
+    private void setSearchServiceField(String fieldName, Object value) {
+        try {
+            Field field = SearchService.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(searchService, value);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to set field: " + fieldName, e);
+        }
+    }
+
     @Test
     void searchDmMessages_rejectsTooShortQuery() {
+        enableHybridDefaults();
         String userId = UUID.randomUUID().toString();
 
         AppException ex = assertThrows(AppException.class,
@@ -64,6 +93,7 @@ class SearchServiceTest {
 
     @Test
     void searchDmMessages_returnsOnlyDmMembershipChannels() {
+        enableHybridDefaults();
         UUID userId = UUID.randomUUID();
         UUID dmChannelId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
@@ -80,7 +110,14 @@ class SearchServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
         Page<Message> page = new PageImpl<>(List.of(message));
-        when(messageRepository.searchByChannelIds(eq(List.of(dmChannelId)), eq("hello"), any(Pageable.class)))
+        when(messageRepository.searchByChannelIdsHybrid(
+                eq(List.of(dmChannelId)),
+                eq("hello"),
+                eq(DEFAULT_FTS_CAP),
+                eq(DEFAULT_FUZZY_CAP),
+                eq(DEFAULT_FUZZY_MIN_LENGTH),
+                eq(DEFAULT_SIMILARITY),
+                any(Pageable.class)))
                 .thenReturn(page);
 
         User author = User.builder().id(authorId).username("alice").displayName("Alice").build();
@@ -89,6 +126,25 @@ class SearchServiceTest {
         Page<?> result = searchService.searchDmMessages(userId.toString(), "hello", 0, 20);
 
         assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void searchDmMessages_usesLegacySearchWhenFeatureDisabled() {
+        enableHybridDefaults();
+        UUID userId = UUID.randomUUID();
+        UUID dmChannelId = UUID.randomUUID();
+
+        setSearchServiceField("hybridSearchEnabled", false);
+        when(channelRepository.findChannelIdsByUserIdAndTypeIn(eq(userId), any()))
+                .thenReturn(List.of(dmChannelId));
+        when(messageRepository.searchByChannelIdsLegacy(eq(List.of(dmChannelId)), eq("hello"), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        searchService.searchDmMessages(userId.toString(), "hello", 0, 20);
+
+        verify(messageRepository).searchByChannelIdsLegacy(eq(List.of(dmChannelId)), eq("hello"), any(Pageable.class));
+        verify(messageRepository, never()).searchByChannelIdsHybrid(
+                any(), any(), anyInt(), anyInt(), anyInt(), anyDouble(), any(Pageable.class));
     }
 
     @Test
