@@ -819,4 +819,10 @@
     <string name="search_tab_files">Tệp</string>
     <string name="search_tab_pins">Ghim</string>
     <string name="search_tab_friends">Bạn bè</string>
+    <string name="search_friend_state_friend">Bạn bè</string>
+    <string name="search_friend_state_pending_outgoing">Đã gửi lời mời</string>
+    <string name="search_friend_state_pending_incoming">Đã nhận lời mời</string>
+    <string name="search_profile_status_hint">Trạng thái: %1$s</string>
+    <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
+    <string name="common_avatar">Ảnh đại diện</string>
 </resources>

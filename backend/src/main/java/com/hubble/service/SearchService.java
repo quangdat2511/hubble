@@ -6,9 +6,11 @@ import com.hubble.dto.response.SearchMemberResponse;
 import com.hubble.dto.response.SearchMessageResponse;
 import com.hubble.entity.Attachment;
 import com.hubble.entity.Channel;
+import com.hubble.entity.Friendship;
 import com.hubble.entity.Message;
 import com.hubble.entity.User;
 import com.hubble.enums.ChannelType;
+import com.hubble.enums.FriendshipStatus;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.AttachmentRepository;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -90,7 +93,35 @@ public class SearchService {
             users = serverMemberRepository
                     .findUsersByServerIdAndNameContaining(channel.getServerId(), safeQ);
         }
-        return users.stream().map(u -> toSearchMemberResponse(u, userUuid)).toList();
+        Set<UUID> friendIds = loadFriendIdSet(userUuid);
+        Map<UUID, Friendship> relationMap = loadRelationMap(userUuid, users);
+        return users.stream().map(u -> toSearchMemberResponse(u, userUuid, friendIds, relationMap.get(u.getId()))).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SearchChannelResponse> searchChannelChannels(
+            String userId, String channelId, String q) {
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID userUuid = UUID.fromString(userId);
+        canAccessChannel(channelUuid, userUuid);
+
+        Channel sourceChannel = channelRepository.findById(channelUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
+        UUID serverId = sourceChannel.getServerId();
+        if (serverId == null) {
+            return List.of();
+        }
+
+        List<UUID> memberChannelIds = getMemberChannelIds(userUuid, serverId);
+        if (memberChannelIds.isEmpty()) {
+            return List.of();
+        }
+
+        String safeQ = q == null ? "" : q;
+        return channelRepository.findByServerIdAndNameContainingIgnoreCase(serverId, safeQ).stream()
+                .filter(c -> memberChannelIds.contains(c.getId()))
+                .map(this::toSearchChannelResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +188,9 @@ public class SearchService {
         String safeQ = q == null ? "" : q;
         List<User> users = serverMemberRepository
                 .findUsersByServerIdAndNameContaining(serverUuid, safeQ);
-        return users.stream().map(u -> toSearchMemberResponse(u, userUuid)).toList();
+        Set<UUID> friendIds = loadFriendIdSet(userUuid);
+        Map<UUID, Friendship> relationMap = loadRelationMap(userUuid, users);
+        return users.stream().map(u -> toSearchMemberResponse(u, userUuid, friendIds, relationMap.get(u.getId()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -221,12 +254,31 @@ public class SearchService {
         if (friendIds.isEmpty()) return List.of();
 
         String queryLower = q == null ? "" : q.toLowerCase();
+        Set<UUID> friendIdSet = Set.copyOf(friendIds);
         return userRepository.findAllById(friendIds).stream()
                 .filter(u -> queryLower.isBlank()
                         || (u.getDisplayName() != null && u.getDisplayName().toLowerCase().contains(queryLower))
                         || u.getUsername().toLowerCase().contains(queryLower))
-                .map(u -> toSearchMemberResponse(u, userUuid))
+                .map(u -> toSearchMemberResponse(u, userUuid, friendIdSet, null))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SearchMessageResponse> searchDmMessages(
+            String userId, String q, int page, int size) {
+        UUID userUuid = UUID.fromString(userId);
+        validateQuery(q);
+
+        List<UUID> channelIds = getDmChannelIds(userUuid);
+        if (channelIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        Page<Message> messagePage = messageRepository.searchByChannelIds(
+                channelIds, q, PageRequest.of(page, size));
+        Map<UUID, User> authorMap = loadAuthorMapForMessages(messagePage.getContent());
+
+        return messagePage.map(m -> toSearchMessageResponse(m, "", authorMap));
     }
 
     @Transactional(readOnly = true)
@@ -348,7 +400,9 @@ public class SearchService {
                 .build();
     }
 
-    private SearchMemberResponse toSearchMemberResponse(User u, UUID currentUserId) {
+    private SearchMemberResponse toSearchMemberResponse(
+            User u, UUID currentUserId, Set<UUID> friendIds, Friendship relation
+    ) {
         return SearchMemberResponse.builder()
                 .id(u.getId().toString())
                 .username(u.getUsername())
@@ -356,7 +410,50 @@ public class SearchService {
                 .avatarUrl(u.getAvatarUrl())
                 .status(u.getStatus() != null ? u.getStatus().name() : null)
                 .isSelf(u.getId().equals(currentUserId))
+                .isFriend(friendIds.contains(u.getId()))
+                .friendshipState(resolveFriendshipState(currentUserId, u.getId(), relation))
                 .build();
+    }
+
+    private Set<UUID> loadFriendIdSet(UUID userUuid) {
+        return Set.copyOf(friendshipRepository.findFriendIds(userUuid));
+    }
+
+    private Map<UUID, Friendship> loadRelationMap(UUID userUuid, List<User> users) {
+        List<UUID> targetIds = users.stream()
+                .map(User::getId)
+                .filter(id -> !id.equals(userUuid))
+                .toList();
+        if (targetIds.isEmpty()) {
+            return Map.of();
+        }
+        return friendshipRepository.findRelationsWithTargets(userUuid, targetIds).stream()
+                .collect(Collectors.toMap(
+                        f -> f.getRequesterId().equals(userUuid) ? f.getAddresseeId() : f.getRequesterId(),
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+    }
+
+    private String resolveFriendshipState(UUID currentUserId, UUID targetUserId, Friendship relation) {
+        if (currentUserId.equals(targetUserId)) {
+            return "SELF";
+        }
+        if (relation == null) {
+            return "NONE";
+        }
+        if (relation.getStatus() == FriendshipStatus.ACCEPTED) {
+            return "FRIEND";
+        }
+        if (relation.getStatus() == FriendshipStatus.BLOCKED) {
+            return "BLOCKED";
+        }
+        if (relation.getStatus() == FriendshipStatus.PENDING) {
+            return relation.getRequesterId().equals(currentUserId)
+                    ? "PENDING_OUTGOING"
+                    : "PENDING_INCOMING";
+        }
+        return "NONE";
     }
 
     private SearchChannelResponse toSearchChannelResponse(Channel c) {

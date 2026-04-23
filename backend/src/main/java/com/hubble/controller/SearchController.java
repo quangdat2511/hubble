@@ -54,6 +54,18 @@ public class SearchController {
                 .build();
     }
 
+    @GetMapping("/channel/{channelId}/channels")
+    public ApiResponse<List<SearchChannelResponse>> searchChannelChannels(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @RequestParam(defaultValue = "") String q
+    ) {
+        return ApiResponse.<List<SearchChannelResponse>>builder()
+                .result(searchService.searchChannelChannels(
+                        principal.getId().toString(), channelId, q))
+                .build();
+    }
+
     @GetMapping("/channel/{channelId}/media")
     public ApiResponse<List<SearchAttachmentResponse>> searchChannelMedia(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -171,6 +183,19 @@ public class SearchController {
     ) {
         return ApiResponse.<List<SearchMemberResponse>>builder()
                 .result(searchService.searchDmFriends(principal.getId().toString(), q))
+                .build();
+    }
+
+    @GetMapping("/dm/messages")
+    public ApiResponse<Page<SearchMessageResponse>> searchDmMessages(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ApiResponse.<Page<SearchMessageResponse>>builder()
+                .result(searchService.searchDmMessages(
+                        principal.getId().toString(), q, page, size))
                 .build();
     }
 

@@ -16,7 +16,6 @@ import com.example.hubble.databinding.ItemSearchMemberBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class SearchMemberAdapter
@@ -57,6 +56,10 @@ public class SearchMemberAdapter
     private final List<ListItem> flatList = new ArrayList<>();
     @Nullable private OnItemClickListener listener;
 
+    public SearchMemberAdapter() {
+        setHasStableIds(true);
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /** Plain list without clustering (used for DM friends). */
@@ -76,37 +79,12 @@ public class SearchMemberAdapter
      */
     public void setItemsWithClustering(List<SearchMemberDto> members) {
         flatList.clear();
-        if (members == null || members.isEmpty()) {
-            notifyDataSetChanged();
-            return;
-        }
-
-        List<SearchMemberDto> meList  = new ArrayList<>();
-        List<SearchMemberDto> others  = new ArrayList<>();
-        for (SearchMemberDto m : members) {
-            if (m.isSelf()) meList.add(m); else others.add(m);
-        }
-
-        others.sort(Comparator.comparing(
-                m -> (m.getDisplayName() != null ? m.getDisplayName() : m.getUsername()),
-                String.CASE_INSENSITIVE_ORDER));
-
-        if (!meList.isEmpty()) {
-            flatList.add(ListItem.ofHeader("Me"));
-            for (SearchMemberDto m : meList) flatList.add(ListItem.ofMember(m));
-        }
-
-        String currentLetter = null;
-        for (SearchMemberDto m : others) {
-            String name = m.getDisplayName() != null ? m.getDisplayName() : m.getUsername();
-            String letter = (name != null && !name.isEmpty())
-                    ? String.valueOf(name.charAt(0)).toUpperCase()
-                    : "#";
-            if (!letter.equals(currentLetter)) {
-                currentLetter = letter;
-                flatList.add(ListItem.ofHeader(letter));
+        for (SearchMemberSections.Item item : SearchMemberSections.cluster(members)) {
+            if (item.isHeader && item.header != null) {
+                flatList.add(ListItem.ofHeader(item.header));
+            } else if (!item.isHeader && item.member != null) {
+                flatList.add(ListItem.ofMember(item.member));
             }
-            flatList.add(ListItem.ofMember(m));
         }
 
         notifyDataSetChanged();
@@ -149,6 +127,18 @@ public class SearchMemberAdapter
 
     @Override
     public int getItemCount() { return flatList.size(); }
+
+    @Override
+    public long getItemId(int position) {
+        ListItem item = flatList.get(position);
+        if (item.type == TYPE_HEADER && item.header != null) {
+            return ("header:" + item.header).hashCode();
+        }
+        if (item.member != null && item.member.getId() != null) {
+            return ("member:" + item.member.getId()).hashCode();
+        }
+        return RecyclerView.NO_ID;
+    }
 
     // ── ViewHolders ───────────────────────────────────────────────────────────
 

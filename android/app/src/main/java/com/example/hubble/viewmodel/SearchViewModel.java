@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.search.PagedResponse;
-import com.example.hubble.data.model.search.SearchAttachmentDto;
 import com.example.hubble.data.model.search.SearchChannelDto;
 import com.example.hubble.data.model.search.SearchMemberDto;
 import com.example.hubble.data.model.search.SearchMessageDto;
@@ -46,18 +45,6 @@ public class SearchViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<List<SearchChannelDto>>> _channelsResult = new MutableLiveData<>();
     public final LiveData<AuthResult<List<SearchChannelDto>>> channelsResult = _channelsResult;
 
-    // Media
-    private final MutableLiveData<AuthResult<List<SearchAttachmentDto>>> _mediaResult = new MutableLiveData<>();
-    public final LiveData<AuthResult<List<SearchAttachmentDto>>> mediaResult = _mediaResult;
-
-    // Files
-    private final MutableLiveData<AuthResult<List<SearchAttachmentDto>>> _filesResult = new MutableLiveData<>();
-    public final LiveData<AuthResult<List<SearchAttachmentDto>>> filesResult = _filesResult;
-
-    // Pins
-    private final MutableLiveData<AuthResult<List<SearchMessageDto>>> _pinsResult = new MutableLiveData<>();
-    public final LiveData<AuthResult<List<SearchMessageDto>>> pinsResult = _pinsResult;
-
     private final Handler debounceHandler = new Handler(Looper.getMainLooper());
     private Runnable debounceRunnable;
 
@@ -67,29 +54,22 @@ public class SearchViewModel extends ViewModel {
         this.repository = new SearchRepository(context);
         this._scopeType.setValue(scope);
         this.scopeId = scopeId;
-        // Load non-query tabs immediately (media, files, pins without query)
+        // Load tabs that can be shown immediately when query is empty.
         loadNonQueryTabs(scope, scopeId);
     }
 
-    /** Load tabs that don't require a search query (media, files). */
+    /** Load tabs that don't require a search query. */
     private void loadNonQueryTabs(ScopeType scope, String scopeId) {
         switch (scope) {
             case CHANNEL:
-                repository.searchChannelMedia(scopeId, result -> _mediaResult.postValue(result));
-                repository.searchChannelFiles(scopeId, result -> _filesResult.postValue(result));
-                repository.searchChannelPins(scopeId, "", result -> _pinsResult.postValue(result));
                 repository.searchChannelMembers(scopeId, "", result -> _membersResult.postValue(result));
+                repository.searchChannelChannels(scopeId, "", result -> _channelsResult.postValue(result));
                 break;
             case SERVER:
-                repository.searchServerMedia(scopeId, result -> _mediaResult.postValue(result));
-                repository.searchServerFiles(scopeId, result -> _filesResult.postValue(result));
-                repository.searchServerPins(scopeId, "", result -> _pinsResult.postValue(result));
                 repository.searchServerMembers(scopeId, "", result -> _membersResult.postValue(result));
                 repository.searchServerChannels(scopeId, "", result -> _channelsResult.postValue(result));
                 break;
             case DM:
-                repository.searchDmMedia(result -> _mediaResult.postValue(result));
-                repository.searchDmFiles(result -> _filesResult.postValue(result));
                 repository.searchDmFriends("", result -> _membersResult.postValue(result));
                 break;
         }
@@ -130,7 +110,7 @@ public class SearchViewModel extends ViewModel {
                     });
                 }
                 repository.searchChannelMembers(scopeId, trimmed, result -> _membersResult.postValue(result));
-                repository.searchChannelPins(scopeId, trimmed, result -> _pinsResult.postValue(result));
+                repository.searchChannelChannels(scopeId, trimmed, result -> _channelsResult.postValue(result));
                 break;
 
             case SERVER:
@@ -150,10 +130,26 @@ public class SearchViewModel extends ViewModel {
                 }
                 repository.searchServerMembers(scopeId, trimmed, result -> _membersResult.postValue(result));
                 repository.searchServerChannels(scopeId, trimmed, result -> _channelsResult.postValue(result));
-                repository.searchServerPins(scopeId, trimmed, result -> _pinsResult.postValue(result));
                 break;
 
             case DM:
+                if (!trimmed.isEmpty()) {
+                    _messagesResult.setValue(AuthResult.loading());
+                    repository.searchDmMessages(trimmed, 0, 20, result -> {
+                        if (result.isSuccess() && result.getData() != null) {
+                            messagesLastPage = result.getData().isLast();
+                            _messagesResult.postValue(AuthResult.success(
+                                    safeList(result.getData().getContent())));
+                        } else {
+                            _messagesResult.postValue(result.isError()
+                                    ? AuthResult.error(result.getMessage())
+                                    : AuthResult.success(new ArrayList<>()));
+                        }
+                    });
+                } else {
+                    messagesLastPage = true;
+                    _messagesResult.postValue(AuthResult.success(new ArrayList<>()));
+                }
                 repository.searchDmFriends(trimmed, result -> _membersResult.postValue(result));
                 break;
         }
@@ -163,7 +159,8 @@ public class SearchViewModel extends ViewModel {
     public void loadMoreMessages() {
         if (messagesLastPage) return;
         ScopeType scope = _scopeType.getValue();
-        if (scope == null || scopeId == null || lastMessageQuery.isEmpty()) return;
+        if (scope == null || lastMessageQuery.isEmpty()) return;
+        if ((scope == ScopeType.CHANNEL || scope == ScopeType.SERVER) && scopeId == null) return;
 
         int nextPage = messagesPage + 1;
         switch (scope) {
@@ -174,6 +171,11 @@ public class SearchViewModel extends ViewModel {
                 break;
             case SERVER:
                 repository.searchServerMessages(scopeId, lastMessageQuery, nextPage, 20, result -> {
+                    appendMessages(result, nextPage);
+                });
+                break;
+            case DM:
+                repository.searchDmMessages(lastMessageQuery, nextPage, 20, result -> {
                     appendMessages(result, nextPage);
                 });
                 break;

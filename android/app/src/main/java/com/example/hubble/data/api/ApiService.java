@@ -395,6 +395,13 @@ public interface ApiService {
             @Query("q") String q
     );
 
+    @GET("api/search/channel/{channelId}/channels")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchChannelDto>>> searchChannelChannels(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("q") String q
+    );
+
     @GET("api/search/channel/{channelId}/media")
     Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchChannelMedia(
             @Header("Authorization") String token,
@@ -464,6 +471,14 @@ public interface ApiService {
     Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> searchDmFriends(
             @Header("Authorization") String token,
             @Query("q") String q
+    );
+
+    @GET("api/search/dm/messages")
+    Call<ApiResponse<com.example.hubble.data.model.search.PagedResponse<com.example.hubble.data.model.search.SearchMessageDto>>> searchDmMessages(
+            @Header("Authorization") String token,
+            @Query("q") String q,
+            @Query("page") int page,
+            @Query("size") int size
     );
 
     @GET("api/search/dm/media")

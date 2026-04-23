@@ -83,6 +83,15 @@ public class SearchRepository {
                 .enqueue(wrapListCallback(callback));
     }
 
+    public void searchChannelChannels(String channelId, String q,
+                                      RepositoryCallback<List<SearchChannelDto>> callback) {
+        String token = getToken();
+        if (token == null) { callback.onResult(AuthResult.error("Not authenticated")); return; }
+
+        apiService.searchChannelChannels(token, channelId, q)
+                .enqueue(wrapListCallback(callback));
+    }
+
     public void searchChannelMedia(String channelId,
                                    RepositoryCallback<List<SearchAttachmentDto>> callback) {
         String token = getToken();
@@ -174,6 +183,15 @@ public class SearchRepository {
 
         apiService.searchDmFriends(token, q)
                 .enqueue(wrapListCallback(callback));
+    }
+
+    public void searchDmMessages(String q, int page, int size,
+                                 RepositoryCallback<PagedResponse<SearchMessageDto>> callback) {
+        String token = getToken();
+        if (token == null) { callback.onResult(AuthResult.error("Not authenticated")); return; }
+
+        apiService.searchDmMessages(token, q, page, size)
+                .enqueue(wrapPagedCallback(callback));
     }
 
     public void searchDmMedia(RepositoryCallback<List<SearchAttachmentDto>> callback) {

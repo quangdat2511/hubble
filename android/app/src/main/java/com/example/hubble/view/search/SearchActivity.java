@@ -17,7 +17,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
-import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.hubble.R;
 import com.example.hubble.databinding.ActivitySearchBinding;
@@ -80,53 +79,20 @@ public class SearchActivity extends AppCompatActivity {
 
         viewModel.currentQuery.observe(this, query -> {
             boolean hasQuery = query != null && !query.trim().isEmpty();
-            boolean shouldShow = hasQuery && (scopeType == ScopeType.CHANNEL || scopeType == ScopeType.SERVER);
-            rebuildAdapter(shouldShow);
+            rebuildAdapter(hasQuery);
         });
     }
 
     private void buildTabs(boolean includeMessages) {
         categories.clear();
         tabTitles.clear();
-        switch (scopeType) {
-            case CHANNEL:
-                if (includeMessages) {
-                    categories.add(Category.MESSAGES);
-                    tabTitles.add(getString(R.string.search_tab_messages));
-                }
-                categories.add(Category.MEMBERS);
-                tabTitles.add(getString(R.string.search_tab_members));
-                categories.add(Category.MEDIA);
-                tabTitles.add(getString(R.string.search_tab_media));
-                categories.add(Category.FILES);
-                tabTitles.add(getString(R.string.search_tab_files));
-                categories.add(Category.PINS);
-                tabTitles.add(getString(R.string.search_tab_pins));
-                break;
-            case SERVER:
-                if (includeMessages) {
-                    categories.add(Category.MESSAGES);
-                    tabTitles.add(getString(R.string.search_tab_messages));
-                }
-                categories.add(Category.MEMBERS);
-                tabTitles.add(getString(R.string.search_tab_members));
-                categories.add(Category.CHANNELS);
-                tabTitles.add(getString(R.string.search_tab_channels));
-                categories.add(Category.MEDIA);
-                tabTitles.add(getString(R.string.search_tab_media));
-                categories.add(Category.FILES);
-                tabTitles.add(getString(R.string.search_tab_files));
-                categories.add(Category.PINS);
-                tabTitles.add(getString(R.string.search_tab_pins));
-                break;
-            case DM:
-                categories.add(Category.FRIENDS);
-                tabTitles.add(getString(R.string.search_tab_friends));
-                categories.add(Category.MEDIA);
-                tabTitles.add(getString(R.string.search_tab_media));
-                categories.add(Category.FILES);
-                tabTitles.add(getString(R.string.search_tab_files));
-                break;
+        if (includeMessages) {
+            categories.add(Category.MESSAGES);
+            tabTitles.add(getString(R.string.search_tab_messages));
+        }
+        for (Category category : SearchTabConfig.getBaseCategories(scopeType)) {
+            categories.add(category);
+            tabTitles.add(getString(SearchTabConfig.getTabTitleRes(category)));
         }
     }
 

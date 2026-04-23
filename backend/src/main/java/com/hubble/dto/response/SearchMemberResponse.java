@@ -1,5 +1,6 @@
 package com.hubble.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -15,5 +16,10 @@ public class SearchMemberResponse {
     String displayName;
     String avatarUrl;
     String status;
+    @JsonProperty("isSelf")
     boolean isSelf;
+    @JsonProperty("isFriend")
+    boolean isFriend;
+    @JsonProperty("friendshipState")
+    String friendshipState;
 }
