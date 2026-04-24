@@ -33,6 +33,7 @@ import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
 import com.example.hubble.databinding.FragmentHomeBinding;
@@ -43,7 +44,10 @@ import com.example.hubble.view.server.CategoryProfileBottomSheet;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
 import com.example.hubble.view.server.ServerProfileBottomSheet;
+import com.example.hubble.view.search.SearchActivity;
+import com.example.hubble.view.server.InvitePeopleBottomSheet;
 import com.example.hubble.view.voice.VoiceChannelBottomSheet;
+import com.example.hubble.viewmodel.SearchViewModel;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
 import com.example.hubble.utils.ServerChannelNameFormatter;
@@ -51,7 +55,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class HomeFragment extends Fragment {
 
@@ -61,6 +67,8 @@ public class HomeFragment extends Fragment {
     private DmConversationAdapter conversationAdapter;
     private ServerChannelAdapter serverChannelAdapter;
     private MainViewModel viewModel;
+    private ServerMemberRepository serverMemberRepository;
+    private final Map<String, MemberStats> serverMemberStatsCache = new HashMap<>();
     private final List<ServerItem> currentServers = new ArrayList<>();
     private String pendingDmDisplayName;
     private String pendingDmAvatarUrl;
@@ -90,6 +98,7 @@ public class HomeFragment extends Fragment {
                 requireActivity(),
                 new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
         ).get(MainViewModel.class);
+        serverMemberRepository = new ServerMemberRepository(requireContext());
 
         setupServerSidebar(viewModel);
         setupServerChannels(viewModel);
@@ -315,6 +324,7 @@ public class HomeFragment extends Fragment {
                 binding.layoutServerPanel.setVisibility(View.VISIBLE);
                 binding.tvServerName.setText(server.getName());
                 viewModel.loadServerChannels(server.getId());
+                prefetchServerMemberStats(server.getId(), false);
             } else {
                 binding.layoutServerPanel.setVisibility(View.GONE);
                 binding.layoutDmPanel.setVisibility(View.VISIBLE);
@@ -324,8 +334,22 @@ public class HomeFragment extends Fragment {
         binding.layoutServerHeader.setOnClickListener(v -> {
             ServerItem server = viewModel.selectedServer.getValue();
             if (server != null) {
-                ServerProfileBottomSheet sheet = ServerProfileBottomSheet.newInstance(server, 0, 0);
-                sheet.show(getParentFragmentManager(), "ServerProfile");
+                openServerProfile(server);
+            }
+        });
+
+        binding.cardServerSearch.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId());
+            }
+        });
+
+        binding.btnServerInvite.setOnClickListener(v -> {
+            ServerItem server = viewModel.selectedServer.getValue();
+            if (server != null) {
+                InvitePeopleBottomSheet.newInstance(server.getId(), server.getName())
+                        .show(getParentFragmentManager(), "invite_people");
             }
         });
 
@@ -504,7 +528,7 @@ public class HomeFragment extends Fragment {
 
     private void setupActions(View view) {
         binding.btnSearch.setOnClickListener(v ->
-                Snackbar.make(view, getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.DM, null));
 
         binding.btnAddFriend.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), com.example.hubble.view.friend.AddFriendActivity.class);
@@ -513,6 +537,62 @@ public class HomeFragment extends Fragment {
 
         binding.fabNewDm.setOnClickListener(v ->
                 startActivity(NewMessageActivity.createIntent(requireContext())));
+    }
+
+    private void openServerProfile(@NonNull ServerItem server) {
+        MemberStats cachedStats = serverMemberStatsCache.get(server.getId());
+        int cachedMemberCount = cachedStats != null ? cachedStats.memberCount : 0;
+        int cachedOnlineCount = cachedStats != null ? cachedStats.onlineCount : 0;
+
+        ServerProfileBottomSheet sheet =
+                ServerProfileBottomSheet.newInstance(server, cachedMemberCount, cachedOnlineCount);
+        sheet.show(getParentFragmentManager(), "ServerProfile");
+
+        // Refresh in background and update existing bottom sheet in place.
+        prefetchServerMemberStats(server.getId(), true);
+    }
+
+    private void prefetchServerMemberStats(@Nullable String serverId, boolean updateOpenedSheet) {
+        if (serverId == null || serverId.trim().isEmpty()) {
+            return;
+        }
+        serverMemberRepository.getServerMembers(serverId, result -> {
+            if (result == null || result.getStatus() != AuthResult.Status.SUCCESS || result.getData() == null) {
+                return;
+            }
+
+            int memberCount = result.getData().size();
+            int onlineCount = 0;
+            for (com.example.hubble.data.model.server.ServerMemberItem item : result.getData()) {
+                if (item != null && item.isOnline()) {
+                    onlineCount++;
+                }
+            }
+
+            serverMemberStatsCache.put(serverId, new MemberStats(memberCount, onlineCount));
+            if (!updateOpenedSheet || !isAdded()) {
+                return;
+            }
+
+            androidx.fragment.app.Fragment fragment =
+                    getParentFragmentManager().findFragmentByTag("ServerProfile");
+            if (fragment instanceof ServerProfileBottomSheet) {
+                ServerProfileBottomSheet openedSheet = (ServerProfileBottomSheet) fragment;
+                if (serverId.equals(openedSheet.getServerIdArg())) {
+                    openedSheet.updateMemberStats(memberCount, onlineCount);
+                }
+            }
+        });
+    }
+
+    private static final class MemberStats {
+        final int memberCount;
+        final int onlineCount;
+
+        MemberStats(int memberCount, int onlineCount) {
+            this.memberCount = memberCount;
+            this.onlineCount = onlineCount;
+        }
     }
 
     private void showMessage(String message) {
