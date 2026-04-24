@@ -215,7 +215,8 @@ public class CreateChannelAccessActivity extends AppCompatActivity {
                                          @NonNull Throwable t) {
                         binding.tvAction.setEnabled(true);
                         Snackbar.make(binding.getRoot(),
-                                "Lỗi kết nối: " + t.getMessage(),
+                                getString(R.string.error_network,
+                                        t.getMessage() != null ? t.getMessage() : getString(R.string.error_network_unknown)),
                                 Snackbar.LENGTH_SHORT).show();
                     }
                 });
