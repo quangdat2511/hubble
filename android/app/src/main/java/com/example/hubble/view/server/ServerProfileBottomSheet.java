@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,6 +22,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
     private BottomSheetServerProfileBinding binding;
     private int memberCount;
     private int onlineCount;
+    private String serverId;
 
     public static ServerProfileBottomSheet newInstance(ServerItem server, int memberCount, int onlineCount) {
         ServerProfileBottomSheet fragment = new ServerProfileBottomSheet();
@@ -49,7 +51,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
         super.onViewCreated(view, savedInstanceState);
 
         if (getArguments() != null) {
-            String serverId   = getArguments().getString("server_id");
+            serverId = getArguments().getString("server_id");
             String serverName = getArguments().getString("server_name");
             String iconUrl    = getArguments().getString("server_icon_url");
             String ownerId    = getArguments().getString("owner_id");
@@ -70,7 +72,6 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                 Glide.with(this)
                         .load(iconUrl)
                         .placeholder(R.color.color_primary)
-                        .circleCrop()
                         .into(binding.ivServerIcon);
             } else {
                 binding.ivServerIcon.setVisibility(View.GONE);
@@ -78,8 +79,7 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                 binding.tvServerInitials.setText(
                         serverName != null && !serverName.isEmpty()
                                 ? serverName.substring(0, 1).toUpperCase() : "?");
-                binding.tvServerInitials.setBackgroundColor(
-                        getResources().getColor(R.color.color_primary, null));
+                binding.tvServerInitials.setBackgroundResource(R.drawable.bg_server_icon_initials_rounded);
             }
 
             // Settings button — now passes ownerId + iconUrl
@@ -90,7 +90,6 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             });
 
             // Quick action buttons
-            binding.rowUpgrade.setOnClickListener(v -> showComingSoon());
             binding.rowInvitePeople.setOnClickListener(v -> {
                 dismiss();
                 InvitePeopleBottomSheet.newInstance(serverId, serverName)
@@ -123,9 +122,23 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                 startActivity(CreateCategoryActivity.createIntent(requireContext(), serverId));
             });
             binding.rowEditServerProfile.setOnClickListener(v -> showComingSoon());
-            binding.rowHideMuted.setOnClickListener(v ->
-                    binding.switchHideMuted.setChecked(!binding.switchHideMuted.isChecked()));
         }
+    }
+
+    public String getServerIdArg() {
+        return serverId;
+    }
+
+    public void updateMemberStats(int memberCount, int onlineCount) {
+        this.memberCount = Math.max(memberCount, 0);
+        this.onlineCount = Math.max(onlineCount, 0);
+        if (binding == null) {
+            return;
+        }
+        binding.tvOnlineCount.setText(
+                getString(R.string.server_profile_online_count, this.onlineCount));
+        binding.tvMemberCount.setText(
+                getString(R.string.server_profile_member_count_only, this.memberCount));
     }
 
     @Override
@@ -137,6 +150,10 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             behavior.setPeekHeight(BottomSheetBehavior.PEEK_HEIGHT_AUTO);
             behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             behavior.setSkipCollapsed(true);
+            FrameLayout bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) {
+                bottomSheet.setBackgroundResource(R.drawable.bg_bottom_sheet_top_rounded);
+            }
         }
     }
 
