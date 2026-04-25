@@ -300,7 +300,7 @@ public class MessageService {
 
         if (!Boolean.TRUE.equals(message.getIsDeleted())) {
             message.setIsDeleted(true);
-            message.setContent("Tin nhan da duoc thu hoi");
+            message.setContent("Tin nhắn đã được thu hồi");
             message.setEditedAt(LocalDateTime.now());
         }
 
@@ -472,6 +472,7 @@ public class MessageService {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
 
+        // DMs and group DMs must always enforce channel membership, even though they do not belong to a server.
         if (channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
             if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) {
                 throw new AppException(ErrorCode.UNAUTHORIZED);

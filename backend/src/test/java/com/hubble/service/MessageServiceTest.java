@@ -83,6 +83,7 @@ class MessageServiceTest {
                 .serverId(null)
                 .isPrivate(true)
                 .build();
+        lenient().when(channelMemberRepository.existsByChannelIdAndUserId(channelId, authorId)).thenReturn(true);
     }
 
     @Test
@@ -253,10 +254,24 @@ class MessageServiceTest {
     @Test
     void getMessages_emptyChannel_returnsEmptyList() {
         when(channelRepository.findById(channelId)).thenReturn(Optional.of(dmChannel));
+        when(channelMemberRepository.existsByChannelIdAndUserId(channelId, authorId)).thenReturn(true);
         when(messageRepository.findByChannelIdOrderByCreatedAtDesc(eq(channelId), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         assertTrue(messageService.getMessages(authorId.toString(), channelId.toString(), 0, 50).isEmpty());
+    }
+
+    @Test
+    void getMessages_rejectsUserOutsideDirectConversation() {
+        UUID outsiderId = UUID.randomUUID();
+        when(channelRepository.findById(channelId)).thenReturn(Optional.of(dmChannel));
+        when(channelMemberRepository.existsByChannelIdAndUserId(channelId, outsiderId)).thenReturn(false);
+
+        AppException exception = assertThrows(AppException.class, () ->
+                messageService.getMessages(outsiderId.toString(), channelId.toString(), 0, 20));
+
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        verify(messageRepository, never()).findByChannelIdOrderByCreatedAtDesc(any(), any());
     }
 
     @Test
