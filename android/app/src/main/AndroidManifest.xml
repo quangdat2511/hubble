@@ -214,6 +214,10 @@
             android:name=".view.dm.ImageViewerActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".view.search.SearchActivity"
+            android:windowSoftInputMode="adjustPan" />
+
         <service
             android:name=".service.HubbleFcmService"
             android:exported="false">

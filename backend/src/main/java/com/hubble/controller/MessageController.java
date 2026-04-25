@@ -103,4 +103,28 @@ public class MessageController {
                 .result(messageService.unsendMessage(principal.getId().toString(), messageId))
                 .build();
     }
+
+    @GetMapping("/{channelId}/around/{messageId}")
+    public ApiResponse<List<MessageResponse>> getMessagesAround(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @PathVariable String messageId,
+            @RequestParam(defaultValue = "30") int limit
+    ) {
+        return ApiResponse.<List<MessageResponse>>builder()
+                .result(messageService.getMessagesAround(channelId, principal.getId().toString(), messageId, limit))
+                .build();
+    }
+
+    @GetMapping("/{channelId}/before/{beforeId}")
+    public ApiResponse<List<MessageResponse>> getMessagesBefore(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @PathVariable String beforeId,
+            @RequestParam(defaultValue = "30") int size
+    ) {
+        return ApiResponse.<List<MessageResponse>>builder()
+                .result(messageService.getMessagesBefore(channelId, principal.getId().toString(), beforeId, size))
+                .build();
+    }
 }

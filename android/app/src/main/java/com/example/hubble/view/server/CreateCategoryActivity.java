@@ -115,7 +115,7 @@ public class CreateCategoryActivity extends AppCompatActivity {
         String name = binding.etCategoryName.getText() != null
                 ? binding.etCategoryName.getText().toString().trim() : "";
         if (name.isEmpty()) {
-            Snackbar.make(binding.getRoot(), "Tên danh mục không được để trống", Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(binding.getRoot(), R.string.category_name_required, Snackbar.LENGTH_SHORT).show();
             return;
         }
 

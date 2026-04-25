@@ -42,4 +42,14 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
               and (f.requesterId = :userId or f.addresseeId = :userId)
             """)
     List<UUID> findFriendIds(@Param("userId") UUID userId);
+
+    @Query("""
+            select f from Friendship f
+            where (f.requesterId = :userId and f.addresseeId in :targetIds)
+               or (f.addresseeId = :userId and f.requesterId in :targetIds)
+            """)
+    List<Friendship> findRelationsWithTargets(
+            @Param("userId") UUID userId,
+            @Param("targetIds") List<UUID> targetIds
+    );
 }

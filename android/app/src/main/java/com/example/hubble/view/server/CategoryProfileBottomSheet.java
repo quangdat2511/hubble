@@ -71,12 +71,11 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
 
         if (serverIconUrl != null && !serverIconUrl.isEmpty()) {
             binding.ivServerIcon.setVisibility(View.VISIBLE);
-            Glide.with(this).load(serverIconUrl).circleCrop().into(binding.ivServerIcon);
+            Glide.with(this).load(serverIconUrl).into(binding.ivServerIcon);
         } else if (serverName != null && !serverName.isEmpty()) {
             binding.tvServerInitials.setVisibility(View.VISIBLE);
             binding.tvServerInitials.setText(serverName.substring(0, Math.min(3, serverName.length())));
-            binding.tvServerInitials.setBackgroundColor(
-                    getResources().getColor(R.color.color_primary, null));
+            binding.tvServerInitials.setBackgroundResource(R.drawable.bg_server_icon_initials_rounded);
         }
 
         // Owner check
@@ -118,6 +117,7 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
             BottomSheetDialog dialog = (BottomSheetDialog) getDialog();
             View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
             if (bottomSheet != null) {
+                bottomSheet.setBackgroundResource(R.drawable.bg_bottom_sheet_top_rounded);
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 behavior.setSkipCollapsed(true);

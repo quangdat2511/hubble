@@ -368,4 +368,136 @@ public interface ApiService {
     Call<ApiResponse<Void>> goOffline(
             @Header("Authorization") String token
     );
+
+    // ── Context window ────────────────────────────────────────────────────
+
+    @GET("api/messages/{channelId}/around/{messageId}")
+    Call<ApiResponse<List<MessageDto>>> getMessagesAround(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Path("messageId") String messageId,
+            @Query("limit") int limit
+    );
+
+    @GET("api/messages/{channelId}/before/{beforeId}")
+    Call<ApiResponse<List<MessageDto>>> getMessagesBefore(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Path("beforeId") String beforeId,
+            @Query("size") int size
+    );
+
+    // ── Search — channel scope ────────────────────────────────────────────
+
+    @GET("api/search/channel/{channelId}/messages")
+    Call<ApiResponse<com.example.hubble.data.model.search.PagedResponse<com.example.hubble.data.model.search.SearchMessageDto>>> searchChannelMessages(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("q") String q,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/search/channel/{channelId}/members")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> searchChannelMembers(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("q") String q
+    );
+
+    @GET("api/search/channel/{channelId}/channels")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchChannelDto>>> searchChannelChannels(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("q") String q
+    );
+
+    @GET("api/search/channel/{channelId}/media")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchChannelMedia(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
+
+    @GET("api/search/channel/{channelId}/files")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchChannelFiles(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
+
+    @GET("api/search/channel/{channelId}/pins")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMessageDto>>> searchChannelPins(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("q") String q
+    );
+
+    // ── Search — server scope ─────────────────────────────────────────────
+
+    @GET("api/search/server/{serverId}/messages")
+    Call<ApiResponse<com.example.hubble.data.model.search.PagedResponse<com.example.hubble.data.model.search.SearchMessageDto>>> searchServerMessages(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Query("q") String q,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/search/server/{serverId}/members")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> searchServerMembers(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Query("q") String q
+    );
+
+    @GET("api/search/server/{serverId}/channels")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchChannelDto>>> searchServerChannels(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Query("q") String q
+    );
+
+    @GET("api/search/server/{serverId}/media")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchServerMedia(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId
+    );
+
+    @GET("api/search/server/{serverId}/files")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchServerFiles(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId
+    );
+
+    @GET("api/search/server/{serverId}/pins")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMessageDto>>> searchServerPins(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Query("q") String q
+    );
+
+    // ── Search — DM scope ─────────────────────────────────────────────────
+
+    @GET("api/search/dm/friends")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> searchDmFriends(
+            @Header("Authorization") String token,
+            @Query("q") String q
+    );
+
+    @GET("api/search/dm/messages")
+    Call<ApiResponse<com.example.hubble.data.model.search.PagedResponse<com.example.hubble.data.model.search.SearchMessageDto>>> searchDmMessages(
+            @Header("Authorization") String token,
+            @Query("q") String q,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/search/dm/media")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchDmMedia(
+            @Header("Authorization") String token
+    );
+
+    @GET("api/search/dm/files")
+    Call<ApiResponse<List<com.example.hubble.data.model.search.SearchAttachmentDto>>> searchDmFiles(
+            @Header("Authorization") String token
+    );
 }

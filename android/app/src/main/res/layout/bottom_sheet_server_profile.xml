@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/colorSurface">
+    android:background="@drawable/bg_bottom_sheet_top_rounded">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,12 +38,13 @@
                     android:layout_height="80dp"
                     android:contentDescription="@string/cd_server_icon"
                     android:scaleType="centerCrop"
-                    app:shapeAppearance="@style/ShapeAppearance.App.ServerIcon" />
+                    app:shapeAppearance="@style/ShapeAppearance.App.ServerIcon.Rounded" />
 
                 <TextView
                     android:id="@+id/tvServerInitials"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
+                    android:background="@drawable/bg_server_icon_initials_rounded"
                     android:gravity="center"
                     android:textAppearance="?attr/textAppearanceTitleLarge"
                     android:textColor="@android:color/white"
@@ -105,7 +106,7 @@
             android:visibility="gone"
             style="@style/Widget.Material3.Button.IconButton" />
 
-        <!-- Quick action buttons: Nâng Cấp / Lời mời / Thông Báo / Cài đặt -->
+        <!-- Quick action buttons: Lời mời / Thông Báo / Cài đặt -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -115,45 +116,7 @@
             android:paddingEnd="@dimen/spacing_md"
             android:paddingBottom="@dimen/spacing_md">
 
-            <!-- Nâng Cấp -->
-            <LinearLayout
-                android:id="@+id/rowUpgrade"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_xs">
-
-                <FrameLayout
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="@drawable/bg_action_button"
-                    app:backgroundTint="#45289B">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/server_profile_upgrade"
-                        android:src="@drawable/ic_boot"
-                        app:tint="@android:color/white" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:gravity="center"
-                    android:text="@string/server_profile_upgrade"
-                    android:textAppearance="?attr/textAppearanceLabelSmall"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-            </LinearLayout>
-
-            <!-- Lời mời — Blurple highlight -->
+            <!-- Lời mời -->
             <LinearLayout
                 android:id="@+id/rowInvitePeople"
                 android:layout_width="0dp"
@@ -170,7 +133,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:background="@drawable/bg_action_button"
-                    app:backgroundTint="@color/color_primary">
+                    app:backgroundTint="?attr/colorSurfaceVariant">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -178,7 +141,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/cd_invite"
                         android:src="@drawable/ic_invite"
-                        app:tint="@android:color/white" />
+                        app:tint="?attr/colorOnSurface" />
                 </FrameLayout>
 
                 <TextView
@@ -363,7 +326,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Chỉnh Sửa Hồ Sơ / Ẩn Kênh Tắt Âm — grouped card -->
+        <!-- Chỉnh Sửa Hồ Sơ Theo Máy Chủ -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -399,38 +362,6 @@
                         android:textColor="?attr/colorOnSurface" />
                 </LinearLayout>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="?attr/colorOutline" />
-
-                <LinearLayout
-                    android:id="@+id/rowHideMuted"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:paddingStart="@dimen/spacing_md"
-                    android:paddingEnd="@dimen/spacing_md">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/server_profile_hide_muted"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchHideMuted"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="false"
-                        android:clickable="false"
-                        android:focusable="false" />
-                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

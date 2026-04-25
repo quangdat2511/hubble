@@ -12,9 +12,9 @@ import com.hubble.dto.response.SmartReplyResponse;
 import com.hubble.entity.Attachment;
 import com.hubble.entity.Channel;
 import com.hubble.entity.Message;
+import com.hubble.entity.User;
 import com.hubble.enums.ChannelType;
 import com.hubble.enums.SharedContentType;
-import com.hubble.entity.User;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.MessageMapper;
@@ -148,6 +148,51 @@ public class MessageService {
         };
     }
 
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getMessagesBefore(String channelId, String userId, String beforeId, int size) {
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID userUuid = UUID.fromString(userId);
+        UUID beforeUuid = UUID.fromString(beforeId);
+        checkChannelAccess(channelUuid, userUuid);
+
+        List<Message> messages = messageRepository.findMessagesBefore(channelUuid, beforeUuid, size);
+
+        if (messages.isEmpty()) return List.of();
+
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+
+        Map<UUID, List<AttachmentResponse>> attachmentsByMessageId = attachmentRepository
+                .findByMessageIdIn(messageIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Attachment::getMessageId,
+                        Collectors.mapping(
+                                a -> AttachmentResponse.builder()
+                                        .id(a.getId())
+                                        .filename(a.getFilename())
+                                        .url(a.getUrl())
+                                        .contentType(a.getContentType())
+                                        .sizeBytes(a.getSizeBytes())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        Map<UUID, List<ReactionResponse>> reactionsByMessageId =
+                reactionService.getReactionsForMessages(messageIds);
+        Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+
+        return messages.stream()
+                .map(msg -> {
+                    MessageResponse res = messageMapper.toMessageResponse(msg);
+                    res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    return res;
+                })
+                .toList();
+    }
+
     private Map<UUID, User> loadAuthors(List<UUID> authorIds) {
         if (authorIds == null || authorIds.isEmpty()) {
             return Map.of();
@@ -195,11 +240,6 @@ public class MessageService {
                 response
         );
 
-        // Push a delivery event to every channel member except the sender.
-        // Each recipient's app (even if not in this chat screen) will receive
-        // this on /topic/users/{recipientId}/dm-delivery and send back an ack,
-        // allowing the sender to see "✓✓ Đã nhận" as soon as the message lands
-        // on the recipient's device — not only when they open the chat.
         DmDeliveryEvent deliveryEvent = DmDeliveryEvent.builder()
                 .channelId(request.getChannelId())
                 .senderId(authorId)
@@ -219,7 +259,6 @@ public class MessageService {
                 SmartReplyResponse aiResponse = smartReplyService.generateSuggestions(saved.getContent());
 
                 if (aiResponse != null && aiResponse.getSuggestions() != null && !aiResponse.getSuggestions().isEmpty()) {
-
                     aiResponse.setMessageAuthorId(authorId);
 
                     messagingTemplate.convertAndSend(
@@ -261,7 +300,7 @@ public class MessageService {
 
         if (!Boolean.TRUE.equals(message.getIsDeleted())) {
             message.setIsDeleted(true);
-            message.setContent("Tin nhắn đã được thu hồi");
+            message.setContent("Tin nhan da duoc thu hoi");
             message.setEditedAt(LocalDateTime.now());
         }
 
@@ -433,13 +472,25 @@ public class MessageService {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
 
-        // DM channels (no serverId) and non-private channels are always accessible
-        if (!Boolean.TRUE.equals(channel.getIsPrivate()) || channel.getServerId() == null) return;
+        if (channel.getType() == ChannelType.DM || channel.getType() == ChannelType.GROUP_DM) {
+            if (!channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+            return;
+        }
 
-        // Check explicit member access
+        if (channel.getServerId() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (!serverMemberRepository.existsByServerIdAndUserId(channel.getServerId(), userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (!Boolean.TRUE.equals(channel.getIsPrivate())) return;
+
         if (channelMemberRepository.existsByChannelIdAndUserId(channelId, userId)) return;
 
-        // Check role-based access
         boolean hasRoleAccess = serverMemberRepository.findByServerIdAndUserId(channel.getServerId(), userId)
                 .map(member -> {
                     List<UUID> roleIds = memberRoleRepository.findRoleIdsByMemberId(member.getId());
@@ -450,5 +501,59 @@ public class MessageService {
         if (!hasRoleAccess) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getMessagesAround(String channelId, String userId, String messageId, int limit) {
+        UUID channelUuid = UUID.fromString(channelId);
+        UUID userUuid = UUID.fromString(userId);
+        UUID messageUuid = UUID.fromString(messageId);
+        checkChannelAccess(channelUuid, userUuid);
+
+        Message target = messageRepository.findById(messageUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.MESSAGE_NOT_FOUND));
+        if (Boolean.TRUE.equals(target.getIsDeleted())) {
+            throw new AppException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+
+        int half = Math.max(1, limit / 2);
+        List<Message> messages = messageRepository.findMessagesAroundId(channelUuid, messageUuid, half);
+        messages = messages.stream()
+                .sorted(java.util.Comparator.comparing(Message::getCreatedAt))
+                .collect(Collectors.toList());
+
+        if (messages.isEmpty()) return List.of();
+
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+        Map<UUID, List<AttachmentResponse>> attachmentsByMessageId = attachmentRepository
+                .findByMessageIdIn(messageIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Attachment::getMessageId,
+                        Collectors.mapping(
+                                a -> AttachmentResponse.builder()
+                                        .id(a.getId())
+                                        .filename(a.getFilename())
+                                        .url(a.getUrl())
+                                        .contentType(a.getContentType())
+                                        .sizeBytes(a.getSizeBytes())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        Map<UUID, List<ReactionResponse>> reactionsByMessageId =
+                reactionService.getReactionsForMessages(messageIds);
+        Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+
+        return messages.stream()
+                .map(msg -> {
+                    MessageResponse res = messageMapper.toMessageResponse(msg);
+                    res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
+                    applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    return res;
+                })
+                .toList();
     }
 }
