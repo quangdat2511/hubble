@@ -137,25 +137,37 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.button.MaterialButton
+                <FrameLayout
                     android:id="@+id/btnSearch"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_surface"
                     android:contentDescription="@string/cd_search"
-                    app:icon="@drawable/ic_search"
-                    app:iconTint="?attr/colorOnSurfaceVariant" />
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_search"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+                </FrameLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddFriend"
-                    style="@style/Widget.Material3.Button"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_marginStart="@dimen/spacing_sm"
                     android:layout_weight="1"
                     android:text="@string/dm_add_friend"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    app:backgroundTint="?attr/colorSurface"
                     app:icon="@drawable/ic_person"
-                    app:iconTint="?attr/colorOnSurfaceVariant" />
+                    app:iconTint="?attr/colorOnSurfaceVariant"
+                    app:strokeColor="@color/color_control_outline"
+                    app:strokeWidth="1dp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -267,6 +279,83 @@
 
             </LinearLayout>
 
+            <!-- Search + invite row (server scope) -->
+            <LinearLayout
+                android:id="@+id/layoutServerActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <!-- Search pill -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardServerSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/color_control_outline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_search"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="@string/search_hint"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Invite button -->
+                <FrameLayout
+                    android:id="@+id/btnServerInvite"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_circle_surface"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_person_add"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/color_divider" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvServerChannels"

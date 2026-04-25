@@ -119,12 +119,12 @@ public class RoleDetailFragment extends Fragment {
         // Delete role
         binding.cardDeleteRole.setOnClickListener(v ->
                 new MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("Xoá vai trò")
-                        .setMessage("Bạn có chắc muốn xoá vai trò \"" + roleName + "\"?")
-                        .setPositiveButton("Xoá", (d, w) -> {
+                        .setTitle(R.string.role_detail_delete_confirm_title)
+                        .setMessage(getString(R.string.role_detail_delete_confirm_message, roleName))
+                        .setPositiveButton(R.string.role_detail_delete_confirm_action, (d, w) -> {
                             viewModel.deleteRole(serverId, roleId);
                         })
-                        .setNegativeButton("Huỷ", null)
+                        .setNegativeButton(R.string.cancel, null)
                         .show());
 
         // Observe delete result

@@ -540,6 +540,8 @@
     <string name="member_edit_transfer_confirm_title">Chuyển quyền sở hữu</string>
     <string name="member_edit_transfer_confirm_message">Bạn sẽ mất quyền sở hữu máy chủ. Thao tác này không thể hoàn tác.</string>
     <string name="member_edit_transfer_success">Đã chuyển quyền sở hữu cho %1$s</string>
+    <string name="member_edit_kick_error">Lỗi khi đuổi thành viên</string>
+    <string name="member_edit_transfer_error">Lỗi khi chuyển quyền sở hữu</string>
 
     <!-- Server Invites -->
     <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>
@@ -700,6 +702,9 @@
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
     <string name="role_detail_delete">Xóa Vai Trò</string>
+    <string name="role_detail_delete_confirm_title">Xóa vai trò</string>
+    <string name="role_detail_delete_confirm_message">Bạn có chắc muốn xóa vai trò "%1$s"?</string>
+    <string name="role_detail_delete_confirm_action">Xóa</string>
 
     <!--    QR-->
     <string name="me_qr_title">Mã QR hồ sơ</string>
@@ -753,6 +758,7 @@
     <string name="create_channel_next">Tiếp theo</string>
     <string name="create_channel_skip">Bỏ qua</string>
     <string name="create_channel_name_label">Tên kênh</string>
+    <string name="channel_name_required">Tên kênh không được để trống</string>
     <string name="create_channel_default_name">Kênh mới</string>
     <string name="create_channel_type_label">Loại kênh</string>
     <string name="create_channel_type_text">Văn bản</string>
@@ -770,6 +776,7 @@
     <!-- Create Category -->
     <string name="create_category_title">Tạo danh mục</string>
     <string name="create_category_name_label">Tên danh mục</string>
+    <string name="category_name_required">Tên danh mục không được để trống</string>
     <string name="create_category_default_name">Danh mục mới</string>
     <string name="create_category_private">Danh mục riêng</string>
     <string name="create_category_private_note">Nếu đặt danh mục ở chế độ riêng tư, chỉ có thành viên và vai trò được chọn mới có thể xem danh mục này. Các kênh đã liên kết trong danh mục này cũng sẽ tự động được chuyển sang trạng thái riêng tư.</string>
@@ -857,4 +864,20 @@
     <string name="voice_speaker_on">Loa ngoài</string>
     <string name="voice_speaker_off">Loa trong</string>
     <string name="voice_permission_required">Cần quyền truy cập micro để tham gia kênh thoại</string>
+    <!-- Search -->
+    <string name="search_hint">Tìm kiếm…</string>
+    <string name="search_no_results">Không tìm thấy kết quả</string>
+    <string name="search_tab_messages">Tin nhắn</string>
+    <string name="search_tab_members">Thành viên</string>
+    <string name="search_tab_channels">Kênh</string>
+    <string name="search_tab_media">Media</string>
+    <string name="search_tab_files">Tệp</string>
+    <string name="search_tab_pins">Ghim</string>
+    <string name="search_tab_friends">Bạn bè</string>
+    <string name="search_friend_state_friend">Bạn bè</string>
+    <string name="search_friend_state_pending_outgoing">Đã gửi lời mời</string>
+    <string name="search_friend_state_pending_incoming">Đã nhận lời mời</string>
+    <string name="search_profile_status_hint">Trạng thái: %1$s</string>
+    <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
+    <string name="common_avatar">Ảnh đại diện</string>
 </resources>

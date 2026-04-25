@@ -138,7 +138,7 @@ public class CreateChannelActivity extends AppCompatActivity {
         String name = binding.etChannelName.getText() != null
                 ? binding.etChannelName.getText().toString().trim() : "";
         if (name.isEmpty()) {
-            Snackbar.make(binding.getRoot(), "Tên kênh không được để trống", Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(binding.getRoot(), R.string.channel_name_required, Snackbar.LENGTH_SHORT).show();
             return;
         }
 

@@ -112,7 +112,7 @@ public class MemberEditActivity extends AppCompatActivity {
                                     finish();
                                 } else if (result.isError()) {
                                     Snackbar.make(binding.getRoot(),
-                                            result.getMessage() != null ? result.getMessage() : "Lỗi khi đuổi thành viên",
+                                            result.getMessage() != null ? result.getMessage() : getString(R.string.member_edit_kick_error),
                                             Snackbar.LENGTH_SHORT).show();
                                 }
                             }));
@@ -136,7 +136,7 @@ public class MemberEditActivity extends AppCompatActivity {
                                         finish();
                                     } else if (result.isError()) {
                                         Snackbar.make(binding.getRoot(),
-                                                result.getMessage() != null ? result.getMessage() : "Lỗi khi chuyển quyền sở hữu",
+                                                result.getMessage() != null ? result.getMessage() : getString(R.string.member_edit_transfer_error),
                                                 Snackbar.LENGTH_SHORT).show();
                                     }
                                 }));

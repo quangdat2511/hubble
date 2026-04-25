@@ -185,7 +185,7 @@ public class ChannelSettingsActivity extends AppCompatActivity {
     private void onSave() {
         String name = getText(binding.etChannelName);
         if (name.isEmpty()) {
-            Snackbar.make(binding.getRoot(), "Tên kênh không được để trống", Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(binding.getRoot(), R.string.channel_name_required, Snackbar.LENGTH_SHORT).show();
             return;
         }
 
@@ -221,7 +221,9 @@ public class ChannelSettingsActivity extends AppCompatActivity {
                                          @NonNull Throwable t) {
                         binding.tvSave.setEnabled(true);
                         Snackbar.make(binding.getRoot(),
-                                "Lỗi kết nối: " + t.getMessage(), Snackbar.LENGTH_SHORT).show();
+                                getString(R.string.error_network,
+                                        t.getMessage() != null ? t.getMessage() : getString(R.string.error_network_unknown)),
+                                Snackbar.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -258,7 +260,9 @@ public class ChannelSettingsActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<ApiResponse<Void>> call,
                                          @NonNull Throwable t) {
                         Snackbar.make(binding.getRoot(),
-                                "Lỗi kết nối: " + t.getMessage(), Snackbar.LENGTH_SHORT).show();
+                                getString(R.string.error_network,
+                                        t.getMessage() != null ? t.getMessage() : getString(R.string.error_network_unknown)),
+                                Snackbar.LENGTH_SHORT).show();
                     }
                 });
     }

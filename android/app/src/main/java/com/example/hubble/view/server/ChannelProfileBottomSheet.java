@@ -96,7 +96,6 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
             binding.tvServerInitials.setVisibility(View.GONE);
             Glide.with(this).load(serverIconUrl)
                     .placeholder(R.color.color_primary)
-                    .circleCrop()
                     .into(binding.ivServerIcon);
         } else {
             binding.ivServerIcon.setVisibility(View.GONE);
@@ -104,8 +103,7 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
             binding.tvServerInitials.setText(
                     serverName != null && !serverName.isEmpty()
                             ? serverName.substring(0, 1).toUpperCase() : "?");
-            binding.tvServerInitials.setBackgroundColor(
-                    getResources().getColor(R.color.color_primary, null));
+            binding.tvServerInitials.setBackgroundResource(R.drawable.bg_server_icon_initials_rounded);
         }
 
         // Cluster 1
@@ -139,6 +137,10 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
         super.onStart();
         BottomSheetDialog dialog = (BottomSheetDialog) getDialog();
         if (dialog != null) {
+            View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) {
+                bottomSheet.setBackgroundResource(R.drawable.bg_bottom_sheet_top_rounded);
+            }
             BottomSheetBehavior<?> behavior = dialog.getBehavior();
             behavior.setPeekHeight(BottomSheetBehavior.PEEK_HEIGHT_AUTO);
             behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
