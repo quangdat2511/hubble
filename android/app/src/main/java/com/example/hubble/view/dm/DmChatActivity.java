@@ -66,7 +66,7 @@ import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.AudioProximityManager;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
-import com.example.hubble.view.server.ChannelProfileBottomSheet;
+import com.example.hubble.view.server.ChannelDetailActivity;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -388,32 +388,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void setupChannelHeaderInteractions() {
-        binding.ivHeaderChevron.setOnClickListener(v -> {
-            if (isServerTextChannel()) {
-                openChannelProfileSheet();
-            }
-        });
         binding.btnHeaderSearch.setOnClickListener(v -> openSearch());
-    }
-
-    private void openChannelProfileSheet() {
-        if (!isServerTextChannel() || TextUtils.isEmpty(serverIdForForward) || TextUtils.isEmpty(channelId)) {
-            return;
-        }
-        String rawName = peerDisplayName != null ? peerDisplayName.replaceFirst("^#\\s*", "").trim() : "";
-        ChannelProfileBottomSheet.newInstance(
-                serverIdForForward,
-                firstNonBlank(serverDisplayName, ""),
-                toAbsoluteAvatarUrl(serverIconUrlForSheet),
-                firstNonBlank(serverOwnerId, ""),
-                channelId,
-                rawName,
-                "TEXT",
-                channelTopic,
-                channelParentId,
-                channelParentName,
-                channelIsPrivate
-        ).show(getSupportFragmentManager(), "ChannelProfile");
     }
 
     private void setupProfileIntro() {
@@ -527,6 +502,18 @@ public class DmChatActivity extends AppCompatActivity {
     private void openConversationDetails() {
         if (TextUtils.isEmpty(channelId)) {
             Snackbar.make(binding.getRoot(), R.string.dm_gallery_error_generic, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        if (isServerTextChannel()) {
+            startActivity(ChannelDetailActivity.createIntent(
+                    this,
+                    serverIdForForward,
+                    serverDisplayName,
+                    serverIconUrlForSheet,
+                    channelId,
+                    peerDisplayName,
+                    channelTopic
+            ));
             return;
         }
         startActivity(DmDetailsActivity.createIntent(

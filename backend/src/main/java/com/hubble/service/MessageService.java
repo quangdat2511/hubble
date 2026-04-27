@@ -124,7 +124,7 @@ public class MessageService {
             int page,
             int size
     ) {
-        UUID channelUuid = requireDirectConversationChannel(UUID.fromString(userId), channelId);
+        UUID channelUuid = requireAccessibleChannel(UUID.fromString(userId), channelId);
         PageRequest pageRequest = PageRequest.of(page, size);
 
         return switch (type) {

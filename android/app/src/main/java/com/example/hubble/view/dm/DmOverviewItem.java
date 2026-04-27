@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.example.hubble.R;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.dm.SharedContentItemResponse;
+import com.example.hubble.data.model.search.SearchAttachmentDto;
 
 import java.net.URI;
 import java.util.Locale;
@@ -89,6 +90,61 @@ public final class DmOverviewItem {
                 item.getContentType(),
                 item.getSizeBytes(),
                 item.getCreatedAt()
+        );
+    }
+
+    @NonNull
+    public static DmOverviewItem fromSearchAttachment(@NonNull Context context,
+                                                      @NonNull SearchAttachmentDto item) {
+        Kind kind = classifyAttachment(item.getContentType(), null);
+        String safeUrl = NetworkConfig.resolveUrl(item.getUrl());
+        String title = firstNonBlank(
+                item.getFilename(),
+                extractHost(safeUrl),
+                context.getString(R.string.dm_gallery_fallback_attachment)
+        );
+        String supportingText = kind == Kind.FILE
+                ? buildFileMeta(item.getContentType(), item.getSizeBytes() != null ? item.getSizeBytes() : 0L)
+                : null;
+
+        return new DmOverviewItem(
+                buildStableId("search", item.getId(), item.getMessageId(), title),
+                item.getMessageId(),
+                kind,
+                title,
+                supportingText,
+                safeUrl,
+                safeUrl,
+                item.getContentType(),
+                item.getSizeBytes() != null ? item.getSizeBytes() : 0L,
+                item.getCreatedAt()
+        );
+    }
+
+    @NonNull
+    public static DmOverviewItem fromExtractedLink(@NonNull Context context,
+                                                   @Nullable String messageId,
+                                                   @Nullable String url,
+                                                   @Nullable String supportingText,
+                                                   @Nullable String createdAt) {
+        String safeUrl = NetworkConfig.resolveUrl(url);
+        String title = firstNonBlank(
+                extractHost(safeUrl),
+                safeUrl,
+                context.getString(R.string.dm_gallery_fallback_shared_link)
+        );
+
+        return new DmOverviewItem(
+                buildStableId("link", messageId, safeUrl),
+                messageId,
+                Kind.LINK,
+                title,
+                supportingText,
+                safeUrl,
+                safeUrl,
+                "text/uri-list",
+                0L,
+                createdAt
         );
     }
 

@@ -302,6 +302,12 @@
     <string name="dm_gallery_fallback_attachment">Tệp đính kèm</string>
     <string name="dm_gallery_fallback_shared_media">Ảnh hoặc video đã chia sẻ</string>
     <string name="dm_gallery_fallback_shared_link">Liên kết đã chia sẻ</string>
+    <string name="channel_gallery_summary">Ảnh, video và tệp được chia sẻ trong kênh %1$s sẽ xuất hiện ở đây.</string>
+    <string name="channel_gallery_server_fallback">Kênh máy chủ</string>
+    <string name="channel_gallery_error_generic">Không thể tải nội dung đã chia sẻ của kênh này.</string>
+    <string name="channel_gallery_empty_media_subtitle">Ảnh và video được gửi trong kênh này sẽ xuất hiện ở đây.</string>
+    <string name="channel_gallery_empty_files_subtitle">Tài liệu và tệp đính kèm trong kênh này sẽ xuất hiện ở đây.</string>
+    <string name="channel_gallery_empty_links_subtitle">Các liên kết được chia sẻ trong kênh này sẽ xuất hiện ở đây.</string>
 
     <string name="new_message_title">Tin nhắn mới</string>
     <string name="new_message_search_hint">Đến: Tìm bạn bè</string>

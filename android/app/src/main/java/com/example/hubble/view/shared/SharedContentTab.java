@@ -1,32 +1,27 @@
-package com.example.hubble.view.dm;
+package com.example.hubble.view.shared;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.hubble.R;
 
-public enum DmDetailsTab {
+public enum SharedContentTab {
     MEDIA("MEDIA", R.string.dm_gallery_tab_media,
-            R.string.dm_gallery_empty_media_title,
-            R.string.dm_gallery_empty_media_subtitle),
+            R.string.dm_gallery_empty_media_title),
     LINKS("LINK", R.string.dm_gallery_tab_links,
-            R.string.dm_gallery_empty_links_title,
-            R.string.dm_gallery_empty_links_subtitle),
+            R.string.dm_gallery_empty_links_title),
     FILES("FILE", R.string.dm_gallery_tab_files,
-            R.string.dm_gallery_empty_files_title,
-            R.string.dm_gallery_empty_files_subtitle);
+            R.string.dm_gallery_empty_files_title);
 
     @Nullable
     private final String requestType;
     private final int labelResId;
     private final int emptyTitleResId;
-    private final int emptySubtitleResId;
 
-    DmDetailsTab(@Nullable String requestType, int labelResId, int emptyTitleResId, int emptySubtitleResId) {
+    SharedContentTab(@Nullable String requestType, int labelResId, int emptyTitleResId) {
         this.requestType = requestType;
         this.labelResId = labelResId;
         this.emptyTitleResId = emptyTitleResId;
-        this.emptySubtitleResId = emptySubtitleResId;
     }
 
     @Nullable
@@ -42,24 +37,16 @@ public enum DmDetailsTab {
         return emptyTitleResId;
     }
 
-    public int getEmptySubtitleResId() {
-        return emptySubtitleResId;
-    }
-
-    public boolean usesSharedContentEndpoint() {
-        return requestType != null;
-    }
-
     @NonNull
     public String getTag() {
         return name();
     }
 
     @NonNull
-    public static DmDetailsTab fromTag(@Nullable Object tag) {
+    public static SharedContentTab fromTag(@Nullable Object tag) {
         if (tag instanceof String) {
             try {
-                return DmDetailsTab.valueOf((String) tag);
+                return SharedContentTab.valueOf((String) tag);
             } catch (IllegalArgumentException ignored) {
                 // fall through
             }
