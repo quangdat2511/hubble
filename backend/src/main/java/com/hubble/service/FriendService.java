@@ -273,6 +273,22 @@ public class FriendService {
         }
     }
 
+    @Transactional
+    public void unfriend(UUID currentUserId, UUID targetUserId) {
+        if (currentUserId.equals(targetUserId)) {
+            throw new AppException(ErrorCode.CANNOT_FRIEND_SELF);
+        }
+
+        Friendship relation = friendshipRepository.findRelationBetween(currentUserId, targetUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
+
+        if (relation.getStatus() != FriendshipStatus.ACCEPTED) {
+            throw new AppException(ErrorCode.FRIEND_REQUEST_NOT_FOUND);
+        }
+
+        friendshipRepository.delete(relation);
+    }
+
     @Transactional(readOnly = true)
     public List<FriendUserResponse> getFriends(UUID currentUserId) {
         return friendshipRepository.findAcceptedByUserId(currentUserId, FriendshipStatus.ACCEPTED)

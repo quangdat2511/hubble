@@ -27,6 +27,9 @@ public class FriendViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<List<FriendRequestResponse>>> _outgoingRequests = new MutableLiveData<>();
     public final LiveData<AuthResult<List<FriendRequestResponse>>> outgoingRequests = _outgoingRequests;
 
+    private final MutableLiveData<AuthResult<List<FriendUserDto>>> _friendsList = new MutableLiveData<>();
+    public final LiveData<AuthResult<List<FriendUserDto>>> friendsList = _friendsList;
+
     private final MutableLiveData<AuthResult<List<FriendUserDto>>> _blockedUsers = new MutableLiveData<>();
     public final LiveData<AuthResult<List<FriendUserDto>>> blockedUsers = _blockedUsers;
 
@@ -52,6 +55,16 @@ public class FriendViewModel extends ViewModel {
     public void fetchBlockedUsers() {
         _blockedUsers.setValue(AuthResult.loading());
         repository.getBlockedUsers(_blockedUsers::postValue);
+    }
+
+    public void fetchFriends() {
+        _friendsList.setValue(AuthResult.loading());
+        repository.getFriends(_friendsList::postValue);
+    }
+
+    public void unfriend(String userId) {
+        _actionState.setValue(AuthResult.loading());
+        repository.unfriend(userId, _actionState::postValue);
     }
 
     public void blockUser(String userId) {

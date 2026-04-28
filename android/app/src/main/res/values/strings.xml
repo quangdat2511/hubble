@@ -837,4 +837,13 @@
     <string name="search_profile_status_hint">Trạng thái: %1$s</string>
     <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
     <string name="common_avatar">Ảnh đại diện</string>
+
+    <!-- Friends list screen -->
+    <string name="friends_title">Bạn bè</string>
+    <string name="friends_empty">Bạn chưa có bạn bè nào</string>
+    <string name="friend_unfriend">Huỷ kết bạn</string>
+    <string name="friend_unfriend_confirm_title">Huỷ kết bạn</string>
+    <string name="friend_unfriend_confirm_message">Bạn có chắc muốn huỷ kết bạn với %1$s?</string>
+    <string name="friend_unfriend_success">Đã huỷ kết bạn thành công!</string>
+    <string name="friend_unfriend_error">Không thể huỷ kết bạn. Vui lòng thử lại.</string>
 </resources>

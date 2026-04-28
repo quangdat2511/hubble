@@ -172,6 +172,12 @@ public interface ApiService {
             @Header("Authorization") String token
     );
 
+    @DELETE("api/friends/friends/{userId}")
+    Call<ApiResponse<String>> unfriend(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
     @GET("api/contacts/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriendsViaContacts(
             @Header("Authorization") String token
