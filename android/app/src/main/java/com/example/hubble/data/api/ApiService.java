@@ -147,7 +147,7 @@ public interface ApiService {
             @Path("userId") String userId
     );
 
-    @POST("/api/friends/requests/{userId}")
+    @POST("api/friends/requests/{userId}")
     Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(
             @Header("Authorization") String token,
             @Path("userId") String userId
