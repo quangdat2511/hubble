@@ -23,35 +23,36 @@ import com.example.hubble.R;
 import com.example.hubble.adapter.dm.DmConversationAdapter;
 import com.example.hubble.adapter.dm.DmStoryAdapter;
 import com.example.hubble.adapter.home.ServerSidebarAdapter;
-import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.adapter.server.ServerChannelAdapter;
-import com.example.hubble.data.model.dm.DmConversationItem;
-import com.example.hubble.data.model.dm.ChannelDto;
-import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
-import com.example.hubble.databinding.FragmentHomeBinding;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.BottomSheetDmConversationActionsBinding;
 import com.example.hubble.databinding.FragmentHomeBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
+import com.example.hubble.utils.ServerChannelNameFormatter;
 import com.example.hubble.view.dm.DmChatActivity;
 import com.example.hubble.view.dm.NewMessageActivity;
+import com.example.hubble.view.search.SearchActivity;
 import com.example.hubble.view.server.CategoryProfileBottomSheet;
 import com.example.hubble.view.server.ChannelProfileBottomSheet;
 import com.example.hubble.view.server.CreateServerActivity;
-import com.example.hubble.view.server.ServerProfileBottomSheet;
-import com.example.hubble.view.search.SearchActivity;
 import com.example.hubble.view.server.InvitePeopleBottomSheet;
+import com.example.hubble.view.server.ServerProfileBottomSheet;
 import com.example.hubble.view.voice.VoiceChannelBottomSheet;
+import com.example.hubble.viewmodel.FriendViewModel;
+import com.example.hubble.viewmodel.FriendViewModelFactory;
 import com.example.hubble.viewmodel.SearchViewModel;
 import com.example.hubble.viewmodel.home.MainViewModel;
 import com.example.hubble.viewmodel.home.MainViewModelFactory;
-import com.example.hubble.utils.ServerChannelNameFormatter;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ public class HomeFragment extends Fragment {
     private DmConversationAdapter conversationAdapter;
     private ServerChannelAdapter serverChannelAdapter;
     private MainViewModel viewModel;
+    private FriendViewModel friendViewModel;
     private ServerMemberRepository serverMemberRepository;
     private final Map<String, MemberStats> serverMemberStatsCache = new HashMap<>();
     private final List<ServerItem> currentServers = new ArrayList<>();
@@ -99,6 +101,8 @@ public class HomeFragment extends Fragment {
                 new MainViewModelFactory(requireContext(), new DmRepository(requireContext()), new ServerRepository(requireContext()))
         ).get(MainViewModel.class);
         serverMemberRepository = new ServerMemberRepository(requireContext());
+        friendViewModel = new ViewModelProvider(this,
+                new FriendViewModelFactory(new FriendRepository(requireContext()))).get(FriendViewModel.class);
 
         setupServerSidebar(viewModel);
         setupServerChannels(viewModel);
@@ -482,6 +486,7 @@ public class HomeFragment extends Fragment {
         if (displayName.isEmpty()) {
             displayName = getString(R.string.dm_default_user);
         }
+        final String finalDisplayName = displayName;
         sheet.tvConversationHandle.setText("@" + displayName);
         bindConversationAvatar(
                 sheet.ivConversationAvatar,
@@ -521,6 +526,35 @@ public class HomeFragment extends Fragment {
         sheet.actionMuteConversation.setOnClickListener(v -> {
             dialog.dismiss();
             showMessage(getString(R.string.main_coming_soon));
+        });
+
+        String friendId = item != null ? item.getFriendId() : null;
+        sheet.actionBlockUser.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (friendId == null || friendId.trim().isEmpty()) {
+                showMessage(getString(R.string.error_generic));
+                return;
+            }
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.block_user_confirm_title)
+                    .setMessage(getString(R.string.block_user_confirm_message, finalDisplayName))
+                    .setPositiveButton(R.string.friend_action_block, (d, which) -> {
+                        friendViewModel.blockUser(friendId);
+                        friendViewModel.actionState.observe(getViewLifecycleOwner(), result -> {
+                            if (result == null) return;
+                            if (!result.isLoading()) {
+                                if (result.isSuccess()) {
+                                    showMessage(getString(R.string.blocked_user_blocked));
+                                    viewModel.refreshDirectMessages();
+                                } else if (result.isError()) {
+                                    showMessage(result.getMessage());
+                                }
+                                friendViewModel.resetActionState();
+                            }
+                        });
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
         });
 
         dialog.show();

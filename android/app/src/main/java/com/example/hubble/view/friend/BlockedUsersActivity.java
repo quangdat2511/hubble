@@ -10,7 +10,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.hubble.R;
-import com.example.hubble.adapter.friend.FriendSearchAdapter;
+import com.example.hubble.adapter.friend.BlockedUserAdapter;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityBlockedUsersBinding;
 import com.example.hubble.viewmodel.FriendViewModel;
@@ -20,7 +20,7 @@ import com.google.android.material.snackbar.Snackbar;
 public class BlockedUsersActivity extends AppCompatActivity {
     private ActivityBlockedUsersBinding binding;
     private FriendViewModel viewModel;
-    private FriendSearchAdapter adapter;
+    private BlockedUserAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,10 +43,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
         binding.toolbar.setTitle(R.string.me_blocked_users);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-//        binding.etSearch.setVisibility(View.GONE);
-//        binding.btnSearch.setVisibility(View.GONE);
-
-        adapter = new FriendSearchAdapter(user -> viewModel.unblockUser(user.getId()));
+        adapter = new BlockedUserAdapter(user -> viewModel.unblockUser(user.getId()));
         binding.rvResults.setLayoutManager(new LinearLayoutManager(this));
         binding.rvResults.setAdapter(adapter);
 
