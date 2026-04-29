@@ -19,14 +19,27 @@ import java.util.List;
 
 public class FriendSearchAdapter extends RecyclerView.Adapter<FriendSearchAdapter.ViewHolder> {
     private final List<FriendUserDto> users = new ArrayList<>();
-    private final OnAddClickListener listener;
+    private final OnAddClickListener addListener;
+    private final OnBlockClickListener blockListener;
 
     public interface OnAddClickListener {
         void onAddClick(FriendUserDto user);
     }
 
-    public FriendSearchAdapter(OnAddClickListener listener) {
-        this.listener = listener;
+    public interface OnBlockClickListener {
+        void onBlockClick(FriendUserDto user);
+    }
+
+    /** Constructor with only add listener (backward-compat). Block button will be hidden. */
+    public FriendSearchAdapter(OnAddClickListener addListener) {
+        this.addListener = addListener;
+        this.blockListener = null;
+    }
+
+    /** Constructor with both add and block listeners. */
+    public FriendSearchAdapter(OnAddClickListener addListener, OnBlockClickListener blockListener) {
+        this.addListener = addListener;
+        this.blockListener = blockListener;
     }
 
     public void setUsers(List<FriendUserDto> newUsers) {
@@ -67,19 +80,68 @@ public class FriendSearchAdapter extends RecyclerView.Adapter<FriendSearchAdapte
             String displayName = (user.getDisplayName() != null && !user.getDisplayName().isEmpty())
                     ? user.getDisplayName() : user.getUsername();
             binding.tvDisplayName.setText(displayName);
-            binding.tvUsername.setText(user.getUsername());
+            binding.tvUsername.setText("@" + user.getUsername());
             bindAvatar(user, displayName);
+            bindActions(user);
+        }
 
-            if ("NONE".equalsIgnoreCase(user.getRelationStatus())) {
-                binding.btnAdd.setVisibility(View.VISIBLE);
-                binding.tvStatus.setVisibility(View.GONE);
-                binding.btnAdd.setOnClickListener(v -> {
-                    if (listener != null) listener.onAddClick(user);
-                });
-            } else {
-                binding.btnAdd.setVisibility(View.GONE);
-                binding.tvStatus.setVisibility(View.VISIBLE);
-                binding.tvStatus.setText(user.getRelationStatus());
+        private void bindActions(FriendUserDto user) {
+            String status = user.getRelationStatus();
+            if (status == null) status = "NONE";
+
+            // Reset all first
+            binding.btnAdd.setVisibility(View.GONE);
+            binding.btnBlock.setVisibility(View.GONE);
+            binding.tvStatus.setVisibility(View.GONE);
+
+            switch (status.toUpperCase()) {
+                case "NONE":
+                    // Can add friend + can block
+                    binding.btnAdd.setVisibility(View.VISIBLE);
+                    binding.btnAdd.setOnClickListener(v -> {
+                        if (addListener != null) addListener.onAddClick(user);
+                    });
+                    if (blockListener != null) {
+                        binding.btnBlock.setVisibility(View.VISIBLE);
+                        binding.btnBlock.setOnClickListener(v -> blockListener.onBlockClick(user));
+                    }
+                    break;
+
+                case "FRIEND":
+                    // Already friends: no add, but can block
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText("Bạn bè");
+                    if (blockListener != null) {
+                        binding.btnBlock.setVisibility(View.VISIBLE);
+                        binding.btnBlock.setOnClickListener(v -> blockListener.onBlockClick(user));
+                    }
+                    break;
+
+                case "PENDING_OUTGOING":
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText("Đã gửi lời mời");
+                    break;
+
+                case "PENDING_INCOMING":
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText("Chờ chấp nhận");
+                    break;
+
+                case "BLOCKED_BY_ME":
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText("Đã chặn");
+                    break;
+
+                case "BLOCKED_ME":
+                    // Hide entire item would require DiffUtil; just show locked status
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText("Không thể kết bạn");
+                    break;
+
+                default:
+                    binding.tvStatus.setVisibility(View.VISIBLE);
+                    binding.tvStatus.setText(status);
+                    break;
             }
         }
 

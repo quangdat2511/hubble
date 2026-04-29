@@ -227,4 +227,43 @@ public class FriendRepository {
         });
     }
 
+    public void getFriends(RepositoryCallback<List<FriendUserDto>> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.getFriends(token).enqueue(new Callback<ApiResponse<List<FriendUserDto>>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<List<FriendUserDto>>> call, @NonNull Response<ApiResponse<List<FriendUserDto>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_list_load_error)));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<List<FriendUserDto>>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
+    public void unfriend(String userId, RepositoryCallback<String> callback) {
+        String token = getToken();
+        if (token == null) return;
+        apiService.unfriend(token, userId).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<String>> call, @NonNull Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                } else {
+                    callback.onResult(AuthResult.error(appContext.getString(R.string.friend_unfriend_error)));
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<String>> call, @NonNull Throwable t) {
+                callback.onResult(AuthResult.error(t.getMessage()));
+            }
+        });
+    }
+
 }
+

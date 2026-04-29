@@ -120,6 +120,16 @@ public class FriendController {
         return ResponseEntity.ok(ApiResponse.<String>builder().result("Đã bỏ chặn người dùng").build());
     }
 
+    @DeleteMapping("/friends/{userId}")
+    public ResponseEntity<ApiResponse<String>> unfriend(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID userId
+    ) {
+        UUID currentUserId = principal.getId();
+        friendService.unfriend(currentUserId, userId);
+        return ResponseEntity.ok(ApiResponse.<String>builder().result("Đã huỷ kết bạn").build());
+    }
+
     @GetMapping("/friends")
     public ResponseEntity<ApiResponse<List<FriendUserResponse>>> getFriends(
             @AuthenticationPrincipal UserPrincipal principal
