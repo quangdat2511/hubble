@@ -458,6 +458,25 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return null;
     }
 
+    /**
+     * Latest message boundary (createdAtMillis) suitable for mark-read.
+     *
+     * <p>Used to prevent "late" read notifications from clearing unread
+     * state for messages that arrived after the boundary.</p>
+     *
+     * @return createdAtMillis of the latest stable message, or -1 if none.
+     */
+    public long getLatestCreatedAtMillisForReadReceipt() {
+        for (int i = items.size() - 1; i >= 0; i--) {
+            DmMessageItem item = items.get(i);
+            if (item.isDateSeparator() || item.isIntro() || item.isDeleted()) continue;
+            String id = item.getId();
+            if (id == null || id.startsWith("tmp_")) continue;
+            return item.getCreatedAtMillis();
+        }
+        return -1L;
+    }
+
     private void notifyLastMineMessageChanged() {
         for (int i = items.size() - 1; i >= 0; i--) {
             DmMessageItem item = items.get(i);

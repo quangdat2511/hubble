@@ -131,15 +131,20 @@ public class MainActivity extends BaseAuthActivity {
 
         mainViewModel.dmTotalUnread.observe(this, count -> {
             int total = count != null ? count : 0;
-            BadgeDrawable badge = binding.bottomNav.getOrCreateBadge(R.id.nav_home);
             if (total <= 0) {
-                badge.setVisible(false);
-            } else {
-                badge.setVisible(true);
-                badge.setNumber(Math.min(total, 99));
-                badge.setBackgroundColor(ContextCompat.getColor(this, R.color.discord_nav_home_badge_blue));
-                badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
+                // Drop the badge entirely when there is nothing to show so it
+                // doesn't linger as a faint dot when the count cycles 1 → 0.
+                binding.bottomNav.removeBadge(R.id.nav_home);
+                return;
             }
+            BadgeDrawable badge = binding.bottomNav.getOrCreateBadge(R.id.nav_home);
+            badge.setVisible(true);
+            // Discord renders 99+ for 100 or more; Material handles this when
+            // the displayed value would exceed maxCharacterCount.
+            badge.setMaxCharacterCount(3);
+            badge.setNumber(total);
+            badge.setBackgroundColor(ContextCompat.getColor(this, R.color.discord_nav_home_badge_blue));
+            badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
         });
 
         setupBottomNavigation();

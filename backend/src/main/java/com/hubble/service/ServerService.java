@@ -126,9 +126,28 @@ public class ServerService {
                                 .existsByChannelIdAndRoleIdIn(channel.getId(), userRoleIds);
                         response.setCanAccess(directAccess || roleAccess);
                     }
+                    if (ChannelType.TEXT.equals(channel.getType())) {
+                        fillServerChannelUnreadCount(response, channel.getId(), userId);
+                    }
                     return response;
                 })
                 .toList();
+    }
+
+    private void fillServerChannelUnreadCount(ChannelResponse response, UUID channelId, UUID userId) {
+        channelMemberRepository.findByChannelIdAndUserId(channelId, userId)
+                .ifPresentOrElse(
+                        member -> {
+                            long c;
+                            if (member.getLastReadAt() == null) {
+                                c = messageRepository.countIncomingMessagesFromOthers(channelId, userId);
+                            } else {
+                                c = messageRepository.countIncomingMessagesAfterRead(channelId, userId, member.getLastReadAt());
+                            }
+                            response.setUnreadCount((int) Math.min(c, 999));
+                        },
+                        () -> response.setUnreadCount(null)
+                );
     }
 
     public List<ServerResponse> getMyServers(UUID userId) {
