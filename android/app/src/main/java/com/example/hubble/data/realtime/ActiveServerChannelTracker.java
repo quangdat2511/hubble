@@ -21,7 +21,31 @@ import io.reactivex.subjects.PublishSubject;
 public final class ActiveServerChannelTracker {
 
     private static final AtomicReference<String> ACTIVE_SERVER_CHANNEL_ID = new AtomicReference<>(null);
-    private static final PublishSubject<String> READ_EVENTS = PublishSubject.create();
+    private static final PublishSubject<ServerChannelReadEvent> READ_EVENTS = PublishSubject.create();
+
+    /** Payload for "channel was marked read" events. */
+    public static final class ServerChannelReadEvent {
+        private final String channelId;
+        /**
+         * Boundary createdAtMillis used by the chat UI when sending a read receipt.
+         * If negative, listeners should treat it as "unknown boundary" and apply
+         * their normal local-optimistic behavior.
+         */
+        private final long boundaryCreatedAtMillis;
+
+        public ServerChannelReadEvent(String channelId, long boundaryCreatedAtMillis) {
+            this.channelId = channelId;
+            this.boundaryCreatedAtMillis = boundaryCreatedAtMillis;
+        }
+
+        public String getChannelId() {
+            return channelId;
+        }
+
+        public long getBoundaryCreatedAtMillis() {
+            return boundaryCreatedAtMillis;
+        }
+    }
 
     private ActiveServerChannelTracker() {
     }
@@ -44,14 +68,31 @@ public final class ActiveServerChannelTracker {
 
     /** Emit a "channel was marked read" signal for listeners (MainViewModel). */
     public static void notifyChannelRead(@Nullable String channelId) {
+        notifyChannelRead(channelId, -1L);
+    }
+
+    /**
+     * Emit a "channel was marked read" signal for listeners (MainViewModel).
+     *
+     * @param boundaryCreatedAtMillis createdAtMillis of the latest message included
+     *                                 in the read receipt. -1 means unknown.
+     */
+    public static void notifyChannelRead(@Nullable String channelId, long boundaryCreatedAtMillis) {
         if (channelId == null || channelId.isEmpty()) {
             return;
         }
-        READ_EVENTS.onNext(channelId);
+        READ_EVENTS.onNext(new ServerChannelReadEvent(channelId, boundaryCreatedAtMillis));
     }
 
     /** Observe channel-read events (emits channelId strings). */
     public static Observable<String> observeChannelRead() {
+        // Backward-compat overload kept intentionally: callers that depend on the
+        // older "String-only" API can still subscribe without having to change.
+        return READ_EVENTS.map(ServerChannelReadEvent::getChannelId);
+    }
+
+    /** Observe channel-read events (emits read boundary payload). */
+    public static Observable<ServerChannelReadEvent> observeChannelReadEvents() {
         return READ_EVENTS;
     }
 }
