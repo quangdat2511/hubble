@@ -162,4 +162,28 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/actionBlockUser"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="@string/friend_action_block"
+            android:textAllCaps="false"
+            android:textColor="?attr/colorError"
+            app:icon="@drawable/ic_close"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorError"
+            app:iconPadding="12dp" />
+
+    </com.google.android.material.card.MaterialCardView>
+
 </LinearLayout>

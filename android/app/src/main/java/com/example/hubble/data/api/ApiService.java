@@ -151,7 +151,7 @@ public interface ApiService {
             @Path("userId") String userId
     );
 
-    @POST("/api/friends/requests/{userId}")
+    @POST("api/friends/requests/{userId}")
     Call<ApiResponse<FriendRequestResponse>> sendFriendRequest(
             @Header("Authorization") String token,
             @Path("userId") String userId
@@ -196,6 +196,12 @@ public interface ApiService {
     @GET("api/friends/friends")
     Call<ApiResponse<java.util.List<FriendUserDto>>> getFriends(
             @Header("Authorization") String token
+    );
+
+    @DELETE("api/friends/friends/{userId}")
+    Call<ApiResponse<String>> unfriend(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
     );
 
     @GET("api/contacts/friends")

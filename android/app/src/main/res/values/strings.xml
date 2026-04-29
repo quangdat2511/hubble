@@ -381,6 +381,11 @@
     <string name="pending_requests_title">Lời mời đang chờ</string>
     <string name="session_management_title">Thiết bị của bạn</string>
     <string name="friend_action_add">Thêm</string>
+    <string name="friend_action_block">Chặn</string>
+    <string name="friend_action_unblock">Bỏ chặn</string>
+    <string name="blocked_user_blocked">Đã chặn người dùng thành công!</string>
+    <string name="block_user_confirm_title">Chặn người dùng</string>
+    <string name="block_user_confirm_message">Chặn %1$s? Họ sẽ không thể gửi lời mời kết bạn hay nhắn tin cho bạn.</string>
     <string name="attachment_file">Tệp đính kèm</string>
     <string name="dm_official">Chính thức</string>
     <string name="profile_updated">Cập nhật hồ sơ thành công</string>
@@ -880,4 +885,13 @@
     <string name="search_profile_status_hint">Trạng thái: %1$s</string>
     <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
     <string name="common_avatar">Ảnh đại diện</string>
+ 
+    <!-- Friends list screen -->
+    <string name="friends_title">Bạn bè</string>
+    <string name="friends_empty">Bạn chưa có bạn bè nào</string>
+    <string name="friend_unfriend">Huỷ kết bạn</string>
+    <string name="friend_unfriend_confirm_title">Huỷ kết bạn</string>
+    <string name="friend_unfriend_confirm_message">Bạn có chắc muốn huỷ kết bạn với %1$s?</string>
+    <string name="friend_unfriend_success">Đã huỷ kết bạn thành công!</string>
+    <string name="friend_unfriend_error">Không thể huỷ kết bạn. Vui lòng thử lại.</string>
 </resources>
