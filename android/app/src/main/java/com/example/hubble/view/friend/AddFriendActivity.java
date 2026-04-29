@@ -15,6 +15,7 @@ import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.ActivityAddFriendBinding;
 import com.example.hubble.viewmodel.FriendViewModel;
 import com.example.hubble.viewmodel.FriendViewModelFactory;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 public class AddFriendActivity extends AppCompatActivity {
@@ -42,7 +43,22 @@ public class AddFriendActivity extends AppCompatActivity {
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        adapter = new FriendSearchAdapter(user -> viewModel.sendRequest(user.getUsername()));
+        adapter = new FriendSearchAdapter(
+                // onAdd
+                user -> viewModel.sendRequest(user.getUsername()),
+                // onBlock — confirm dialog before blocking
+                user -> {
+                    String displayName = (user.getDisplayName() != null && !user.getDisplayName().isEmpty())
+                            ? user.getDisplayName() : user.getUsername();
+                    new MaterialAlertDialogBuilder(this)
+                            .setTitle(R.string.block_user_confirm_title)
+                            .setMessage(getString(R.string.block_user_confirm_message, displayName))
+                            .setPositiveButton(R.string.friend_action_block, (dialog, which) ->
+                                    viewModel.blockUser(user.getId()))
+                            .setNegativeButton(R.string.cancel, null)
+                            .show();
+                }
+        );
         binding.rvResults.setLayoutManager(new LinearLayoutManager(this));
         binding.rvResults.setAdapter(adapter);
 
@@ -67,13 +83,33 @@ public class AddFriendActivity extends AppCompatActivity {
             if (result == null) return;
             if (result.isSuccess()) {
                 Snackbar.make(binding.getRoot(), R.string.friend_request_sent, Snackbar.LENGTH_SHORT).show();
-                String query = binding.etSearch.getText() != null ? binding.etSearch.getText().toString().trim() : "";
-                if (!query.isEmpty()) viewModel.searchUsers(query);
+                refreshSearch();
                 viewModel.resetSendState();
             } else if (result.isError()) {
                 Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
                 viewModel.resetSendState();
             }
         });
+
+        viewModel.actionState.observe(this, result -> {
+            if (result == null) return;
+            if (result.isLoading()) {
+                binding.progressBar.setVisibility(View.VISIBLE);
+                return;
+            }
+            binding.progressBar.setVisibility(View.GONE);
+            if (result.isSuccess()) {
+                Snackbar.make(binding.getRoot(), R.string.blocked_user_blocked, Snackbar.LENGTH_SHORT).show();
+                refreshSearch();
+            } else if (result.isError()) {
+                Snackbar.make(binding.getRoot(), result.getMessage(), Snackbar.LENGTH_SHORT).show();
+            }
+            viewModel.resetActionState();
+        });
+    }
+
+    private void refreshSearch() {
+        String query = binding.etSearch.getText() != null ? binding.etSearch.getText().toString().trim() : "";
+        if (!query.isEmpty()) viewModel.searchUsers(query);
     }
 }

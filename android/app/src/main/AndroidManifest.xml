@@ -207,6 +207,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".view.friend.FriendsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.dm.ImageViewerActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
