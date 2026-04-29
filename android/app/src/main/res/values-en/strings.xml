@@ -362,6 +362,11 @@
     <string name="invite_decline">Deny</string>
     <string name="session_management_title">Your devices</string>
     <string name="friend_action_add">Add</string>
+    <string name="friend_action_block">Block</string>
+    <string name="friend_action_unblock">Unblock</string>
+    <string name="blocked_user_blocked">User blocked successfully!</string>
+    <string name="block_user_confirm_title">Block user</string>
+    <string name="block_user_confirm_message">Block %1$s? They will no longer be able to send you friend requests or messages.</string>
     <string name="attachment_file">Attachment</string>
     <string name="dm_official">Official</string>
     <string name="profile_updated">Profile updated</string>
@@ -653,4 +658,11 @@
     <string name="category_settings_delete">Delete category</string>
     <string name="category_settings_delete_confirm_title">Delete category</string>
     <string name="category_settings_delete_confirm_message">Are you sure you want to delete %s? Channels inside this category will not be deleted.</string>
+    <string name="friends_title">Friends</string>
+    <string name="friends_empty">You do not have any friends yet</string>
+    <string name="friend_unfriend">Remove friend</string>
+    <string name="friend_unfriend_confirm_title">Remove friend</string>
+    <string name="friend_unfriend_confirm_message">Are you sure you want to remove %1$s from your friends?</string>
+    <string name="friend_unfriend_success">Friend removed successfully!</string>
+    <string name="friend_unfriend_error">Could not remove friend. Please try again.</string>
 </resources>
