@@ -78,14 +78,12 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
         }
 
         if (!favoriteItems.isEmpty()) {
-            rows.add(RowItem.header(R.string.dm_section_favorites));
             for (DmConversationItem item : favoriteItems) {
                 rows.add(RowItem.conversation(item));
             }
         }
 
         if (!regularItems.isEmpty()) {
-            rows.add(RowItem.header(R.string.dm_section_messages));
             for (DmConversationItem item : regularItems) {
                 rows.add(RowItem.conversation(item));
             }
@@ -186,6 +184,13 @@ public class DmConversationAdapter extends RecyclerView.Adapter<DmConversationAd
             // Only preview text changes between unread/read.
             binding.tvPreview.setTypeface(null, unread ? Typeface.BOLD : Typeface.NORMAL);
             binding.tvPreview.setTextColor(unread ? onSurface : onSurfaceVariant);
+
+            // Discord: do not show unread dot/number on each DM row.
+            // Unread is represented via bold preview (see tvPreview/typeface)
+            // and the global badge on the Home icon.
+            binding.tvUnreadBadge.setVisibility(View.GONE);
+            binding.tvUnreadBadge.setContentDescription(null);
+
             binding.ivFavorite.setVisibility(item.isFavorite() ? View.VISIBLE : View.GONE);
             int avatarSize = binding.ivAvatar.getLayoutParams() != null
                     ? binding.ivAvatar.getLayoutParams().width

@@ -317,6 +317,9 @@
     <string name="dm_mute_conversation">Mute conversation</string>
     <string name="dm_favorited_success">Added to Favorites</string>
     <string name="dm_unfavorited_success">Removed from Favorites</string>
+    <string name="dm_unread_count_short">%1$d</string>
+    <string name="dm_unread_count_overflow">99+</string>
+    <string name="cd_dm_unread_count">%1$d unread messages</string>
     <string name="cd_emoji_picker">Emoji picker</string>
     <string name="emoji_search_hint">Find the perfect emoji</string>
     <string name="emoji_tab_emoji">Emoji</string>

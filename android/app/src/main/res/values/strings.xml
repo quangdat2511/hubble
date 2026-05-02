@@ -312,6 +312,9 @@
     <string name="dm_mute_conversation">Tắt thông báo cuộc trò chuyện</string>
     <string name="dm_favorited_success">Đã thêm vào Yêu thích</string>
     <string name="dm_unfavorited_success">Đã bỏ khỏi Yêu thích</string>
+    <string name="dm_unread_count_short">%1$d</string>
+    <string name="dm_unread_count_overflow">99+</string>
+    <string name="cd_dm_unread_count">%1$d tin nhắn chưa đọc</string>
     <string name="cd_call">Gọi thoại</string>
     <string name="cd_video">Gọi video</string>
 

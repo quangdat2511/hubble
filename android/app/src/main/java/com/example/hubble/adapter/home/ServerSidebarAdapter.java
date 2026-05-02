@@ -269,6 +269,7 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<RecyclerView.View
             b.viewActiveIndicator.setVisibility(View.GONE);
             b.viewUnreadPill.setVisibility(View.GONE);
 
+            // Discord: show unread count badge on the DM avatar in the sidebar.
             int unread = Math.max(0, dm.getUnreadCount());
             if (unread > 0) {
                 b.tvServerUnreadBadge.setVisibility(View.VISIBLE);
