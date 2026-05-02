@@ -29,10 +29,14 @@ public final class NetworkConfig {
             return overrideUrl;
         }
 
-        String scheme = defaultIfBlank(BuildConfig.DEV_BACKEND_SCHEME, DEFAULT_DEBUG_SCHEME);
-        String host = defaultIfBlank(BuildConfig.DEV_BACKEND_HOST, resolveDefaultDebugHost());
-        String port = defaultIfBlank(BuildConfig.DEV_BACKEND_PORT, DEFAULT_DEBUG_PORT);
-        return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
+        if (!TextUtils.isEmpty(BuildConfig.DEV_BACKEND_HOST)) {
+            String scheme = defaultIfBlank(BuildConfig.DEV_BACKEND_SCHEME, DEFAULT_DEBUG_SCHEME);
+            String host = defaultIfBlank(BuildConfig.DEV_BACKEND_HOST, resolveDefaultDebugHost());
+            String port = defaultIfBlank(BuildConfig.DEV_BACKEND_PORT, DEFAULT_DEBUG_PORT);
+            return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
+        }
+
+        return ensureTrailingSlash(BuildConfig.BASE_URL);
     }
 
     public static String getBackendIdentity() {
@@ -45,10 +49,14 @@ public final class NetworkConfig {
             return overrideUrl;
         }
 
-        String scheme = defaultIfBlank(BuildConfig.DEV_BACKEND_SCHEME, DEFAULT_DEBUG_SCHEME);
-        String host = defaultIfBlank(BuildConfig.DEV_BACKEND_HOST, DEV_BACKEND_IDENTITY_HOST);
-        String port = defaultIfBlank(BuildConfig.DEV_BACKEND_PORT, DEFAULT_DEBUG_PORT);
-        return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
+        if (!TextUtils.isEmpty(BuildConfig.DEV_BACKEND_HOST)) {
+            String scheme = defaultIfBlank(BuildConfig.DEV_BACKEND_SCHEME, DEFAULT_DEBUG_SCHEME);
+            String host = defaultIfBlank(BuildConfig.DEV_BACKEND_HOST, DEV_BACKEND_IDENTITY_HOST);
+            String port = defaultIfBlank(BuildConfig.DEV_BACKEND_PORT, DEFAULT_DEBUG_PORT);
+            return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
+        }
+
+        return ensureTrailingSlash(BuildConfig.BASE_URL);
     }
 
     public static String getWebSocketBaseUrl() {

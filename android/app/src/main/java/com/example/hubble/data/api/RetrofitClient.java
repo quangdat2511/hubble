@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Dns;
+import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -44,12 +45,16 @@ public class RetrofitClient {
                 Request original = chain.request();
                 String deviceName = Build.MANUFACTURER + " " + Build.MODEL; // VD: samsung SM-G998B
                 String deviceFingerprint = createDeviceFingerprint(context);
-                Request request = original.newBuilder()
+                Request.Builder requestBuilder = original.newBuilder()
                         .header("User-Agent", deviceName)
                         .header("X-Device-Name", deviceName)
-                        .header("X-Device-Fingerprint", deviceFingerprint)
-                        .build();
-                return chain.proceed(request);
+                        .header("X-Device-Fingerprint", deviceFingerprint);
+
+                if (isNgrokHost(original.url())) {
+                    requestBuilder.header("ngrok-skip-browser-warning", "true");
+                }
+
+                return chain.proceed(requestBuilder.build());
             };
 
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
@@ -138,5 +143,14 @@ public class RetrofitClient {
         } catch (NoSuchAlgorithmException e) {
             return rawValue;
         }
+    }
+
+    private static boolean isNgrokHost(HttpUrl url) {
+        if (url == null || url.host() == null) {
+            return false;
+        }
+
+        String host = url.host().toLowerCase();
+        return host.contains("ngrok");
     }
 }
