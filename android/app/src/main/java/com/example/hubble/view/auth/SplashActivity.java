@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
 
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.hubble.data.api.NetworkConfig;
@@ -40,6 +41,7 @@ public class SplashActivity extends BaseAuthActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         super.onCreate(savedInstanceState);
 
         binding = ActivitySplashBinding.inflate(getLayoutInflater());

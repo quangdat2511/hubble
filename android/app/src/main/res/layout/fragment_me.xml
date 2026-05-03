@@ -96,59 +96,6 @@
                         android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="?attr/colorOnSurface"
                         android:textStyle="bold" />
-
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:rotation="-90"
-                        android:src="@drawable/ic_expand_more"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardNotes"
-                style="@style/Widget.Hubble.CardView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardCornerRadius="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:minHeight="68dp"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/spacing_md">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_marginEnd="@dimen/spacing_md"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_edit"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/me_notes"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <ImageView
-                        android:layout_width="@dimen/channel_icon_size"
-                        android:layout_height="@dimen/channel_icon_size"
-                        android:importantForAccessibility="no"
-                        android:rotation="-90"
-                        android:src="@drawable/ic_expand_more"
-                        app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -192,14 +139,6 @@
                             android:textAppearance="?attr/textAppearanceBodyLarge"
                             android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="@dimen/channel_icon_size"
-                            android:layout_height="@dimen/channel_icon_size"
-                            android:importantForAccessibility="no"
-                            android:rotation="-90"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
                     <View
@@ -236,14 +175,6 @@
                             android:textAppearance="?attr/textAppearanceBodyLarge"
                             android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="@dimen/channel_icon_size"
-                            android:layout_height="@dimen/channel_icon_size"
-                            android:importantForAccessibility="no"
-                            android:rotation="-90"
-                            android:src="@drawable/ic_expand_more"
-                            app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
                 </LinearLayout>

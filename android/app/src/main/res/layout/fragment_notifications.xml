@@ -24,15 +24,6 @@
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnNotificationsMore"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:contentDescription="@string/cd_notifications_more"
-            app:icon="@drawable/ic_expand_more"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
-
     </LinearLayout>
 
     <!-- Divider -->
