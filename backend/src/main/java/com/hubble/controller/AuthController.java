@@ -39,6 +39,7 @@ public class AuthController {
 
     @PostMapping("/email/send-otp")
     public ResponseEntity<ApiResponse<String>> sendEmailVerificationOtp(@Valid @RequestBody SendEmailOtpRequest request) {
+        log.info("Request to send email OTP to: {}", request.getEmail());
         authService.sendEmailVerificationOtp(request.getEmail());
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .result("OTP đã được gửi đến email của bạn")

@@ -264,15 +264,21 @@ public class AuthService {
 
     @Transactional
     public void sendEmailVerificationOtp(String email) {
+        log.info("Sending email verification OTP to: {}", email);
+        
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         if (user.getEmailVerified()) {
+            log.warn("Email {} is already verified", email);
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
         String otp = otpService.generateOtp(user.getId(), OtpType.EMAIL_VERIFY);
+        log.info("Generated OTP for user {}: {}", user.getId(), otp);
+        
         emailService.sendOtpEmail(user.getEmail(), otp, "Xác thực tài khoản Hubble");
+        log.info("OTP email sent to: {}", user.getEmail());
     }
 
     private TokenResponse createTokenResponse(User user) {
