@@ -26,4 +26,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     // Used to prevent duplicate notifications (e.g., duplicate friend request notifications)
     @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.type = :type AND n.referenceId = :referenceId ORDER BY n.createdAt DESC LIMIT 1")
     Optional<Notification> findRecentNotification(UUID userId, NotificationType type, String referenceId);
+
+    // Delete notifications for a specific user/type/reference combination
+    // Used to clean up old notifications when unblocking users
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.userId = :userId AND n.type = :type AND n.referenceId = :referenceId")
+    void deleteByUserIdAndTypeAndReferenceId(UUID userId, NotificationType type, String referenceId);
 }

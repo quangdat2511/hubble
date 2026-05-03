@@ -10,6 +10,7 @@ import com.hubble.enums.NotificationType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.FriendshipRepository;
+import com.hubble.repository.NotificationRepository;
 import com.hubble.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class FriendService {
     UserRepository userRepository;
     FriendshipRepository friendshipRepository;
     NotificationService notificationService;
+    NotificationRepository notificationRepository;
 
     @Transactional(readOnly = true)
     public List<FriendUserResponse> searchUsers(UUID currentUserId, String query) {
@@ -268,6 +270,16 @@ public class FriendService {
 
         if (relation.getStatus() == FriendshipStatus.BLOCKED && relation.getRequesterId().equals(currentUserId)) {
             friendshipRepository.delete(relation);
+            
+            // Clean up any old friend request notifications from targetUserId to currentUserId
+            // This prevents "duplicate key" errors if the target tries to send a new friend request
+            notificationRepository.deleteByUserIdAndTypeAndReferenceId(
+                    targetUserId, 
+                    NotificationType.FRIEND_REQUEST, 
+                    currentUserId.toString()
+            );
+            
+            log.info("User {} unblocked user {} and cleaned up old notifications", currentUserId, targetUserId);
         } else {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
