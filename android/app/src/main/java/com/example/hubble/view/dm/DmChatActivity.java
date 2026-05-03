@@ -337,7 +337,11 @@ public class DmChatActivity extends AppCompatActivity {
         }
         if (isServerTextChannel() && !TextUtils.isEmpty(channelId)) {
             ActiveServerChannelTracker.setActiveChannelId(channelId);
-            ActiveServerChannelTracker.notifyChannelRead(channelId);
+            // Don't emit a "read" event here with an unknown boundary.
+            // Instead, rely on history-load/mark-read flows that use the latest
+            // message boundary (see flushMarkChannelReadImmediately()) so we
+            // don't accidentally clear unread state for messages that arrived
+            // after the user opened/left the chat.
         }
         connectStomp();
     }
@@ -351,6 +355,11 @@ public class DmChatActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        // Flush any pending mark-read to the backend before tearing down the
+        // STOMP client (disconnectStomp wipes uiHandler callbacks). This keeps
+        // the unread badge from "resurrecting" when the user exits the chat
+        // before the debounce timer fires.
+        flushMarkChannelReadImmediately();
         if (!isServerTextChannel()) {
             ActiveDmChannelTracker.clearIfMatch(channelId);
         } else {
@@ -1357,7 +1366,10 @@ public class DmChatActivity extends AppCompatActivity {
                         binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
                     }
                     fetchPeerReadStatusIntoAdapter();
-                    scheduleMarkChannelRead();
+                    // Tell the server we have read up to the newest visible
+                    // message right away; subsequent live messages still go
+                    // through the debounced scheduler.
+                    flushMarkChannelReadImmediately();
                 });
             }
         });
@@ -2049,18 +2061,41 @@ public class DmChatActivity extends AppCompatActivity {
         uiHandler.postDelayed(flushMarkReadRunnable, 400);
     }
 
+    /**
+     * Force a mark-read attempt right away (no debounce). Used when leaving the
+     * screen so we don't lose a pending read if the user backs out before the
+     * scheduled runnable fires, and on history load so the badge clears
+     * immediately for the user.
+     */
+    private void flushMarkChannelReadImmediately() {
+        uiHandler.removeCallbacks(flushMarkReadRunnable);
+        flushMarkChannelRead();
+    }
+
     private void flushMarkChannelRead() {
-        if (isFinishing() || isDestroyed()) return;
         if (TextUtils.isEmpty(channelId)) return;
         String id = adapter.getLatestMessageIdForReadReceipt();
         if (id == null) return;
         if (id.equals(lastMarkedReadMessageId)) return;
-        lastMarkedReadMessageId = id;
+        final String pendingMessageId = id;
+        final long boundaryCreatedAtMillis =
+                adapter.getLatestCreatedAtMillisForReadReceipt();
         final String readChannelId = channelId;
         final boolean isServerChannel = isServerTextChannel();
-        dmRepository.markChannelRead(readChannelId, id, result -> {
-            if (isServerChannel) {
-                ActiveServerChannelTracker.notifyChannelRead(readChannelId);
+        dmRepository.markChannelRead(readChannelId, pendingMessageId, result -> {
+            // Only remember the read marker once the server confirms it; that
+            // way a transient network failure does not permanently silence the
+            // mark-read for the latest message.
+            if (result != null && result.isSuccess()) {
+                lastMarkedReadMessageId = pendingMessageId;
+                if (isServerChannel) {
+                    ActiveServerChannelTracker.notifyChannelRead(
+                            readChannelId,
+                            boundaryCreatedAtMillis
+                    );
+                } else {
+                    ActiveDmChannelTracker.notifyChannelRead(readChannelId);
+                }
             }
         });
     }

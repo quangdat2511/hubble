@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/containerRow"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -107,6 +108,22 @@
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvUnreadBadge"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:background="@drawable/bg_dm_unread_pill"
+            android:gravity="center"
+            android:minWidth="8dp"
+            android:padding="0dp"
+            android:textColor="@color/white"
+            android:textSize="0sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="9"
+            tools:visibility="visible" />
 
     </LinearLayout>
 

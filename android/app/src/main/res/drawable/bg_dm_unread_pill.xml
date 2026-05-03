@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Discord-style numeric unread badge for the DM list row: red rounded pill that
+    grows naturally for multi-digit numbers (e.g. 1, 12, 99+).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/discord_unread_badge_red" />
+    <corners android:radius="999dp" />
+</shape>
