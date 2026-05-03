@@ -17,4 +17,5 @@ public class CreateMessageRequest {
     String content;
     String type;                  // TEXT | IMAGE | FILE | VOICE_NOTE
     List<UUID> attachmentIds;
+    List<String> mentionedUserIds;
 }

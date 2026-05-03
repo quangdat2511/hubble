@@ -92,7 +92,8 @@ public class SearchMessageAdapter
             if (highlightQuery != null && !highlightQuery.isEmpty() && !content.isEmpty()) {
                 b.tvContent.setText(highlight(content, highlightQuery));
             } else {
-                b.tvContent.setText(content);
+                b.tvContent.setText(com.example.hubble.view.util.MentionRenderer
+                        .applyMentionSpans(b.tvContent.getContext(), content));
             }
 
             String avatarUrl = item.getAuthorAvatarUrl() != null

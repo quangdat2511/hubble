@@ -26,6 +26,8 @@ public interface MessageMapper {
     @Mapping(target = "reactions", ignore = true)
     @Mapping(target = "authorUsername", ignore = true)
     @Mapping(target = "authorDisplayName", ignore = true)
+    @Mapping(target = "mentionedUserIds", ignore = true)
+    @Mapping(target = "mentionedUsernames", ignore = true)
     MessageResponse toMessageResponse(Message message);
 
     default MessageResponse toMessageResponse(Message message, List<AttachmentResponse> attachments) {

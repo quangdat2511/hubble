@@ -23,4 +23,9 @@ public class SearchMemberDto {
     public boolean isSelf() { return isSelf; }
     public boolean isFriend() { return isFriend; }
     public String getFriendshipState() { return friendshipState; }
+
+    public void setId(String id) { this.id = id; }
+    public void setUsername(String username) { this.username = username; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

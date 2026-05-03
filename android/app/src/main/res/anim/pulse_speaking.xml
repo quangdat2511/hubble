@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<set xmlns:android="http://schemas.android.com/apk/res/android"
-    android:interpolator="@android:anim/accelerate_decelerate_interpolator">
-
-    <alpha
-        android:duration="800"
-        android:fromAlpha="1.0"
-        android:repeatCount="infinite"
-        android:repeatMode="reverse"
-        android:toAlpha="0.4" />
-
-    <scale
-        android:duration="800"
-        android:fromXScale="1.0"
-        android:fromYScale="1.0"
-        android:pivotX="50%"
-        android:pivotY="50%"
-        android:repeatCount="infinite"
-        android:repeatMode="reverse"
-        android:toXScale="1.08"
-        android:toYScale="1.08" />
-</set>
+<!-- Scale pulses between 0.95–1.14 for a clearly visible breathe effect.
+     No alpha fade — ring stays at full opacity so it never looks dim or small. -->
+<scale xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="600"
+    android:fromXScale="0.95"
+    android:fromYScale="0.95"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+    android:pivotX="50%"
+    android:pivotY="50%"
+    android:repeatCount="infinite"
+    android:repeatMode="reverse"
+    android:toXScale="1.14"
+    android:toYScale="1.14" />

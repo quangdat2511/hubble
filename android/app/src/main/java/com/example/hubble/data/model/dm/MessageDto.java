@@ -27,6 +27,12 @@ public class MessageDto {
     @SerializedName("reactions")
     private List<ReactionDto> reactions;
 
+    @SerializedName("mentionedUserIds")
+    private List<String> mentionedUserIds;
+
+    @SerializedName("mentionedUsernames")
+    private List<String> mentionedUsernames;
+
     public String getId() {
         return id;
     }
@@ -83,6 +89,14 @@ public class MessageDto {
         return reactions != null ? reactions : new ArrayList<>();
     }
     public void setReactions(List<ReactionDto> reactions) { this.reactions = reactions; }
+
+    public List<String> getMentionedUserIds() {
+        return mentionedUserIds != null ? mentionedUserIds : new ArrayList<>();
+    }
+
+    public List<String> getMentionedUsernames() {
+        return mentionedUsernames != null ? mentionedUsernames : new ArrayList<>();
+    }
 
     public void setId(String id) { this.id = id; }
     public void setChannelId(String channelId) { this.channelId = channelId; }

@@ -31,6 +31,9 @@ public class DmMessageItem {
     private String replyToContent;
     private boolean replyToMine;
     private MessageStatus status;
+    private List<String> mentionedUsernames;
+    private String authorId;
+    private String authorUsername;
 
     public DmMessageItem(String id, String senderName, String content, String timestamp, boolean mine) {
         this(id, senderName, content, timestamp, "TEXT", -1L, mine, null);
@@ -188,4 +191,18 @@ public class DmMessageItem {
     public void setStatus(MessageStatus status) {
         this.status = status;
     }
+
+    public List<String> getMentionedUsernames() {
+        return mentionedUsernames != null ? mentionedUsernames : new ArrayList<>();
+    }
+
+    public void setMentionedUsernames(List<String> mentionedUsernames) {
+        this.mentionedUsernames = mentionedUsernames;
+    }
+
+    public String getAuthorId() { return authorId; }
+    public void setAuthorId(String authorId) { this.authorId = authorId; }
+
+    public String getAuthorUsername() { return authorUsername; }
+    public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
 }

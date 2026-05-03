@@ -104,6 +104,7 @@ public class MessageService {
                 reactionService.getReactionsForMessages(messageIds);
 
         Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+        Map<UUID, String> mentionedUsernameMap = loadMentionedUsernames(messages);
 
         return messages.stream()
                 .map(msg -> {
@@ -111,6 +112,7 @@ public class MessageService {
                     res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
                     res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
                     applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    applyMentionedUsernames(res, msg, mentionedUsernameMap);
                     return res;
                 })
                 .toList();
@@ -181,6 +183,7 @@ public class MessageService {
         Map<UUID, List<ReactionResponse>> reactionsByMessageId =
                 reactionService.getReactionsForMessages(messageIds);
         Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+        Map<UUID, String> mentionedUsernameMap = loadMentionedUsernames(messages);
 
         return messages.stream()
                 .map(msg -> {
@@ -188,6 +191,7 @@ public class MessageService {
                     res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
                     res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
                     applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    applyMentionedUsernames(res, msg, mentionedUsernameMap);
                     return res;
                 })
                 .toList();
@@ -202,6 +206,47 @@ public class MessageService {
             map.put(u.getId(), u);
         }
         return map;
+    }
+
+    /**
+     * Batch-loads all users that appear in any message's mentionedUserIds list and
+     * returns a map from user UUID to username. Used by bulk history endpoints so
+     * that mention highlights are preserved when the client re-loads history.
+     */
+    private Map<UUID, String> loadMentionedUsernames(List<Message> messages) {
+        List<UUID> mentionedIds = messages.stream()
+                .filter(m -> m.getMentionedUserIds() != null)
+                .flatMap(m -> m.getMentionedUserIds().stream())
+                .distinct()
+                .toList();
+        if (mentionedIds.isEmpty()) return Map.of();
+        Map<UUID, String> map = new HashMap<>();
+        for (User u : userRepository.findAllById(mentionedIds)) {
+            map.put(u.getId(), u.getUsername());
+        }
+        return map;
+    }
+
+    /**
+     * Resolves and sets mentionedUserIds + mentionedUsernames on {@code res} using
+     * the pre-loaded {@code mentionedUsernameMap}.
+     */
+    private void applyMentionedUsernames(MessageResponse res, Message msg,
+                                          Map<UUID, String> mentionedUsernameMap) {
+        if (msg.getMentionedUserIds() == null || msg.getMentionedUserIds().isEmpty()) {
+            res.setMentionedUserIds(List.of());
+            res.setMentionedUsernames(List.of());
+            return;
+        }
+        List<String> ids = msg.getMentionedUserIds().stream()
+                .map(UUID::toString)
+                .collect(Collectors.toList());
+        List<String> usernames = msg.getMentionedUserIds().stream()
+                .map(uid -> mentionedUsernameMap.get(uid))
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+        res.setMentionedUserIds(ids);
+        res.setMentionedUsernames(usernames);
     }
 
     private void applyAuthorFields(MessageResponse res, User author) {
@@ -223,6 +268,11 @@ public class MessageService {
                 .authorId(UUID.fromString(authorId))
                 .replyToId(request.getReplyToId() != null ? UUID.fromString(request.getReplyToId()) : null)
                 .content(request.getContent())
+                .mentionedUserIds(request.getMentionedUserIds() != null
+                        ? request.getMentionedUserIds().stream()
+                                .map(UUID::fromString)
+                                .collect(java.util.stream.Collectors.toList())
+                        : null)
                 .build();
 
         Message saved = messageRepository.save(message);
@@ -449,6 +499,22 @@ public class MessageService {
         res.setAttachments(attachments);
         res.setReactions(reactionService.getReactionsForMessage(message.getId()));
         userRepository.findById(message.getAuthorId()).ifPresent(u -> applyAuthorFields(res, u));
+        if (message.getMentionedUserIds() != null) {
+            List<String> ids = message.getMentionedUserIds().stream()
+                    .map(UUID::toString)
+                    .collect(java.util.stream.Collectors.toList());
+            res.setMentionedUserIds(ids);
+            List<String> usernames = message.getMentionedUserIds().stream()
+                    .map(uid -> userRepository.findById(uid)
+                            .map(com.hubble.entity.User::getUsername)
+                            .orElse(null))
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
+            res.setMentionedUsernames(usernames);
+        } else {
+            res.setMentionedUserIds(java.util.List.of());
+            res.setMentionedUsernames(java.util.List.of());
+        }
         return res;
     }
 
@@ -546,6 +612,7 @@ public class MessageService {
         Map<UUID, List<ReactionResponse>> reactionsByMessageId =
                 reactionService.getReactionsForMessages(messageIds);
         Map<UUID, User> authors = loadAuthors(messages.stream().map(Message::getAuthorId).distinct().toList());
+        Map<UUID, String> mentionedUsernameMap = loadMentionedUsernames(messages);
 
         return messages.stream()
                 .map(msg -> {
@@ -553,6 +620,7 @@ public class MessageService {
                     res.setAttachments(attachmentsByMessageId.getOrDefault(msg.getId(), List.of()));
                     res.setReactions(reactionsByMessageId.getOrDefault(msg.getId(), List.of()));
                     applyAuthorFields(res, authors.get(msg.getAuthorId()));
+                    applyMentionedUsernames(res, msg, mentionedUsernameMap);
                     return res;
                 })
                 .toList();

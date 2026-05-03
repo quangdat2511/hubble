@@ -208,6 +208,20 @@ public class DmChatActivity extends AppCompatActivity {
     private boolean isLoadingContextOlder = false;
     private boolean contextWindowReachedTop = false;
 
+    // Mention autocomplete state
+    private static final long MENTION_DEBOUNCE_MS = 300L;
+    private final MentionState mentionState = new MentionState();
+    private com.example.hubble.adapter.dm.MentionDropdownAdapter mentionDropdownAdapter;
+    private final Handler mentionDebounceHandler = new Handler(Looper.getMainLooper());
+    private Runnable mentionSearchRunnable;
+
+    private static final class MentionState {
+        boolean isActive = false;
+        int startIndex = -1;
+        String query = "";
+        void reset() { isActive = false; startIndex = -1; query = ""; }
+    }
+
     public static Intent createIntent(Context context, String channelId, String username) {
         return createIntent(context, channelId, username, null);
     }
@@ -491,6 +505,214 @@ public class DmChatActivity extends AppCompatActivity {
         return t.isEmpty() ? getString(R.string.channel_untitled) : t;
     }
 
+    // --- Mention autocomplete methods ---
+
+    private void handleMentionTextChange(Editable s) {
+        if (s == null) { hideMentionDropdown(); return; }
+
+        // Task 8.1: remove any MentionSpan whose covered text no longer starts with @
+        MentionSpan[] existingSpans = s.getSpans(0, s.length(), MentionSpan.class);
+        for (MentionSpan span : existingSpans) {
+            int spanStart = s.getSpanStart(span);
+            int spanEnd = s.getSpanEnd(span);
+            if (spanStart < 0 || spanEnd > s.length() || spanEnd <= spanStart
+                    || s.charAt(spanStart) != '@') {
+                // Remove the marker span and its associated visual spans
+                removeMentionVisualSpans(s, spanStart, spanEnd);
+                s.removeSpan(span);
+            }
+        }
+
+        String text = s.toString();
+
+        // Check if @ was deleted while mention was active
+        if (mentionState.isActive) {
+            if (mentionState.startIndex >= text.length()
+                    || text.charAt(mentionState.startIndex) != '@') {
+                // @ was removed
+                mentionState.reset();
+                hideMentionDropdown();
+                return;
+            }
+            // Extract current query
+            String afterAt = text.substring(mentionState.startIndex + 1);
+            int spaceIdx = afterAt.indexOf(' ');
+            if (spaceIdx >= 0) {
+                // Space typed → dismiss
+                mentionState.reset();
+                hideMentionDropdown();
+                return;
+            }
+            mentionState.query = afterAt;
+            scheduleMentionSearch(mentionState.query);
+            return;
+        }
+
+        // Detect fresh @ trigger: cursor position
+        int cursorPos = binding.etComposer.getSelectionStart();
+        if (cursorPos <= 0) return;
+        char typed = text.charAt(cursorPos - 1);
+        if (typed != '@') return;
+
+        // Must be at start of text or preceded by whitespace
+        if (cursorPos >= 2 && !Character.isWhitespace(text.charAt(cursorPos - 2))) return;
+
+        // Activate
+        mentionState.isActive = true;
+        mentionState.startIndex = cursorPos - 1;
+        mentionState.query = "";
+        showDefaultMentionList();
+    }
+
+    private void scheduleMentionSearch(String query) {
+        if (mentionSearchRunnable != null) {
+            mentionDebounceHandler.removeCallbacks(mentionSearchRunnable);
+        }
+        if (query.isEmpty()) {
+            showDefaultMentionList();
+            return;
+        }
+        mentionSearchRunnable = () -> {
+            if (!TextUtils.isEmpty(channelId)) {
+                dmRepository.searchChannelMembers(channelId, query, result -> {
+                    if (result.getData() != null) {
+                        runOnUiThread(() -> {
+                            if (!mentionState.isActive) return;
+                            List<com.example.hubble.data.model.search.SearchMemberDto> filtered =
+                                    new ArrayList<>();
+                            for (com.example.hubble.data.model.search.SearchMemberDto m : result.getData()) {
+                                if (!m.getId().equals(currentUserId)) filtered.add(m);
+                            }
+                            mentionDropdownAdapter.setMembers(filtered);
+                            showMentionDropdown();
+                        });
+                    }
+                });
+            }
+        };
+        mentionDebounceHandler.postDelayed(mentionSearchRunnable, MENTION_DEBOUNCE_MS);
+    }
+
+    private void showDefaultMentionList() {
+        // Extract distinct senders from adapter's current items via message IDs
+        List<com.example.hubble.data.model.search.SearchMemberDto> defaults = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        // Walk adapter item count — use adapter.getItemCount() and getItemAtPosition
+        for (int i = adapter.getItemCount() - 1; i >= 0; i--) {
+            DmMessageItem item = adapter.getItemAtAdapterPosition(i);
+            if (item == null || item.isDateSeparator() || item.getAuthorId() == null) continue;
+            if (item.getAuthorId().equals(currentUserId)) continue;
+            if (seen.contains(item.getAuthorId())) continue;
+            seen.add(item.getAuthorId());
+            com.example.hubble.data.model.search.SearchMemberDto dto =
+                    new com.example.hubble.data.model.search.SearchMemberDto();
+            dto.setId(item.getAuthorId());
+            dto.setUsername(item.getAuthorUsername());
+            dto.setDisplayName(item.getSenderName());
+            defaults.add(dto);
+        }
+        mentionDropdownAdapter.setMembers(defaults);
+        showMentionDropdown();
+    }
+
+    private void showMentionDropdown() {
+        binding.rvMentionDropdown.setVisibility(View.VISIBLE);
+    }
+
+    private void hideMentionDropdown() {
+        if (mentionSearchRunnable != null) {
+            mentionDebounceHandler.removeCallbacks(mentionSearchRunnable);
+            mentionSearchRunnable = null;
+        }
+        binding.rvMentionDropdown.setVisibility(View.GONE);
+    }
+
+    /**
+     * Replaces the @query text starting at {@code mentionState.startIndex} with
+     * {@code @username} and marks it with a {@link MentionSpan}.
+     */
+    private void insertMention(String username, @Nullable String userId) {
+        Editable editable = binding.etComposer.getText();
+        if (editable == null || !mentionState.isActive) return;
+
+        int start = mentionState.startIndex;
+        int end = start + 1 + mentionState.query.length(); // @query
+        if (end > editable.length()) end = editable.length();
+
+        String replacement = "@" + username + " ";
+        editable.replace(start, end, replacement);
+
+        // Apply MentionSpan + visual highlight over @username (not the trailing space)
+        int spanEnd = start + 1 + username.length(); // excludes the trailing space
+        MentionSpan span = new MentionSpan(userId);
+        editable.setSpan(span, start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        int textColor = ContextCompat.getColor(this, R.color.mention_text_color);
+        int bgColor = ContextCompat.getColor(this, R.color.mention_bg_color);
+        editable.setSpan(new android.text.style.ForegroundColorSpan(textColor),
+                start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        editable.setSpan(new android.text.style.BackgroundColorSpan(bgColor),
+                start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        mentionState.reset();
+        hideMentionDropdown();
+    }
+
+    /** Removes ForegroundColorSpan and BackgroundColorSpan applied by insertMention() at the given range. */
+    private void removeMentionVisualSpans(android.text.Editable s, int start, int end) {
+        if (start < 0 || end < 0 || end > s.length()) return;
+        android.text.style.ForegroundColorSpan[] fgSpans =
+                s.getSpans(start, end, android.text.style.ForegroundColorSpan.class);
+        for (android.text.style.ForegroundColorSpan fg : fgSpans) s.removeSpan(fg);
+        android.text.style.BackgroundColorSpan[] bgSpans =
+                s.getSpans(start, end, android.text.style.BackgroundColorSpan.class);
+        for (android.text.style.BackgroundColorSpan bg : bgSpans) s.removeSpan(bg);
+    }
+
+    /**
+     * Lightweight marker span that carries the mentioned user's ID.
+     * Does not apply any visual styling itself — rendering is handled by {@link com.example.hubble.view.util.MentionRenderer}.
+     */
+    public static final class MentionSpan {
+        @Nullable public final String userId;
+        public MentionSpan(@Nullable String userId) { this.userId = userId; }
+    }
+
+    /** Scans all {@link MentionSpan} markers in the composer and collects non-null user IDs. */
+    private List<String> collectMentionedUserIds() {
+        Editable editable = binding.etComposer.getText();
+        if (editable == null) return Collections.emptyList();
+        MentionSpan[] spans = editable.getSpans(0, editable.length(), MentionSpan.class);
+        List<String> ids = new ArrayList<>();
+        for (MentionSpan span : spans) {
+            if (span.userId != null) ids.add(span.userId);
+        }
+        return ids;
+    }
+
+    private List<String> resolveMentionedUsernames(MessageDto dto) {
+        return resolveMentionedUsernames(dto, null);
+    }
+
+    private List<String> resolveMentionedUsernames(MessageDto dto, @Nullable Map<String, String> extraLookup) {
+        // Prefer server-resolved usernames when available (avoids client-side ID→username lookup)
+        List<String> serverUsernames = dto.getMentionedUsernames();
+        if (serverUsernames != null && !serverUsernames.isEmpty()) {
+            return serverUsernames;
+        }
+        // Fallback: resolve from IDs (for older messages or offline cache)
+        List<String> ids = dto.getMentionedUserIds();
+        if (ids == null || ids.isEmpty()) return java.util.Collections.emptyList();
+        List<String> usernames = new ArrayList<>();
+        for (String id : ids) {
+            // 1. check the batch-local lookup first
+            String username = extraLookup != null ? extraLookup.get(id) : null;
+            // 2. fall back to adapter cache
+            if (username == null && adapter != null) username = adapter.getUsernameByAuthorId(id);
+            if (username != null) usernames.add(username);
+        }
+        return usernames;
+    }
+
     private String resolveSenderLabelForMessage(MessageDto dto, boolean mine) {
         if (mine) {
             return currentUserName;
@@ -660,6 +882,7 @@ public class DmChatActivity extends AppCompatActivity {
         adapter = new DmMessageAdapter(this);
         adapter.setCurrentUserId(currentUserId);
         adapter.setShowMineMessageStatus(!isServerTextChannel());
+        adapter.setHighlightEveryone(isServerTextChannel());
         adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
         adapter.setIntroItem(buildListIntroItem());
         adapter.setOnMessageLongClickListener((item, anchorView) -> showMessageActionsSheet(item));
@@ -706,6 +929,23 @@ public class DmChatActivity extends AppCompatActivity {
         binding.btnCancelReply.setOnClickListener(v -> clearReply());
         binding.btnCancelEdit.setOnClickListener(v -> clearEditMode(true));
 
+        // Set up mention dropdown
+        mentionDropdownAdapter = new com.example.hubble.adapter.dm.MentionDropdownAdapter();
+        mentionDropdownAdapter.setShowEveryone(isServerTextChannel());
+        binding.rvMentionDropdown.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvMentionDropdown.setAdapter(mentionDropdownAdapter);
+        mentionDropdownAdapter.setListener(new com.example.hubble.adapter.dm.MentionDropdownAdapter.OnMentionSelectedListener() {
+            @Override
+            public void onMemberSelected(com.example.hubble.data.model.search.SearchMemberDto member) {
+                insertMention(member.getUsername(), member.getId());
+            }
+
+            @Override
+            public void onEveryoneSelected() {
+                insertMention("everyone", null);
+            }
+        });
+
         binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (event.isShiftPressed()) return false;
@@ -737,6 +977,7 @@ public class DmChatActivity extends AppCompatActivity {
                         sendTypingEvent();
                     }
                 }
+                handleMentionTextChange(s);
             }
         });
 
@@ -1390,6 +1631,8 @@ public class DmChatActivity extends AppCompatActivity {
             return;
         }
 
+        // Collect mentions BEFORE clearing the composer (spans are lost after setText(""))
+        List<String> mentionedUserIds = collectMentionedUserIds();
         binding.etComposer.setText("");
         String replyId = replyingToItem != null ? replyingToItem.getId() : null;
 
@@ -1413,7 +1656,8 @@ public class DmChatActivity extends AppCompatActivity {
         List<String> attachmentIdsCopy = new ArrayList<>(pendingAttachmentIds);
         clearReply();
 
-        dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType, result -> {
+        dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType,
+                mentionedUserIds, result -> {
             if (result.getData() != null) {
                 String serverId = result.getData().getId();
                 if (serverId != null) pendingServerIds.add(serverId);
@@ -2296,6 +2540,9 @@ public class DmChatActivity extends AppCompatActivity {
         item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
         item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
         item.setReactions(dto.getReactions());
+        item.setAuthorId(dto.getAuthorId());
+        item.setAuthorUsername(dto.getAuthorUsername());
+        item.setMentionedUsernames(resolveMentionedUsernames(dto));
         if (!TextUtils.isEmpty(dto.getReplyToId())) {
             DmMessageItem replyItem = adapter.getItemById(dto.getReplyToId());
             if (replyItem != null) {
@@ -2309,8 +2556,13 @@ public class DmChatActivity extends AppCompatActivity {
 
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
         Map<String, MessageDto> byId = new HashMap<>();
+        // Pre-build authorId → username map so mention resolution works before adapter is populated
+        Map<String, String> authorIdToUsername = new HashMap<>();
         for (MessageDto dto : rawMessages) {
             if (!TextUtils.isEmpty(dto.getId())) byId.put(dto.getId(), dto);
+            if (!TextUtils.isEmpty(dto.getAuthorId()) && !TextUtils.isEmpty(dto.getAuthorUsername())) {
+                authorIdToUsername.put(dto.getAuthorId(), dto.getAuthorUsername());
+            }
         }
 
         List<DmMessageItem> mapped = new ArrayList<>();
@@ -2328,6 +2580,9 @@ public class DmChatActivity extends AppCompatActivity {
             item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
             item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
             item.setReactions(dto.getReactions());
+            item.setAuthorId(dto.getAuthorId());
+            item.setAuthorUsername(dto.getAuthorUsername());
+            item.setMentionedUsernames(resolveMentionedUsernames(dto, authorIdToUsername));
 
             if (!TextUtils.isEmpty(dto.getReplyToId())) {
                 MessageDto replyDto = byId.get(dto.getReplyToId());

@@ -8,6 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -55,6 +56,10 @@ public class Message {
 
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "mentioned_user_ids", columnDefinition = "uuid[]")
+    List<UUID> mentionedUserIds;
 
     @PrePersist
     protected void onCreate() {

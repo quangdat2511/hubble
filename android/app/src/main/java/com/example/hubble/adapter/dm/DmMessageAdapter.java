@@ -86,6 +86,13 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Nullable
     private String highlightQuery;
 
+    /** Whether @everyone tokens should be highlighted. True for server channels, false for DMs. */
+    private boolean highlightEveryone = true;
+
+    public void setHighlightEveryone(boolean highlightEveryone) {
+        this.highlightEveryone = highlightEveryone;
+    }
+
     private static MediaPlayer currentMediaPlayer;
     private static AudioProximityManager currentProximityManager;
     private static ImageView currentPlayButton;
@@ -364,6 +371,24 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return null;
     }
 
+    @Nullable
+    public DmMessageItem getItemAtAdapterPosition(int adapterPosition) {
+        int realIndex = adapterPosition - introOffset();
+        if (realIndex < 0 || realIndex >= items.size()) return null;
+        return items.get(realIndex);
+    }
+
+    @Nullable
+    public String getUsernameByAuthorId(String authorId) {
+        if (authorId == null) return null;
+        for (DmMessageItem item : items) {
+            if (!item.isDateSeparator() && authorId.equals(item.getAuthorId())) {
+                return item.getAuthorUsername();
+            }
+        }
+        return null;
+    }
+
     public void updateReactions(@NonNull String messageId, @NonNull List<ReactionDto> reactions) {
         for (int i = 0; i < items.size(); i++) {
             DmMessageItem item = items.get(i);
@@ -558,7 +583,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         if (holder instanceof MessageRowHolder) {
             ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl,
-                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus, highlightQuery);
+                    replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus, highlightQuery, highlightEveryone);
         }
     }
 
@@ -1078,7 +1103,8 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
         void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
                   @Nullable String replyAvatarUrl,
                   @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis,
-                  boolean showMineMessageStatus, @Nullable String highlightQuery) {
+                  boolean showMineMessageStatus, @Nullable String highlightQuery,
+                  boolean highlightEveryone) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
             b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
@@ -1111,7 +1137,10 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
                     String title = extractMediaTitle(replyContent);
                     b.tvReplyQuoteContent.setText(title != null ? title : b.getRoot().getContext().getString(R.string.dm_reply_media));
                 } else {
-                    b.tvReplyQuoteContent.setText(replyContent);
+                    b.tvReplyQuoteContent.setText(
+                            com.example.hubble.view.util.MentionRenderer.applyMentionSpans(
+                                    b.tvReplyQuoteContent.getContext(), replyContent,
+                                    item.getMentionedUsernames(), highlightEveryone));
                 }
                 bindReplyAvatar(replyAvatarUrl, item.getReplyToSenderName());
             } else {
@@ -1142,7 +1171,9 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
                             b.tvMessage.setText(applyHighlight(content, highlightQuery,
                                     b.tvMessage.getContext()));
                         } else {
-                            b.tvMessage.setText(content);
+                            b.tvMessage.setText(com.example.hubble.view.util.MentionRenderer
+                                    .applyMentionSpans(b.tvMessage.getContext(), content,
+                                            item.getMentionedUsernames(), highlightEveryone));
                         }
                     } else {
                         b.tvMessage.setVisibility(View.GONE);

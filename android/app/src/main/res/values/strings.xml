@@ -2,6 +2,7 @@
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
     <string name="end_call">End Call</string>
+    <string name="camera_not_supported">Camera is not supported in voice-only channels</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -702,6 +703,7 @@
     <string name="role_detail_display_separate">Hiển thị riêng</string>
     <string name="role_detail_display_separate_desc">Hiển thị vai trò thành viên riêng biệt với các thành viên trực tuyến</string>
     <string name="role_detail_mentionable">Cho phép mọi người @mention vai trò này</string>
+    <string name="mention_everyone_label">Thông báo mọi người</string>
     <string name="role_detail_permissions">Quyền hạn</string>
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>
