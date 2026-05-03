@@ -59,6 +59,13 @@
             android:src="@android:drawable/ic_menu_save"
             app:tint="?attr/colorOnSurfaceVariant" />
 
+        <ProgressBar
+            android:id="@+id/pbDownload"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
