@@ -8,7 +8,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.R;
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.dm.ChannelDto;
 import com.example.hubble.data.model.dm.FriendUserDto;
@@ -28,8 +28,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
@@ -52,7 +50,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
@@ -60,11 +57,6 @@ import ua.naiksoftware.stomp.dto.LifecycleEvent;
 import ua.naiksoftware.stomp.dto.StompHeader;
 
 public class MainViewModel extends ViewModel {
-
-    private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
-    private static final String[] RAILWAY_FALLBACK_IPS = {
-            "151.101.2.15"
-    };
 
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
@@ -755,7 +747,7 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
         String accessToken = dmRepository.getAccessTokenRaw();
         Map<String, String> handshakeHeaders = new HashMap<>();
         List<StompHeader> connectHeaders = null;
@@ -805,38 +797,11 @@ public class MainViewModel extends ViewModel {
 
     private OkHttpClient createRealtimeOkHttpClient() {
         return new OkHttpClient.Builder()
-                .dns(createDnsWithRailwayFallback())
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(0, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
                 .build();
-    }
-
-    private Dns createDnsWithRailwayFallback() {
-        return hostname -> {
-            try {
-                return Dns.SYSTEM.lookup(hostname);
-            } catch (UnknownHostException originalError) {
-                if (!RAILWAY_HOST.equalsIgnoreCase(hostname)) {
-                    throw originalError;
-                }
-
-                List<InetAddress> fallbackAddresses = new ArrayList<>();
-                for (String ip : RAILWAY_FALLBACK_IPS) {
-                    try {
-                        fallbackAddresses.add(InetAddress.getByName(ip));
-                    } catch (UnknownHostException ignored) {
-                        // Ignore malformed fallback entries.
-                    }
-                }
-
-                if (fallbackAddresses.isEmpty()) {
-                    throw originalError;
-                }
-                return fallbackAddresses;
-            }
-        };
     }
 
     /**
@@ -939,25 +904,6 @@ public class MainViewModel extends ViewModel {
             }
         }
         dmTopicSubscriptions.clear();
-    }
-
-    private String toWebSocketUrl(String baseUrl) {
-        if (baseUrl == null || baseUrl.trim().isEmpty()) {
-            return "ws://";
-        }
-
-        String normalized = baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
-        String lower = normalized.toLowerCase();
-
-        if (lower.startsWith("https://")) {
-            return "wss://" + normalized.substring("https://".length()) + "/";
-        }
-        if (lower.startsWith("http://")) {
-            return "ws://" + normalized.substring("http://".length()) + "/";
-        }
-        return "ws://" + normalized + "/";
     }
 
     private void upsertConversationFromRealtime(MessageDto message) {

@@ -3,7 +3,9 @@ package com.example.hubble.data.api;
 import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 
+import com.example.hubble.BuildConfig;
 import com.example.hubble.utils.TokenManager;
 
 import java.nio.charset.StandardCharsets;
@@ -24,6 +26,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
+    private static final String TAG = "HubbleNetwork";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
     private static final String[] RAILWAY_FALLBACK_IPS = {
             "151.101.2.15"
@@ -57,8 +60,18 @@ public class RetrofitClient {
                 return chain.proceed(requestBuilder.build());
             };
 
+            Interceptor debugUrlLoggingInterceptor = chain -> {
+                Request request = chain.request();
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, request.method() + " " + request.url()
+                            + " auth=" + (request.header("Authorization") != null));
+                }
+                return chain.proceed(request);
+            };
+
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(userAgentInterceptor)
+                    .addInterceptor(debugUrlLoggingInterceptor)
                     .dns(createDnsWithRailwayFallback())
                     .connectTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)

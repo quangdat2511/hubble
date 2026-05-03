@@ -1,7 +1,5 @@
 package com.example.hubble.data.api;
 
-import android.net.Uri;
-import android.os.Build;
 import android.text.TextUtils;
 
 import com.example.hubble.BuildConfig;
@@ -12,31 +10,30 @@ public final class NetworkConfig {
 
     private static final String DEFAULT_DEBUG_SCHEME = "http";
     private static final String DEFAULT_DEBUG_PORT = "8080";
-    private static final String EMULATOR_HOST = "10.0.2.2";
-    private static final String DEVICE_LOOPBACK_HOST = "127.0.0.1";
     private static final String DEV_BACKEND_IDENTITY_HOST = "dev-local";
+    private static final String API_PATH_SEGMENT = "/api";
 
     private NetworkConfig() {
     }
 
     public static String getApiBaseUrl() {
         if (!BuildConfig.DEBUG) {
-            return ensureTrailingSlash(BuildConfig.BASE_URL);
+            return normalizeBaseUrl(BuildConfig.BASE_URL);
         }
 
-        String overrideUrl = ensureTrailingSlash(BuildConfig.DEBUG_BASE_URL_OVERRIDE);
+        String overrideUrl = normalizeBaseUrl(BuildConfig.DEBUG_BASE_URL_OVERRIDE);
         if (!TextUtils.isEmpty(overrideUrl)) {
             return overrideUrl;
         }
 
         if (!TextUtils.isEmpty(BuildConfig.DEV_BACKEND_HOST)) {
             String scheme = defaultIfBlank(BuildConfig.DEV_BACKEND_SCHEME, DEFAULT_DEBUG_SCHEME);
-            String host = defaultIfBlank(BuildConfig.DEV_BACKEND_HOST, resolveDefaultDebugHost());
+            String host = BuildConfig.DEV_BACKEND_HOST.trim();
             String port = defaultIfBlank(BuildConfig.DEV_BACKEND_PORT, DEFAULT_DEBUG_PORT);
-            return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
+            return normalizeBaseUrl(buildBaseUrl(scheme, host, port));
         }
 
-        return ensureTrailingSlash(BuildConfig.BASE_URL);
+        return normalizeBaseUrl(BuildConfig.BASE_URL);
     }
 
     public static String getBackendIdentity() {
@@ -56,7 +53,7 @@ public final class NetworkConfig {
             return ensureTrailingSlash(buildBaseUrl(scheme, host, port));
         }
 
-        return ensureTrailingSlash(BuildConfig.BASE_URL);
+        return normalizeBaseUrl(BuildConfig.BASE_URL);
     }
 
     public static String getWebSocketBaseUrl() {
@@ -87,7 +84,7 @@ public final class NetworkConfig {
 
         String trimmed = urlOrPath.trim();
         if (isAbsoluteNetworkUrl(trimmed)) {
-            return normalizeDebugLocalAlias(trimmed);
+            return trimmed;
         }
 
         String baseUrl = getApiBaseUrl();
@@ -100,83 +97,12 @@ public final class NetworkConfig {
         return baseUrl + trimmed;
     }
 
-    private static String normalizeDebugLocalAlias(String url) {
-        if (!BuildConfig.DEBUG) {
-            return url;
-        }
-
-        Uri sourceUri = Uri.parse(url);
-        String sourceHost = sourceUri.getHost();
-        if (!isLocalDevAlias(sourceHost)) {
-            return url;
-        }
-
-        Uri targetBaseUri = Uri.parse(getApiBaseUrl());
-        String targetHost = targetBaseUri.getHost();
-        if (TextUtils.isEmpty(targetHost)) {
-            return url;
-        }
-
-        int targetPort = targetBaseUri.getPort();
-        String targetScheme = chooseSchemeForAlias(sourceUri.getScheme(), targetBaseUri.getScheme());
-        return sourceUri.buildUpon()
-                .scheme(targetScheme)
-                .encodedAuthority(buildAuthority(targetHost, targetPort))
-                .build()
-                .toString();
-    }
-
     private static boolean isAbsoluteNetworkUrl(String value) {
         String lower = value.toLowerCase(Locale.ROOT);
         return lower.startsWith("http://")
                 || lower.startsWith("https://")
                 || lower.startsWith("ws://")
                 || lower.startsWith("wss://");
-    }
-
-    private static String chooseSchemeForAlias(String sourceScheme, String targetBaseScheme) {
-        if (TextUtils.isEmpty(sourceScheme)) {
-            return targetBaseScheme;
-        }
-
-        String lowerSourceScheme = sourceScheme.toLowerCase(Locale.ROOT);
-        if (lowerSourceScheme.startsWith("ws")) {
-            return "https".equalsIgnoreCase(targetBaseScheme) ? "wss" : "ws";
-        }
-        return targetBaseScheme;
-    }
-
-    private static String buildAuthority(String host, int port) {
-        if (port <= 0) {
-            return host;
-        }
-        return host + ":" + port;
-    }
-
-    private static boolean isLocalDevAlias(String host) {
-        if (TextUtils.isEmpty(host)) {
-            return false;
-        }
-
-        String normalizedHost = host.trim().toLowerCase(Locale.ROOT);
-        return "localhost".equals(normalizedHost)
-                || DEVICE_LOOPBACK_HOST.equals(normalizedHost)
-                || EMULATOR_HOST.equals(normalizedHost);
-    }
-
-    private static String resolveDefaultDebugHost() {
-        return isProbablyEmulator() ? EMULATOR_HOST : DEVICE_LOOPBACK_HOST;
-    }
-
-    private static boolean isProbablyEmulator() {
-        return Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.toLowerCase(Locale.ROOT).contains("emulator")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK built for x86")
-                || Build.MANUFACTURER.contains("Genymotion")
-                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
-                || "google_sdk".equals(Build.PRODUCT)
-                || Build.PRODUCT.contains("sdk_gphone");
     }
 
     private static String buildBaseUrl(String scheme, String host, String port) {
@@ -190,6 +116,18 @@ public final class NetworkConfig {
 
     private static String defaultIfBlank(String value, String fallback) {
         return TextUtils.isEmpty(value) ? fallback : value.trim();
+    }
+
+    private static String normalizeBaseUrl(String value) {
+        if (TextUtils.isEmpty(value)) {
+            return value;
+        }
+
+        String trimmed = trimTrailingSlash(value);
+        if (trimmed.toLowerCase(Locale.ROOT).endsWith(API_PATH_SEGMENT)) {
+            trimmed = trimmed.substring(0, trimmed.length() - API_PATH_SEGMENT.length());
+        }
+        return ensureTrailingSlash(trimmed);
     }
 
     private static String ensureTrailingSlash(String value) {

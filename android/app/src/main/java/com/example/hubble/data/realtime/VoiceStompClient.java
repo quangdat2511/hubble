@@ -2,7 +2,7 @@ package com.example.hubble.data.realtime;
 
 import android.util.Log;
 
-import com.example.hubble.data.api.RetrofitClient;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.voice.VoiceSignalMessage;
 import com.example.hubble.utils.TokenManager;
 import com.google.gson.Gson;
@@ -10,7 +10,6 @@ import com.google.gson.Gson;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -57,7 +56,7 @@ public class VoiceStompClient {
         }
 
         String authorization = "Bearer " + accessToken;
-        String wsUrl = toWebSocketUrl(RetrofitClient.getBaseUrl()) + "ws";
+        String wsUrl = NetworkConfig.getWebSocketUrl("ws");
 
         // HTTP handshake headers (same pattern as the working MainViewModel STOMP client)
         Map<String, String> handshakeHeaders = new HashMap<>();
@@ -231,18 +230,4 @@ public class VoiceStompClient {
         return stompClient != null && stompClient.isConnected();
     }
 
-    private String toWebSocketUrl(String baseUrl) {
-        String normalized = baseUrl;
-        if (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        String lower = normalized.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("https://")) {
-            return "wss://" + normalized.substring("https://".length()) + "/";
-        }
-        if (lower.startsWith("http://")) {
-            return "ws://" + normalized.substring("http://".length()) + "/";
-        }
-        return "ws://" + normalized + "/";
-    }
 }

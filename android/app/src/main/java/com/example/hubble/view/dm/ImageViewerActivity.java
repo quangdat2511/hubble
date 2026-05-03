@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.utils.TokenManager;
 
 public class ImageViewerActivity extends AppCompatActivity {
@@ -30,6 +31,7 @@ public class ImageViewerActivity extends AppCompatActivity {
 
         // Nhận dữ liệu từ màn hình Chat truyền sang
         imageUrl = getIntent().getStringExtra(EXTRA_IMAGE_URL);
+        imageUrl = NetworkConfig.resolveUrl(imageUrl);
         fileName = getIntent().getStringExtra(EXTRA_FILE_NAME);
 
         if (fileName == null || fileName.isEmpty()) {
@@ -66,10 +68,7 @@ public class ImageViewerActivity extends AppCompatActivity {
     private void downloadImage() {
         if (imageUrl == null || imageUrl.isEmpty()) return;
 
-        String finalUrl = imageUrl;
-        if (finalUrl.contains("localhost")) {
-            finalUrl = finalUrl.replace("localhost", "10.0.2.2");
-        }
+        String finalUrl = NetworkConfig.resolveUrl(imageUrl);
 
         String safeFileName = fileName;
         if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
