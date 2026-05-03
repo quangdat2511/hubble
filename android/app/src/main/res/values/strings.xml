@@ -2,6 +2,7 @@
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
     <string name="end_call">End Call</string>
+    <string name="camera_not_supported">Camera is not supported in voice-only channels</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 

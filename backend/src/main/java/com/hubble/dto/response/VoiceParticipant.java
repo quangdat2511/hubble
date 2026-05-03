@@ -12,4 +12,6 @@ public class VoiceParticipant {
     String userId;
     String displayName;
     String avatarUrl;
+    /** Epoch ms of last heartbeat. Set on join; refreshed every 15 s by the client. */
+    long lastHeartbeatAt;
 }

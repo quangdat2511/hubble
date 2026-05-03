@@ -1,5 +1,3 @@
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =====================================================
 -- HUBBLE DATABASE SCHEMA - PostgreSQL
 -- =====================================================
@@ -14,6 +12,7 @@ DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
 DROP TABLE IF EXISTS channel_members CASCADE;
 DROP TABLE IF EXISTS channels CASCADE;
+DROP TABLE IF EXISTS channel_roles CASCADE;
 DROP TABLE IF EXISTS member_roles CASCADE;
 DROP TABLE IF EXISTS permissions CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
@@ -30,6 +29,7 @@ DROP TABLE IF EXISTS device_tokens CASCADE;
 
 -- Drop function (after tables are dropped)
 DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS unaccent_immutable(text) CASCADE;
 
 -- Drop enum types
 DROP TYPE IF EXISTS friendship_status;
@@ -47,6 +47,8 @@ DROP TYPE IF EXISTS notification_type;
 -- =====================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- =====================================================
 -- ENUM TYPES
@@ -83,6 +85,7 @@ CREATE TABLE users (
                        status user_status DEFAULT 'OFFLINE',
                        custom_status VARCHAR(128),
                        last_seen_at TIMESTAMPTZ,
+                       previous_status VARCHAR(20) DEFAULT NULL,
                        created_at TIMESTAMPTZ DEFAULT NOW(),
                        updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -186,6 +189,13 @@ CREATE TABLE channels (
                           created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Channels Access table
+CREATE TABLE channel_roles (
+                          channel_id UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+                          role_id    UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+                          PRIMARY KEY (channel_id, role_id)
+);
+
 -- Channel Members table
 CREATE TABLE channel_members (
                                  channel_id UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
@@ -214,7 +224,7 @@ CREATE TABLE messages (
 -- Attachments table
 CREATE TABLE attachments (
                              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                             message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+                             message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
                              filename TEXT NOT NULL,
                              url TEXT NOT NULL,
                              content_type VARCHAR(128),
@@ -260,25 +270,35 @@ CREATE TABLE server_invites (
                             CHECK (inviter_id <> invitee_id)
 );
 
--- Notifications table
 CREATE TABLE notifications (
-                               id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                               user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                               type notification_type NOT NULL,
-                               reference_id TEXT,
-                               content TEXT NOT NULL,
-                               is_read BOOLEAN DEFAULT FALSE,
-                               created_at TIMESTAMPTZ DEFAULT NOW()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type notification_type NOT NULL,
+    reference_id VARCHAR(255),
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Device tokens table (FCM push)
 CREATE TABLE device_tokens (
-                               id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                               user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                               token TEXT NOT NULL UNIQUE,
-                               device_type VARCHAR(50),
-                               created_at TIMESTAMPTZ DEFAULT NOW()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    device_type VARCHAR(50),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX uq_notifications_friend_request 
+ON notifications(user_id, type, reference_id) 
+WHERE type = 'FRIEND_REQUEST';
+
+-- Create index for better performance
+CREATE INDEX idx_notifications_user_type_ref 
+ON notifications(user_id, type, reference_id) 
+WHERE type = 'FRIEND_REQUEST';
+
+CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
+CREATE INDEX idx_device_tokens_user ON device_tokens(user_id);
 
 
 -- =====================================================
@@ -316,6 +336,10 @@ CREATE INDEX idx_channels_server ON channels(server_id) WHERE server_id IS NOT N
 CREATE INDEX idx_channels_parent ON channels(parent_id) WHERE parent_id IS NOT NULL;
 CREATE INDEX idx_channels_type ON channels(type);
 
+-- Channels Access 
+CREATE INDEX idx_channel_roles_channel_id ON channel_roles(channel_id);
+CREATE INDEX idx_channel_roles_role_id ON channel_roles(role_id);
+
 -- Channel Members
 CREATE INDEX idx_channel_members_user ON channel_members(user_id);
 CREATE INDEX idx_channel_members_unread ON channel_members(channel_id, last_read_at);
@@ -327,6 +351,23 @@ CREATE INDEX idx_messages_reply ON messages(reply_to_id) WHERE reply_to_id IS NO
 CREATE INDEX idx_messages_pinned ON messages(channel_id) WHERE is_pinned = TRUE;
 CREATE INDEX idx_messages_content_search ON messages USING gin(to_tsvector('simple', content))
     WHERE content IS NOT NULL;  -- tránh lỗi khi content NULL (STICKER/GIPHY messages)
+CREATE OR REPLACE FUNCTION unaccent_immutable(text)
+RETURNS text
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+BEGIN
+    IF to_regprocedure('extensions.unaccent(text)') IS NOT NULL THEN
+        RETURN extensions.unaccent($1);
+    ELSIF to_regprocedure('public.unaccent(text)') IS NOT NULL THEN
+        RETURN public.unaccent($1);
+    END IF;
+    RETURN $1;
+END;
+$$;
+CREATE INDEX idx_messages_content_normalized_trgm
+    ON messages USING gin (unaccent_immutable(lower(coalesce(content, ''))) gin_trgm_ops)
+    WHERE content IS NOT NULL AND (is_deleted IS NULL OR is_deleted = false);
 
 -- Attachments
 CREATE INDEX idx_attachments_message ON attachments(message_id);
@@ -350,14 +391,6 @@ CREATE INDEX idx_server_invites_inviter ON server_invites(inviter_id);
 CREATE UNIQUE INDEX uq_server_invites_pending
     ON server_invites (server_id, invitee_id)
     WHERE status = 'PENDING';
-
--- Notifications
-CREATE INDEX idx_notifications_user ON notifications(user_id, created_at DESC);
-CREATE INDEX idx_notifications_unread ON notifications(user_id) WHERE is_read = FALSE;
-
--- Device tokens
-CREATE INDEX idx_device_tokens_user ON device_tokens(user_id);
-
 
 -- =====================================================
 -- TRIGGERS

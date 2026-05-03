@@ -170,4 +170,22 @@ public interface ServerService {
             @Header("Authorization") String token,
             @Path("channelId") String channelId
     );
+
+    @POST("api/voice/{channelId}/agora-token")
+    Call<ApiResponse<com.example.hubble.data.model.voice.AgoraTokenResponse>> getAgoraToken(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
+
+    @DELETE("api/voice/{channelId}/participants")
+    Call<ApiResponse<Void>> leaveVoiceChannel(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
+
+    @POST("api/voice/{channelId}/heartbeat")
+    Call<ApiResponse<Void>> heartbeatVoiceChannel(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId
+    );
 }

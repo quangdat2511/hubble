@@ -42,11 +42,17 @@ public class VoiceParticipantAdapter extends RecyclerView.Adapter<VoiceParticipa
         notifyDataSetChanged();
     }
 
+    // Payload key for partial binding — only update speaking indicator, skip avatar reload
+    static final Object PAYLOAD_SPEAKING = new Object();
+
     public void updateSpeaking(String userId, boolean speaking) {
         for (int i = 0; i < participants.size(); i++) {
             if (participants.get(i).getUserId().equals(userId)) {
-                participants.get(i).setSpeaking(speaking);
-                notifyItemChanged(i);
+                // Only notify if state actually changed to avoid redundant redraws
+                if (participants.get(i).isSpeaking() != speaking) {
+                    participants.get(i).setSpeaking(speaking);
+                    notifyItemChanged(i, PAYLOAD_SPEAKING);
+                }
                 break;
             }
         }
@@ -63,6 +69,17 @@ public class VoiceParticipantAdapter extends RecyclerView.Adapter<VoiceParticipa
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         holder.bind(participants.get(position), compactMode);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position,
+                                  @NonNull List<Object> payloads) {
+        if (!payloads.isEmpty() && payloads.contains(PAYLOAD_SPEAKING)) {
+            // Partial update: only refresh speaking indicator, don't touch avatar
+            holder.updateSpeakingIndicator(participants.get(position).isSpeaking());
+        } else {
+            holder.bind(participants.get(position), compactMode);
+        }
     }
 
     @Override
@@ -83,8 +100,15 @@ public class VoiceParticipantAdapter extends RecyclerView.Adapter<VoiceParticipa
             binding.tvDisplayName.setText(participant.getDisplayName());
             binding.tvDisplayName.setVisibility(compact ? View.GONE : View.VISIBLE);
 
-            // Speaking indicator with pulse animation
-            if (participant.isSpeaking()) {
+            updateSpeakingIndicator(participant.isSpeaking());
+
+            // Avatar – same pattern as the rest of the app
+            bindAvatar(context, participant);
+        }
+
+        void updateSpeakingIndicator(boolean speaking) {
+            Context context = binding.getRoot().getContext();
+            if (speaking) {
                 binding.viewSpeakingIndicator.setVisibility(View.VISIBLE);
                 if (binding.viewSpeakingIndicator.getAnimation() == null) {
                     Animation pulse = AnimationUtils.loadAnimation(context, R.anim.pulse_speaking);
@@ -94,9 +118,6 @@ public class VoiceParticipantAdapter extends RecyclerView.Adapter<VoiceParticipa
                 binding.viewSpeakingIndicator.clearAnimation();
                 binding.viewSpeakingIndicator.setVisibility(View.GONE);
             }
-
-            // Avatar – same pattern as the rest of the app
-            bindAvatar(context, participant);
         }
 
         private void bindAvatar(Context context, VoiceParticipant participant) {

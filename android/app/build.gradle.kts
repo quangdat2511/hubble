@@ -66,6 +66,7 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
 }
 
 dependencies {
@@ -101,8 +102,8 @@ dependencies {
 
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
-    // WebRTC for voice/video calls
-    implementation("io.getstream:stream-webrtc-android:1.1.1")
+    // Agora Voice SDK (replaces WebRTC)
+    implementation("io.agora.rtc:voice-sdk:4.1.0")
 
     val camerax_version = "1.3.3"
 
