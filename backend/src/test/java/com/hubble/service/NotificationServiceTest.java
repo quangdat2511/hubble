@@ -64,17 +64,21 @@ class NotificationServiceTest {
     @Test
     void dispatchNotification_NewRequest_ShouldSaveAndSend() {
         String refId = UUID.randomUUID().toString();
-        when(notificationRepository.findRecentNotification(userId, NotificationType.FRIEND_REQUEST, refId))
-                .thenReturn(Optional.empty());
+
+        // Removed unnecessary findRecentNotification stub
         when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
         when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
 
         User user = new User();
         user.setEmail("test@gmail.com");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        lenient().doNothing().when(pushNotificationService).sendPushNotification(any(), any(), any());
+        lenient().doNothing().when(emailService).sendNotificationEmail(any(), any(), any());
 
         notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", true, true);
 
+        // Verify the new cleanup logic is called
+        verify(notificationRepository).deleteByUserIdAndTypeAndReferenceId(userId, NotificationType.FRIEND_REQUEST, refId);
         verify(notificationRepository).save(any(Notification.class));
         verify(messagingTemplate).convertAndSend(eq("/topic/users/" + userId + "/notifications"), any(NotificationResponse.class));
         verify(pushNotificationService).sendPushNotification(userId, "Nội dung", "Nội dung");
@@ -82,36 +86,39 @@ class NotificationServiceTest {
     }
 
     @Test
-    void dispatchNotification_DuplicateWithin60Seconds_ShouldSkip() {
-        // Arrange
-        String refId = UUID.randomUUID().toString();
-        Notification recentNotif = Notification.builder()
-                .createdAt(LocalDateTime.now().minusSeconds(30))
-                .build();
-        when(notificationRepository.findRecentNotification(userId, NotificationType.FRIEND_REQUEST, refId))
-                .thenReturn(Optional.of(recentNotif));
+    void dispatchNotification_NullReferenceId_ShouldNotCleanUpOldNotifications() {
+        // Replaces the old 60-second test to verify the updated business logic
+        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
+        when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
+        lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
 
-        notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", true, true);
+        notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, null, "Nội dung", false, false);
 
-        verify(notificationRepository, never()).save(any());
-        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+        // If referenceId is null, cleanup should NOT be invoked
+        verify(notificationRepository, never()).deleteByUserIdAndTypeAndReferenceId(any(), any(), any());
+        verify(notificationRepository).save(any(Notification.class));
     }
 
     @Test
-    void dispatchNotification_DuplicateAfter60Seconds_ShouldSaveAndSend() {
-
+    void dispatchNotification_PushAndEmailDisabled_ShouldSaveButNotSendExternal() {
         String refId = UUID.randomUUID().toString();
-        Notification oldNotif = Notification.builder()
-                .createdAt(LocalDateTime.now().minusSeconds(65)) // Trên 60s
-                .build();
-        when(notificationRepository.findRecentNotification(userId, NotificationType.FRIEND_REQUEST, refId))
-                .thenReturn(Optional.of(oldNotif));
+
+        // Removed unnecessary findRecentNotification stub
         when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
         when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
+        lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
+        lenient().doNothing().when(pushNotificationService).sendPushNotification(any(), any(), any());
+        lenient().doNothing().when(emailService).sendNotificationEmail(any(), any(), any());
 
         notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", false, false);
 
+        // Verify cleanup happens
+        verify(notificationRepository).deleteByUserIdAndTypeAndReferenceId(userId, NotificationType.FRIEND_REQUEST, refId);
         verify(notificationRepository).save(any(Notification.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/users/" + userId + "/notifications"), any(NotificationResponse.class));
+
+        verify(pushNotificationService, never()).sendPushNotification(any(), any(), any());
+        verify(emailService, never()).sendNotificationEmail(any(), any(), any());
     }
 
     @Test
@@ -164,24 +171,6 @@ class NotificationServiceTest {
     void markAllAsRead_ShouldCallRepository() {
         notificationService.markAllAsRead(userId);
         verify(notificationRepository).markAllAsReadByUserId(userId);
-    }
-
-    @Test
-    void dispatchNotification_PushAndEmailDisabled_ShouldSaveButNotSendExternal() {
-        String refId = UUID.randomUUID().toString();
-
-        when(notificationRepository.findRecentNotification(userId, NotificationType.FRIEND_REQUEST, refId))
-                .thenReturn(Optional.empty());
-        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
-        when(notificationMapper.toResponse(any())).thenReturn(new NotificationResponse());
-
-        notificationService.dispatchNotification(userId, NotificationType.FRIEND_REQUEST, refId, "Nội dung", false, false);
-
-        verify(notificationRepository).save(any(Notification.class));
-        verify(messagingTemplate).convertAndSend(eq("/topic/users/" + userId + "/notifications"), any(NotificationResponse.class));
-
-        verify(pushNotificationService, never()).sendPushNotification(any(), any(), any());
-        verify(emailService, never()).sendNotificationEmail(any(), any(), any());
     }
 
     @Test
