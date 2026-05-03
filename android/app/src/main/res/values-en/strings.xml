@@ -578,6 +578,7 @@
     <string name="role_detail_display_separate">Display separately</string>
     <string name="role_detail_display_separate_desc">Display role members separately from online members</string>
     <string name="role_detail_mentionable">Allow anyone to @mention this role</string>
+    <string name="mention_everyone_label">Notify everyone</string>
     <string name="role_detail_permissions">Permissions</string>
     <string name="role_detail_links">Links</string>
     <string name="role_detail_members">Members</string>

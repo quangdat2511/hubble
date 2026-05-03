@@ -703,6 +703,7 @@
     <string name="role_detail_display_separate">Hiển thị riêng</string>
     <string name="role_detail_display_separate_desc">Hiển thị vai trò thành viên riêng biệt với các thành viên trực tuyến</string>
     <string name="role_detail_mentionable">Cho phép mọi người @mention vai trò này</string>
+    <string name="mention_everyone_label">Thông báo mọi người</string>
     <string name="role_detail_permissions">Quyền hạn</string>
     <string name="role_detail_links">Liên kết</string>
     <string name="role_detail_members">Thành viên</string>

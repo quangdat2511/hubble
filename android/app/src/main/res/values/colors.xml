@@ -37,6 +37,8 @@
     <color name="color_dnd">#F23F42</color>
     <color name="color_offline">#80848E</color>
     <color name="color_mention">#F0B232</color>
+    <color name="mention_text_color">#5865F2</color>
+    <color name="mention_bg_color">#1A5865F2</color>
 
     <!-- Role preset slider colors -->
     <color name="role_preset_decorative">#5865F2</color>

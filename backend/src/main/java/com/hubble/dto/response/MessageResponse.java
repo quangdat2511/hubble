@@ -31,4 +31,7 @@ public class MessageResponse {
     List<AttachmentResponse> attachments;
 
     List<ReactionResponse> reactions;
+
+    List<String> mentionedUserIds;
+    List<String> mentionedUsernames;
 }
