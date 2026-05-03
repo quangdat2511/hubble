@@ -301,12 +301,6 @@ public class DmChatActivity extends AppCompatActivity {
         channelParentName = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_NAME);
         channelIsPrivate = getIntent().getBooleanExtra(EXTRA_CHANNEL_IS_PRIVATE, false);
 
-        View btnCamera = findViewById(R.id.btnCamera);
-
-        btnCamera.setOnClickListener(v -> {
-            Intent intent = new Intent(DmChatActivity.this, InAppCameraActivity.class);
-            cameraLauncher.launch(intent);
-        });
 
         peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
         if (TextUtils.isEmpty(peerDisplayName)) {
