@@ -1643,11 +1643,12 @@ public class DmChatActivity extends AppCompatActivity {
 
         // Optimistic UI: show message immediately with SENDING status
         String tempId = "tmp_" + System.currentTimeMillis();
-        DmMessageItem optimisticItem = buildOptimisticItem(tempId, trimmed, messageType);
+        DmMessageItem optimisticItem = buildOptimisticItem(tempId, trimmed, messageType, pendingAttachmentIds, pendingAttachmentTypes);
         adapter.appendItem(optimisticItem);
         scrollToBottom();
 
         List<String> attachmentIdsCopy = new ArrayList<>(pendingAttachmentIds);
+        clearAttachmentPreview();
         clearReply();
 
         dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType,
@@ -1660,7 +1661,6 @@ public class DmChatActivity extends AppCompatActivity {
                     realItem.setStatus(resolvePostSendStatus(tempId));
                     adapter.replaceTempItem(tempId, realItem);
                     if (serverId != null) pendingServerIds.remove(serverId);
-                    clearAttachmentPreview();
                     scrollToBottom();
                 });
             } else {
@@ -2470,13 +2470,30 @@ public class DmChatActivity extends AppCompatActivity {
 
     /** Creates an optimistic (pre-send) DmMessageItem with SENDING status. */
     private DmMessageItem buildOptimisticItem(String tempId, String content, String type) {
+        return buildOptimisticItem(tempId, content, type, null, null);
+    }
+
+    private DmMessageItem buildOptimisticItem(String tempId, String content, String type, java.util.List<String> attachmentIds, java.util.List<String> attachmentTypes) {
         String time = formatTime(java.time.OffsetDateTime.now().toString());
         long nowMillis = System.currentTimeMillis();
+
+        java.util.List<com.example.hubble.data.model.dm.AttachmentResponse> dummyAttachments = new java.util.ArrayList<>();
+        if (attachmentIds != null && attachmentTypes != null) {
+            for (int i = 0; i < attachmentIds.size(); i++) {
+                com.example.hubble.data.model.dm.AttachmentResponse att = new com.example.hubble.data.model.dm.AttachmentResponse();
+                att.setId(attachmentIds.get(i));
+                att.setAttachmentId(attachmentIds.get(i));
+                String cType = (i < attachmentTypes.size()) ? attachmentTypes.get(i) : "application/octet-stream";
+                att.setContentType(cType);
+                dummyAttachments.add(att);
+            }
+        }
+
         DmMessageItem item = new DmMessageItem(
                 tempId, currentUserName,
                 content != null ? content : "",
                 time, type, nowMillis,
-                true, null
+                true, dummyAttachments
         );
         item.setStatus(DmMessageItem.MessageStatus.SENDING);
         if (replyingToItem != null) {

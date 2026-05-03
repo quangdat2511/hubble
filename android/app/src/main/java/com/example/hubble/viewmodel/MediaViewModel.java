@@ -17,8 +17,6 @@ public class MediaViewModel extends AndroidViewModel {
 
     private final MediaRepository mediaRepository;
 
-    private final MutableLiveData<List<String>> pendingAttachmentIds = new MutableLiveData<>(new ArrayList<>());
-
     public MediaViewModel(@NonNull Application application) {
         super(application);
         mediaRepository = new MediaRepository(application);
@@ -26,21 +24,5 @@ public class MediaViewModel extends AndroidViewModel {
 
     public LiveData<MediaRepository.UploadResult> uploadMedia(Uri fileUri) {
         return mediaRepository.uploadMedia(fileUri, "media");
-    }
-
-    public void addPendingAttachment(String attachmentId) {
-        List<String> current = pendingAttachmentIds.getValue();
-        if (current == null) current = new ArrayList<>();
-        current.add(attachmentId);
-        pendingAttachmentIds.setValue(current);
-    }
-
-    public List<String> getPendingAttachmentIds() {
-        List<String> ids = pendingAttachmentIds.getValue();
-        return ids != null ? ids : new ArrayList<>();
-    }
-
-    public void clearPendingAttachments() {
-        pendingAttachmentIds.setValue(new ArrayList<>());
     }
 }

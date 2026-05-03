@@ -22,7 +22,7 @@ public class SupabaseStorageService implements StorageService {
 
     @Override
     public String upload(MultipartFile file, String folder) throws Exception {
-        String extension = getExtension(file.getOriginalFilename());
+        String extension = getExtension(file.getOriginalFilename(), file.getContentType());
         String objectKey = folder + "/" + UUID.randomUUID().toString() + "." + extension;
 
         // API Endpoint của Supabase: https://[project-ref].supabase.co/storage/v1/object/[bucket]/[path]
@@ -78,8 +78,16 @@ public class SupabaseStorageService implements StorageService {
         }
     }
 
-    private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) return "bin";
-        return filename.substring(filename.lastIndexOf(".") + 1);
+    private String getExtension(String filename, String contentType) {
+        if (filename != null && filename.contains(".")) {
+            return filename.substring(filename.lastIndexOf(".") + 1);
+        }
+        if (contentType != null) {
+            String[] parts = contentType.split("/");
+            if (parts.length > 1) {
+                return parts[1];
+            }
+        }
+        return "bin";
     }
 }
