@@ -33,16 +33,23 @@ public class LoginActivity extends BaseAuthActivity {
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-                    try {
-                        GoogleSignInAccount account = task.getResult(ApiException.class);
-                        if (account != null && account.getIdToken() != null) {
-                            authViewModel.loginWithGoogle(account.getIdToken());
-                        }
-                    } catch (ApiException e) {
-                        showError("Google sign in failed: " + e.getStatusCode());
+                if (result.getData() == null) {
+                    showError(getString(R.string.error_google_sign_in_cancelled));
+                    return;
+                }
+
+                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                try {
+                    GoogleSignInAccount account = task.getResult(ApiException.class);
+                    if (account != null && account.getIdToken() != null) {
+                        authViewModel.loginWithGoogle(account.getIdToken());
+                    } else if (account != null) {
+                        showError(getString(R.string.error_google_no_id_token));
+                    } else {
+                        showError(getString(R.string.error_google_sign_in_cancelled));
                     }
+                } catch (ApiException e) {
+                    showError(getString(R.string.error_google_sign_in_failed, e.getStatusCode()));
                 }
             }
     );
@@ -122,8 +129,12 @@ public class LoginActivity extends BaseAuthActivity {
     }
 
     private void handleGoogleLogin() {
-        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        googleSignInLauncher.launch(signInIntent);
+        // Revoke + sign out to prevent silent reuse of the previous Google account.
+        mGoogleSignInClient.revokeAccess().addOnCompleteListener(this, revokeTask ->
+                mGoogleSignInClient.signOut().addOnCompleteListener(this, signOutTask -> {
+                    Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+                    googleSignInLauncher.launch(signInIntent);
+                }));
     }
 
     private void observeViewModel() {

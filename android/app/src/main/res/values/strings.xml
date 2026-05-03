@@ -16,6 +16,9 @@
     <string name="login_forgot_password">Quên mật khẩu?</string>
     <string name="login_btn">Đăng nhập</string>
     <string name="login_google">Đăng nhập với Google</string>
+    <string name="error_google_no_id_token">Không lấy được mã đăng nhập Google. Kiểm tra cấu hình OAuth (Web client ID) trong ứng dụng.</string>
+    <string name="error_google_sign_in_cancelled">Bạn đã hủy đăng nhập Google.</string>
+    <string name="error_google_sign_in_failed">Đăng nhập Google thất bại (mã lỗi: %1$d).</string>
     <string name="login_send_otp">Gửi mã OTP</string>
     <string name="login_no_account">Chưa có tài khoản? <b>Đăng ký ngay</b></string>
 
