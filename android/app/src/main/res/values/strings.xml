@@ -157,6 +157,11 @@
     <string name="me_avatar_picker_title">Chọn ảnh đại diện</string>
     <string name="me_outgoing_requests">Lời mời đã gửi</string>
     <string name="me_blocked_users">Người dùng đã chặn</string>
+    <string name="friend_action_block">Ch&#7863;n</string>
+    <string name="friend_action_unblock">B&#7887; ch&#7863;n</string>
+    <string name="block_user_confirm_title">Ch&#7863;n ng&#432;&#7901;i d&#249;ng?</string>
+    <string name="block_user_confirm_message">B&#7841;n c&#243; ch&#7855;c ch&#7855;n mu&#7889;n ch&#7863;n %1$s?</string>
+    <string name="blocked_user_blocked">&#272;&#227; ch&#7863;n ng&#432;&#7901;i d&#249;ng th&#224;nh c&#244;ng!</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_user_avatar">Ảnh đại diện</string>
     <string name="cd_edit_avatar">Chỉnh ảnh đại diện</string>

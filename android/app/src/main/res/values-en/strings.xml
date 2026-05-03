@@ -249,6 +249,11 @@
     <string name="status_days_ago">%d days ago</string>
     <string name="me_outgoing_requests">Sent requests</string>
     <string name="me_blocked_users">Blocked users</string>
+    <string name="friend_action_block">Block</string>
+    <string name="friend_action_unblock">Unblock</string>
+    <string name="block_user_confirm_title">Block user?</string>
+    <string name="block_user_confirm_message">Are you sure you want to block %1$s?</string>
+    <string name="blocked_user_blocked">User blocked successfully!</string>
     <string name="settings_sessions">Manage devices and sessions</string>
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">This is the beginning of your conversation with %1$s.</string>
