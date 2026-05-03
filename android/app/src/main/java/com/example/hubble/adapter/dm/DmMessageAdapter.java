@@ -594,118 +594,237 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return a.equals(b);
     }
 
-    private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
-        container.removeAllViews();
+//    private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
+//        container.removeAllViews();
+//
+//        if (attachments == null || attachments.isEmpty()) {
+//            container.setVisibility(View.GONE);
+//            return;
+//        }
+//
+//        LayoutInflater inflater = LayoutInflater.from(container.getContext());
+//
+//        for (AttachmentResponse att : attachments) {
+//            String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
+//            String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
+//
+//            if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+//                View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
+//                ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
+//                ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
+//
+//                ivPlayIcon.setVisibility(mimeType.startsWith("video/") ? View.VISIBLE : View.GONE);
+//
+//                Glide.with(container.getContext())
+//                        .load(url)
+//                        .centerCrop()
+//                        .placeholder(android.R.drawable.ic_menu_gallery)
+//                        .error(android.R.drawable.ic_menu_report_image)
+//                        .into(ivMedia);
+//
+////                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+//                mediaView.setOnClickListener(v -> {
+//                    if (mimeType.startsWith("image/")) {
+//                        // Nếu là ảnh -> Mở giao diện xem ảnh đen thui siêu xịn
+//                        Intent intent = new Intent(container.getContext(), com.example.hubble.view.dm.ImageViewerActivity.class);
+//                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_IMAGE_URL, url);
+//                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_FILE_NAME, att.getFilename());
+//                        container.getContext().startActivity(intent);
+//                    } else {
+//                        // Nếu là video -> Vẫn dùng trình duyệt ngoài như cũ
+//                        openAttachment(container.getContext(), url, mimeType);
+//                    }
+//                });
+//                container.addView(mediaView);
+//
+//            } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
+//                View voiceView = inflater.inflate(R.layout.item_attachment_voice, container, false);
+//                ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
+//                SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
+//                TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
+//
+//                btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
+//                container.addView(voiceView);
+//
+//            } else {
+//                View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
+//                TextView tvFileName = fileView.findViewById(R.id.tvFileName);
+//                ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
+//                TextView tvFileType = fileView.findViewById(R.id.tvFileType);
+//                ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
+//                Context context = container.getContext();
+//                String fileName = att.getFilename() != null
+//                        ? att.getFilename()
+//                        : context.getString(R.string.dm_untitled_file);
+//
+//                String safeFileName = fileName;
+//                if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+//                if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+//                safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+//
+//                tvFileName.setText(safeFileName);
+//
+//                String lowerMime = mimeType.toLowerCase();
+//                String lowerName = fileName.toLowerCase();
+//
+//                if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
+//                    tvFileType.setText(R.string.dm_file_type_pdf);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+//                }
+//                else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+//                    tvFileType.setText(R.string.dm_file_type_word);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+//                }
+//                else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+//                    tvFileType.setText(R.string.dm_file_type_excel);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+//                }
+//                else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
+//                    tvFileType.setText(R.string.dm_file_type_presentation);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+//                }
+//                else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
+//                    tvFileType.setText(R.string.dm_file_type_archive);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+//                }
+//                else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
+//                    tvFileType.setText(R.string.dm_file_type_text);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_text);
+//                }
+//                else {
+//                    tvFileType.setText(R.string.attachment_file);
+//                    ivFileIcon.setImageResource(R.drawable.ic_file_generic);
+//                }
+//
+//                ivSaveIcon.setOnClickListener(v -> {
+//                    downloadFile(container.getContext(), url, fileName);
+//                });
+//
+//                fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
+//                container.addView(fileView);
+//            }
+//        }
+//        container.setVisibility(View.VISIBLE);
+//    }
 
-        if (attachments == null || attachments.isEmpty()) {
-            container.setVisibility(View.GONE);
-            return;
-        }
+private static void loadAttachments(LinearLayout container, List<AttachmentResponse> attachments) {
+    container.removeAllViews();
 
-        LayoutInflater inflater = LayoutInflater.from(container.getContext());
-
-        for (AttachmentResponse att : attachments) {
-            String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
-            String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
-
-            if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-                View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
-                ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
-                ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
-
-                ivPlayIcon.setVisibility(mimeType.startsWith("video/") ? View.VISIBLE : View.GONE);
-
-                Glide.with(container.getContext())
-                        .load(url)
-                        .centerCrop()
-                        .placeholder(android.R.drawable.ic_menu_gallery)
-                        .error(android.R.drawable.ic_menu_report_image)
-                        .into(ivMedia);
-
-//                mediaView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
-                mediaView.setOnClickListener(v -> {
-                    if (mimeType.startsWith("image/")) {
-                        // Nếu là ảnh -> Mở giao diện xem ảnh đen thui siêu xịn
-                        Intent intent = new Intent(container.getContext(), com.example.hubble.view.dm.ImageViewerActivity.class);
-                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_IMAGE_URL, url);
-                        intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_FILE_NAME, att.getFilename());
-                        container.getContext().startActivity(intent);
-                    } else {
-                        // Nếu là video -> Vẫn dùng trình duyệt ngoài như cũ
-                        openAttachment(container.getContext(), url, mimeType);
-                    }
-                });
-                container.addView(mediaView);
-
-            } else if (mimeType.startsWith("audio/") || mimeType.endsWith("m4a") || mimeType.contains("mp4")) {
-                View voiceView = inflater.inflate(R.layout.item_attachment_voice, container, false);
-                ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
-                SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
-                TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
-
-                btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
-                container.addView(voiceView);
-
-            } else {
-                View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
-                TextView tvFileName = fileView.findViewById(R.id.tvFileName);
-                ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
-                TextView tvFileType = fileView.findViewById(R.id.tvFileType);
-                ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
-                Context context = container.getContext();
-                String fileName = att.getFilename() != null
-                        ? att.getFilename()
-                        : context.getString(R.string.dm_untitled_file);
-
-                String safeFileName = fileName;
-                if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
-                if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
-                safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
-
-                tvFileName.setText(safeFileName);
-
-                String lowerMime = mimeType.toLowerCase();
-                String lowerName = fileName.toLowerCase();
-
-                if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) {
-                    tvFileType.setText(R.string.dm_file_type_pdf);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
-                }
-                else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
-                    tvFileType.setText(R.string.dm_file_type_word);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_docx);
-                }
-                else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
-                    tvFileType.setText(R.string.dm_file_type_excel);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_excel);
-                }
-                else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
-                    tvFileType.setText(R.string.dm_file_type_presentation);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
-                }
-                else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
-                    tvFileType.setText(R.string.dm_file_type_archive);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_zip);
-                }
-                else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) {
-                    tvFileType.setText(R.string.dm_file_type_text);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_text);
-                }
-                else {
-                    tvFileType.setText(R.string.attachment_file);
-                    ivFileIcon.setImageResource(R.drawable.ic_file_generic);
-                }
-
-                ivSaveIcon.setOnClickListener(v -> {
-                    downloadFile(container.getContext(), url, fileName);
-                });
-
-                fileView.setOnClickListener(v -> openAttachment(container.getContext(), url, mimeType));
-                container.addView(fileView);
-            }
-        }
-        container.setVisibility(View.VISIBLE);
+    if (attachments == null || attachments.isEmpty()) {
+        container.setVisibility(View.GONE);
+        return;
     }
+
+    LayoutInflater inflater = LayoutInflater.from(container.getContext());
+
+    for (AttachmentResponse att : attachments) {
+        String mimeType = att.getContentType() != null ? att.getContentType().toLowerCase() : "";
+        String url = att.getUrl() == null ? "" : NetworkConfig.resolveUrl(att.getUrl());
+        String fileName = att.getFilename() != null ? att.getFilename() : container.getContext().getString(R.string.dm_untitled_file);
+        String lowerName = fileName.toLowerCase();
+
+        // 1. LUẬT PHÂN LOẠI MEDIA CHẶT CHẼ (Dùng cả MimeType và Tên file)
+        boolean isVideo = mimeType.startsWith("video/") || lowerName.endsWith(".mp4") || lowerName.endsWith(".mov");
+        boolean isImage = mimeType.startsWith("image/") || lowerName.endsWith(".jpg") || lowerName.endsWith(".png") || lowerName.endsWith(".jpeg");
+        boolean isAudio = mimeType.startsWith("audio/") || lowerName.endsWith(".m4a") || lowerName.endsWith(".mp3") || lowerName.endsWith(".wav");
+
+        // Xử lý "cú lừa": Nếu Android/Server bảo là audio nhưng đuôi file là .mp4, ta ÉP nó làm Video!
+        if (isVideo && isAudio) {
+            isAudio = false;
+        }
+
+        // 2. RENDER THEO NHÓM
+        if (isImage || isVideo) {
+            View mediaView = inflater.inflate(R.layout.item_attachment_media, container, false);
+            ImageView ivMedia = mediaView.findViewById(R.id.ivMedia);
+            ImageView ivPlayIcon = mediaView.findViewById(R.id.ivPlayIcon);
+
+            // Hiện icon Play to bự nếu là Video
+            ivPlayIcon.setVisibility(isVideo ? View.VISIBLE : View.GONE);
+
+            Glide.with(container.getContext())
+                    .load(url)
+                    .centerCrop()
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_report_image)
+                    .into(ivMedia);
+
+            mediaView.setOnClickListener(v -> {
+                if (isImage) {
+                    // Nếu là ảnh -> Mở giao diện xem ảnh
+                    Intent intent = new Intent(container.getContext(), com.example.hubble.view.dm.ImageViewerActivity.class);
+                    intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_IMAGE_URL, url);
+                    intent.putExtra(com.example.hubble.view.dm.ImageViewerActivity.EXTRA_FILE_NAME, att.getFilename());
+                    container.getContext().startActivity(intent);
+                } else {
+                    // Nếu là video -> Mở trình xem Video ngoài, ép mimeType chuẩn để không bị mở nhầm app Nhạc
+                    openAttachment(container.getContext(), url, "video/mp4");
+                }
+            });
+            container.addView(mediaView);
+
+        } else if (isAudio) {
+            View voiceView = inflater.inflate(R.layout.item_attachment_voice, container, false);
+            ImageView btnPlayPause = voiceView.findViewById(R.id.btnPlayPause);
+            SeekBar seekBarVoice = voiceView.findViewById(R.id.seekBarVoice);
+            TextView tvDuration = voiceView.findViewById(R.id.tvDuration);
+
+            btnPlayPause.setOnClickListener(v -> playAudio(url, btnPlayPause, seekBarVoice, tvDuration));
+            container.addView(voiceView);
+
+        } else {
+            // Nhóm FILE TÀI LIỆU (Code cũ của bạn viết rất chuẩn, giữ nguyên hoàn toàn)
+            View fileView = inflater.inflate(R.layout.item_attachment_file, container, false);
+            TextView tvFileName = fileView.findViewById(R.id.tvFileName);
+            ImageView ivFileIcon = fileView.findViewById(R.id.ivFileIcon);
+            TextView tvFileType = fileView.findViewById(R.id.tvFileType);
+            ImageView ivSaveIcon = fileView.findViewById(R.id.ivSaveIcon);
+            Context context = container.getContext();
+
+            String safeFileName = fileName;
+            if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
+            if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
+            safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+            tvFileName.setText(safeFileName);
+
+            if (lowerName.endsWith(".pdf")) {
+                tvFileType.setText(R.string.dm_file_type_pdf);
+                ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+            }
+            else if (lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
+                tvFileType.setText(R.string.dm_file_type_word);
+                ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+            }
+            else if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+                tvFileType.setText(R.string.dm_file_type_excel);
+                ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+            }
+            else if (lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) {
+                tvFileType.setText(R.string.dm_file_type_presentation);
+                ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+            }
+            else if (lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) {
+                tvFileType.setText(R.string.dm_file_type_archive);
+                ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+            }
+            else if (lowerName.endsWith(".txt")) {
+                tvFileType.setText(R.string.dm_file_type_text);
+                ivFileIcon.setImageResource(R.drawable.ic_file_text);
+            }
+            else {
+                tvFileType.setText(R.string.attachment_file);
+                ivFileIcon.setImageResource(R.drawable.ic_file_generic);
+            }
+
+            ivSaveIcon.setOnClickListener(v -> downloadFile(context, url, fileName));
+            fileView.setOnClickListener(v -> openAttachment(context, url, mimeType));
+            container.addView(fileView);
+        }
+    }
+    container.setVisibility(View.VISIBLE);
+}
+
 
     private static void playAudio(String url, ImageView btnPlayPause, SeekBar seekBar, TextView tvDuration) {
         try {

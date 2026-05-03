@@ -25,6 +25,7 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -285,6 +286,13 @@ public class DmChatActivity extends AppCompatActivity {
         channelParentId = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_ID);
         channelParentName = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_NAME);
         channelIsPrivate = getIntent().getBooleanExtra(EXTRA_CHANNEL_IS_PRIVATE, false);
+
+        View btnCamera = findViewById(R.id.btnCamera);
+
+        btnCamera.setOnClickListener(v -> {
+            Intent intent = new Intent(DmChatActivity.this, InAppCameraActivity.class);
+            cameraLauncher.launch(intent);
+        });
 
         peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
         if (TextUtils.isEmpty(peerDisplayName)) {
@@ -737,23 +745,38 @@ public class DmChatActivity extends AppCompatActivity {
             updateComposerState();
         });
 
-        binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
+
+        binding.btnAttach.setOnClickListener(v -> {
+            androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(DmChatActivity.this, v);
+
+            popup.getMenuInflater().inflate(R.menu.menu_attachment, popup.getMenu());
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                popup.setForceShowIcon(true);
+            }
+
+            popup.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+
+                if (id == R.id.action_pick_file) {
+                    filePickerLauncher.launch("*/*");
+                    return true;
+
+                } else if (id == R.id.action_open_camera) {
+                    Intent intent = new Intent(DmChatActivity.this, InAppCameraActivity.class);
+                    cameraLauncher.launch(intent);
+                    return true;
+                }
+                return false;
+            });
+
+            popup.show();
+        });
+        ;
+
         binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-//        binding.btnVoice.setOnClickListener(v -> {
-//            if (!isRecording) {
-//                startRecording();
-//                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
-//                binding.btnSend.setEnabled(false);
-//                binding.btnAttach.setEnabled(false);
-//            } else {
-//                stopRecording();
-//                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
-//                binding.btnSend.setEnabled(true);
-//                binding.btnAttach.setEnabled(true);
-//            }
-//        });
         // Khi bấm nút Mic, mở BottomSheet
         binding.btnVoice.setOnClickListener(v -> showVoiceRecordSheet());
     }
@@ -1105,6 +1128,67 @@ public class DmChatActivity extends AppCompatActivity {
                 Snackbar.make(binding.getRoot(), "Ghi âm quá ngắn!", Snackbar.LENGTH_SHORT).show();
             }
         }
+    }
+
+    // Nằm ở đầu class DmChatActivity
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                // Khi InAppCameraActivity đóng lại (gọi finish()), code sẽ nhảy vào đây
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    // Lấy đường dẫn file và loại file (Ảnh hay Video)
+                    String filePath = result.getData().getStringExtra("MEDIA_PATH");
+                    String mediaType = result.getData().getStringExtra("MEDIA_TYPE");
+
+                    if (filePath != null) {
+                        // Đẩy xuống một hàm riêng để xử lý cho Clean Code
+                        handleCapturedMedia(filePath, mediaType);
+                    }
+                }
+            }
+    );
+
+    // Hàm xử lý file sau khi CameraX chụp xong
+    private void handleCapturedMedia(String filePath, String mediaType) {
+        File mediaFile = new File(filePath);
+        if (!mediaFile.exists()) return;
+
+        // 1. Chuyển đổi đường dẫn String thành đối tượng Uri
+        Uri fileUri = Uri.fromFile(mediaFile);
+
+        // Khóa nút đính kèm để tránh người dùng bấm liên tục gây lỗi
+        binding.btnAttach.setEnabled(false);
+
+        // 2. Tái sử dụng nguyên xi logic Upload MVVM của bạn
+        mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
+            switch (result.status) {
+                case LOADING:
+                    // Chỗ này bạn có thể cho hiện một cái ProgressBar nhỏ xoay xoay
+                    break;
+
+                case SUCCESS:
+                    // Thêm ID và Type vào danh sách chờ gửi (giống code cũ)
+                    pendingAttachmentIds.add(result.data.getAttachmentId());
+                    pendingAttachmentTypes.add(result.data.getContentType());
+
+                    // Gọi hàm show preview có sẵn của bạn để hiện hình/video lên thanh đính kèm
+                    showAttachmentPreview(fileUri, result.data.getAttachmentId(), result.data.getContentType(), result.data.getFilename());
+
+                    // Cập nhật lại trạng thái giao diện
+                    binding.btnAttach.setEnabled(true);
+                    updateComposerState();
+                    break;
+
+                case ERROR:
+                    binding.btnAttach.setEnabled(true);
+                    com.google.android.material.snackbar.Snackbar.make(
+                            binding.getRoot(),
+                            "Lỗi tải lên: " + result.errorMessage,
+                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                    ).show();
+                    break;
+            }
+        });
     }
 
     private void uploadVoiceAndSend(File file) {

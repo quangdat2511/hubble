@@ -451,6 +451,8 @@
     <string name="time_days">%1$d ngày</string>
     <string name="time_months">%1$d tháng</string>
     <string name="time_years">%1$d năm</string>
+    <string name="menu_attach_file">Chọn File / Thư viện</string>
+    <string name="menu_attach_camera">Chụp ảnh / Quay trực tiếp</string>
 
     <string name="settings_notifications_summary">Quản lý thông báo đẩy trên thiết bị này</string>
     <string name="settings_notifications_enable_title">Bật thông báo đẩy</string>

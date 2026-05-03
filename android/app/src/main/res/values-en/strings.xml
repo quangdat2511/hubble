@@ -478,6 +478,8 @@
     <string name="me_qr_status_dnd">Do Not Disturb</string>
     <string name="me_qr_status_offline">Offline</string>
     <string name="me_qr_status_unknown">Unknown</string>
+    <string name="menu_attach_file">Choose File / Gallery</string>
+    <string name="menu_attach_camera">Camera / Video</string>
 
     <string name="search_hint">Search…</string>
     <string name="search_no_results">No results found</string>

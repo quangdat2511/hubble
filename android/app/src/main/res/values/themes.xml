@@ -140,4 +140,6 @@
     <style name="TextAppearance.Hubble.Timestamp" parent="TextAppearance.Material3.BodySmall">
         <item name="android:textColor">?attr/colorOutlineVariant</item>
     </style>
+
+
 </resources>
