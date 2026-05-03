@@ -1,13 +1,11 @@
 package com.example.hubble.adapter.dm;
 
-import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
@@ -38,6 +36,7 @@ import com.example.hubble.utils.AudioProximityManager;
 import com.google.android.material.chip.Chip;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.InAppMessageUtils;
+import com.example.hubble.utils.MediaDownloadHelper;
 import com.example.hubble.utils.LocalizedTimeUtils;
 
 import java.io.IOException;
@@ -847,31 +846,16 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private static void downloadFile(Context context, String url, String fileName) {
         if (url == null || url.isEmpty()) return;
 
-        String finalUrl = NetworkConfig.resolveUrl(url);
-
-        String safeFileName = fileName;
-        if (safeFileName.contains("/")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf("/") + 1);
-        if (safeFileName.contains(":")) safeFileName = safeFileName.substring(safeFileName.lastIndexOf(":") + 1);
-        safeFileName = safeFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
-
         try {
-            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(finalUrl));
-            request.setTitle(safeFileName);
-            request.setDescription(context.getString(R.string.dm_download_description));
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
-
-            com.example.hubble.utils.TokenManager tokenManager = new com.example.hubble.utils.TokenManager(context);
-            if (tokenManager.getAccessToken() != null) {
-                request.addRequestHeader("Authorization", "Bearer " + tokenManager.getAccessToken());
-            }
-
-            DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-            if (downloadManager != null) {
-                downloadManager.enqueue(request);
-                InAppMessageUtils.show(context, context.getString(R.string.dm_download_started, safeFileName));
-            }
+            MediaDownloadHelper.EnqueueResult enqueueResult = MediaDownloadHelper.enqueueDownload(
+                    context,
+                    url,
+                    fileName,
+                    null,
+                    new com.example.hubble.utils.TokenManager(context).getAccessToken(),
+                    context.getString(R.string.dm_download_description)
+            );
+            InAppMessageUtils.show(context, context.getString(R.string.dm_download_started, enqueueResult.getFileName()));
         } catch (Exception e) {
             e.printStackTrace();
             String message = e.getMessage() != null ? e.getMessage() : context.getString(R.string.error_network_unknown);

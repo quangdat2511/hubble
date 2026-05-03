@@ -15,6 +15,7 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
@@ -326,6 +327,34 @@ public class DmRepository {
         });
     }
 
+    public void getSharedContent(String channelId, String type, int page, int size,
+                                 RepositoryCallback<SharedContentPageResponse> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.getSharedContent(token, channelId, type, page, size)
+                .enqueue(new Callback<ApiResponse<SharedContentPageResponse>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<SharedContentPageResponse>> call,
+                                           Response<ApiResponse<SharedContentPageResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(
+                                extractErrorMessage(response, "Khong tai duoc noi dung da chia se")
+                        ));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<SharedContentPageResponse>> call, Throwable t) {
+                        callback.onResult(AuthResult.error("Loi mang: " + t.getMessage()));
+                    }
+                });
+    }
+
     public void loadContextWindow(String channelId, String messageId, int limit,
                                   RepositoryCallback<List<MessageDto>> callback) {
         String token = requireAuthToken(callback);
@@ -581,4 +610,3 @@ public class DmRepository {
         return fallback + " (HTTP " + httpCode + ")";
     }
 }
-

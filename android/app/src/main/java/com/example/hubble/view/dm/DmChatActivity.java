@@ -66,7 +66,7 @@ import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.AudioProximityManager;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
-import com.example.hubble.view.server.ChannelProfileBottomSheet;
+import com.example.hubble.view.server.ChannelDetailActivity;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -145,10 +145,10 @@ public class DmChatActivity extends AppCompatActivity {
     private String currentUserId;
     private String currentUserName;
     private String currentUserAvatarUrl;
+    private String peerUserId;
     private String peerDisplayName;
     private String peerUsername;
     private String peerAvatarUrl;
-    private String peerUserId;
     private String peerCurrentStatus;
     private String peerCurrentLastSeenAt;
     private final CompositeDisposable statusDisposables = new CompositeDisposable();
@@ -391,36 +391,13 @@ public class DmChatActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.headerInfo.setOnClickListener(v -> openConversationDetails());
+        binding.ivHeaderChevron.setOnClickListener(v -> openConversationDetails());
         refreshPeerUi();
     }
 
     private void setupChannelHeaderInteractions() {
-        binding.ivHeaderChevron.setOnClickListener(v -> {
-            if (isServerTextChannel()) {
-                openChannelProfileSheet();
-            }
-        });
         binding.btnHeaderSearch.setOnClickListener(v -> openSearch());
-    }
-
-    private void openChannelProfileSheet() {
-        if (!isServerTextChannel() || TextUtils.isEmpty(serverIdForForward) || TextUtils.isEmpty(channelId)) {
-            return;
-        }
-        String rawName = peerDisplayName != null ? peerDisplayName.replaceFirst("^#\\s*", "").trim() : "";
-        ChannelProfileBottomSheet.newInstance(
-                serverIdForForward,
-                firstNonBlank(serverDisplayName, ""),
-                toAbsoluteAvatarUrl(serverIconUrlForSheet),
-                firstNonBlank(serverOwnerId, ""),
-                channelId,
-                rawName,
-                "TEXT",
-                channelTopic,
-                channelParentId,
-                channelParentName,
-                channelIsPrivate
-        ).show(getSupportFragmentManager(), "ChannelProfile");
     }
 
     private void setupProfileIntro() {
@@ -520,6 +497,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void applyPeerProfile(ChannelDto channel) {
+        peerUserId = firstNonBlank(channel.getPeerUserId(), peerUserId);
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
         peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
@@ -528,6 +506,32 @@ public class DmChatActivity extends AppCompatActivity {
         if (channel.getPeerLastSeenAt() != null) peerCurrentLastSeenAt = channel.getPeerLastSeenAt();
         refreshPeerUi();
         updateHeaderStatus();
+    }
+
+    private void openConversationDetails() {
+        if (TextUtils.isEmpty(channelId)) {
+            Snackbar.make(binding.getRoot(), R.string.dm_gallery_error_generic, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        if (isServerTextChannel()) {
+            startActivity(ChannelDetailActivity.createIntent(
+                    this,
+                    serverIdForForward,
+                    serverDisplayName,
+                    serverIconUrlForSheet,
+                    channelId,
+                    peerDisplayName,
+                    channelTopic
+            ));
+            return;
+        }
+        startActivity(DmDetailsActivity.createIntent(
+                this,
+                channelId,
+                peerDisplayName,
+                peerUsername,
+                peerAvatarUrl
+        ));
     }
 
     private void refreshPeerUi() {

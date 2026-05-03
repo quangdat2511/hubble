@@ -6,6 +6,8 @@ import com.hubble.dto.request.MarkChannelReadRequest;
 import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
 import com.hubble.dto.response.PeerReadStatusResponse;
+import com.hubble.dto.response.SharedContentPageResponse;
+import com.hubble.enums.SharedContentType;
 import com.hubble.security.UserPrincipal;
 import com.hubble.service.ChannelReadService;
 import com.hubble.service.MessageService;
@@ -54,7 +56,20 @@ public class MessageController {
             @RequestParam(defaultValue = "50") int size
     ) {
         return ApiResponse.<List<MessageResponse>>builder()
-                .result(messageService.getMessages(channelId, principal.getId().toString(), page, size))
+                .result(messageService.getMessages(principal.getId().toString(), channelId, page, size))
+                .build();
+    }
+
+    @GetMapping("/{channelId}/shared-content")
+    public ApiResponse<SharedContentPageResponse> getSharedContent(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String channelId,
+            @RequestParam(defaultValue = "MEDIA") SharedContentType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size
+    ) {
+        return ApiResponse.<SharedContentPageResponse>builder()
+                .result(messageService.getSharedContent(principal.getId().toString(), channelId, type, page, size))
                 .build();
     }
 
@@ -97,7 +112,7 @@ public class MessageController {
             @RequestParam(defaultValue = "30") int limit
     ) {
         return ApiResponse.<List<MessageResponse>>builder()
-                .result(messageService.getMessagesAround(channelId, messageId, limit))
+                .result(messageService.getMessagesAround(channelId, principal.getId().toString(), messageId, limit))
                 .build();
     }
 

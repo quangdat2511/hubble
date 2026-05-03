@@ -15,6 +15,30 @@ import java.util.UUID;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, UUID> {
     Page<Message> findByChannelIdOrderByCreatedAtDesc(UUID channelId, Pageable pageable);
+    Page<Message> findByChannelIdAndIsDeletedFalseAndContentIsNotNullOrderByCreatedAtDesc(UUID channelId, Pageable pageable);
+
+    @Query(
+            value = """
+                    select *
+                    from messages m
+                    where m.channel_id = :channelId
+                      and coalesce(m.is_deleted, false) = false
+                      and m.content is not null
+                      and m.content ~* '(https?://|www\\.)'
+                    order by m.created_at desc
+                    """,
+            countQuery = """
+                    select count(*)
+                    from messages m
+                    where m.channel_id = :channelId
+                      and coalesce(m.is_deleted, false) = false
+                      and m.content is not null
+                      and m.content ~* '(https?://|www\\.)'
+                    """,
+            nativeQuery = true
+    )
+    Page<Message> findSharedLinkMessagesByChannelId(@Param("channelId") UUID channelId, Pageable pageable);
+
     void deleteAllByChannelId(UUID channelId);
 
     // ── Search: channel-scope FTS ──────────────────────────────────────────────
