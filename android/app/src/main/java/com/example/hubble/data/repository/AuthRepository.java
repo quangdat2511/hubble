@@ -15,6 +15,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SendEmailOtpRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.utils.ThemeSyncManager;
@@ -56,7 +57,9 @@ public class AuthRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
                     handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Login failed")));
+                    String errorMessage = extractErrorMessage(response, "Login failed");
+                    int errorCode = extractErrorCode(response);
+                    callback.onResult(AuthResult.error(errorMessage, errorCode));
                 }
             }
 
@@ -238,6 +241,28 @@ public class AuthRepository {
         tokenManager.clear();
     }
 
+    public void sendEmailOtp(String email, RepositoryCallback<String> callback) {
+        callback.onResult(AuthResult.loading());
+        SendEmailOtpRequest request = new SendEmailOtpRequest(email);
+
+        apiService.sendEmailOtp(request).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(AuthResult.success("OTP sent successfully"));
+                } else {
+                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Failed to send OTP")));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
+            }
+        });
+    }
+
     private void handleAuthenticatedResponse(TokenResponse tokenResponse,
                                              RepositoryCallback<UserResponse> callback) {
         tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
@@ -267,5 +292,28 @@ public class AuthRepository {
         }
 
         return fallback;
+    }
+
+    private <T> int extractErrorCode(Response<T> response) {
+        if (response == null) {
+            return -1;
+        }
+
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    Type type = new TypeToken<ApiResponse<Object>>() {}.getType();
+                    ApiResponse<Object> apiError = gson.fromJson(raw, type);
+                    if (apiError != null) {
+                        return apiError.getCode();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Ignore parse errors
+        }
+
+        return -1;
     }
 }

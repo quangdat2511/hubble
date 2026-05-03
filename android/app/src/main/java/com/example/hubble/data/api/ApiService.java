@@ -11,6 +11,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SendEmailOtpRequest;
 import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserCreationRequest;
@@ -70,6 +71,9 @@ public interface ApiService {
 
     @POST("api/auth/email/verify")
     Call<ApiResponse<TokenResponse>> verifyEmailOtp(@Body EmailVerifyOtpRequest request);
+
+    @POST("api/auth/email/send-otp")
+    Call<ApiResponse<String>> sendEmailOtp(@Body SendEmailOtpRequest request);
 
     @POST("api/auth/login/google")
     Call<ApiResponse<TokenResponse>> loginWithGoogle(@Body GoogleLoginRequest request);

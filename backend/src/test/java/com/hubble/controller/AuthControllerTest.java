@@ -314,4 +314,20 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(1000))
                 .andExpect(jsonPath("$.result.username").value("testuser"));
     }
+
+    @Test
+    public void sendEmailOtp_ValidRequest_ReturnsOk() throws Exception {
+        SendEmailOtpRequest request = SendEmailOtpRequest.builder()
+                .email("test@example.com")
+                .build();
+
+        doNothing().when(authService).sendEmailVerificationOtp(any(String.class));
+
+        mockMvc.perform(post("/api/auth/email/send-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").value("OTP đã được gửi đến email của bạn"));
+    }
 }

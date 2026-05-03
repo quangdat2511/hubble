@@ -124,9 +124,34 @@ public class LoginActivity extends BaseAuthActivity {
     }
 
     private void observeViewModel() {
-        observeAuthResult(authViewModel.loginState,
-                authViewModel::resetLoginState,
-                this::registerDeviceTokenAndNavigate);
+        authViewModel.loginState.observe(this, result -> {
+            if (result == null) return;
+            
+            if (result.isLoading()) {
+                setLoadingState(true);
+            } else if (result.isSuccess()) {
+                setLoadingState(false);
+                authViewModel.resetLoginState();
+                registerDeviceTokenAndNavigate();
+            } else {
+                setLoadingState(false);
+                authViewModel.resetLoginState();
+                
+                // Check if this is an EMAIL_NOT_VERIFIED error (code 1020)
+                if (result.getErrorCode() == 1020) {
+                    String email = binding.etEmail.getText() != null ? binding.etEmail.getText().toString().trim() : "";
+                    if (!email.isEmpty()) {
+                        Intent intent = new Intent(this, OtpActivity.class);
+                        intent.putExtra(OtpActivity.EXTRA_EMAIL, email);
+                        startActivity(intent);
+                        finish();
+                        return;
+                    }
+                }
+                
+                showError(result.getMessage());
+            }
+        });
     }
 
     private void registerDeviceTokenAndNavigate() {

@@ -142,6 +142,7 @@ public class OtpActivity extends BaseAuthActivity {
         binding.tvResend.setOnClickListener(v -> {
             if (canResend) {
                 if (email != null) {
+                    authViewModel.sendEmailOtp(email);
                 } else if (phoneNumber != null) {
                     authViewModel.resendPhoneOtp(phoneNumber);
                 }
@@ -150,6 +151,7 @@ public class OtpActivity extends BaseAuthActivity {
     }
 
     private void observeViewModel() {
+        // Observe phone OTP send state
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
@@ -161,6 +163,22 @@ public class OtpActivity extends BaseAuthActivity {
             } else {
                 binding.tvResend.setEnabled(true);
                 authViewModel.resetOtpSendState();
+                showError(result.getMessage());
+            }
+        });
+
+        // Observe email OTP send state
+        authViewModel.emailOtpSendState.observe(this, result -> {
+            if (result == null) return;
+            if (result.isLoading()) {
+                binding.tvResend.setEnabled(false);
+            } else if (result.isSuccess()) {
+                authViewModel.resetEmailOtpSendState();
+                clearOtpFields();
+                startCountDown();
+            } else {
+                binding.tvResend.setEnabled(true);
+                authViewModel.resetEmailOtpSendState();
                 showError(result.getMessage());
             }
         });

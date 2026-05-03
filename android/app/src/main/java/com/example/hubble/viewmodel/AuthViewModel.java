@@ -21,6 +21,9 @@ public class AuthViewModel extends ViewModel {
     private final MutableLiveData<AuthResult<String>> _otpSendState = new MutableLiveData<>();
     public final LiveData<AuthResult<String>> otpSendState = _otpSendState;
 
+    private final MutableLiveData<AuthResult<String>> _emailOtpSendState = new MutableLiveData<>();
+    public final LiveData<AuthResult<String>> emailOtpSendState = _emailOtpSendState;
+
     private final MutableLiveData<AuthResult<UserResponse>> _otpVerifyState = new MutableLiveData<>();
     public final LiveData<AuthResult<UserResponse>> otpVerifyState = _otpVerifyState;
 
@@ -54,6 +57,10 @@ public class AuthViewModel extends ViewModel {
         repository.verifyEmailOtp(email, otpCode, result -> _otpVerifyState.postValue(result));
     }
 
+    public void sendEmailOtp(String email) {
+        repository.sendEmailOtp(email, result -> _emailOtpSendState.setValue(result));
+    }
+
     public void sendPhoneOtp(String phoneNumber) {
         repository.sendPhoneOtp(phoneNumber, result -> _otpSendState.setValue(result));
     }
@@ -81,6 +88,7 @@ public class AuthViewModel extends ViewModel {
     public void resetLoginState() { _loginState.setValue(null); }
     public void resetRegisterState() { _registerState.setValue(null); }
     public void resetOtpSendState() { _otpSendState.setValue(null); }
+    public void resetEmailOtpSendState() { _emailOtpSendState.setValue(null); }
     public void resetOtpVerifyState() { _otpVerifyState.setValue(null); }
     public void resetForgotPasswordState() { _forgotPasswordState.setValue(null); }
     public void resetResetPasswordState() { _resetPasswordState.setValue(null); }
