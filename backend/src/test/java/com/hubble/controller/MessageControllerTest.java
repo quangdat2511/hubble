@@ -4,14 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hubble.configuration.SecurityConfig;
 import com.hubble.dto.request.CreateMessageRequest;
 import com.hubble.dto.request.MarkChannelReadRequest;
+import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.dto.response.MessageResponse;
 import com.hubble.dto.response.PeerReadStatusResponse;
+import com.hubble.dto.response.SharedContentItemResponse;
+import com.hubble.dto.response.SharedContentPageResponse;
+import com.hubble.enums.SharedContentType;
 import com.hubble.repository.UserRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.JwtAuthenticationFilter;
 import com.hubble.security.JwtService;
 import com.hubble.security.UserPrincipal;
-import com.hubble.dto.request.UpdateMessageRequest;
 import com.hubble.service.ChannelReadService;
 import com.hubble.service.MessageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +65,7 @@ class MessageControllerTest {
     @Test
     void getMessages_delegatesToService() throws Exception {
         UUID channelId = UUID.randomUUID();
-        when(messageService.getMessages(eq(channelId.toString()), eq(userId.toString()), eq(0), eq(30)))
+        when(messageService.getMessages(eq(userId.toString()), eq(channelId.toString()), eq(0), eq(30)))
                 .thenReturn(List.of(MessageResponse.builder().id("m1").content("hi").build()));
 
         mockMvc.perform(get("/api/messages/{channelId}", channelId)
@@ -119,6 +122,38 @@ class MessageControllerTest {
                         .with(authentication(authentication)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.readAt").value("2026-04-01T12:00:00"));
+    }
+
+    @Test
+    void getSharedContent_returnsPagedPayload() throws Exception {
+        String channelId = UUID.randomUUID().toString();
+        SharedContentPageResponse response = SharedContentPageResponse.builder()
+                .type("MEDIA")
+                .page(0)
+                .size(24)
+                .hasMore(false)
+                .items(List.of(SharedContentItemResponse.builder()
+                        .id(UUID.randomUUID().toString())
+                        .type("MEDIA")
+                        .url("https://cdn.example.com/photo.png")
+                        .filename("photo.png")
+                        .build()))
+                .build();
+
+        when(messageService.getSharedContent(
+                eq(userId.toString()),
+                eq(channelId),
+                eq(SharedContentType.MEDIA),
+                eq(0),
+                eq(24)))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/messages/{channelId}/shared-content", channelId)
+                        .with(authentication(authentication)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.type").value("MEDIA"))
+                .andExpect(jsonPath("$.result.items[0].filename").value("photo.png"))
+                .andExpect(jsonPath("$.result.items[0].url").value("https://cdn.example.com/photo.png"));
     }
 
     @Test

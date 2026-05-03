@@ -43,7 +43,7 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
 
     private BottomSheetVoiceChannelBinding binding;
     private VoiceParticipantAdapter adapter;
-    private boolean micEnabled = false;
+    private boolean micEnabled = true;
 
     private final ActivityResultLauncher<String> micPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -121,6 +121,16 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
         loadParticipants(channelId);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload whenever the sheet becomes visible — covers the case where the user
+        // left the voice call and returns to this screen without dismissing it first.
+        if (getArguments() != null) {
+            loadParticipants(getArguments().getString(ARG_CHANNEL_ID));
+        }
+    }
+
     private void loadParticipants(String channelId) {
         TokenManager tm = new TokenManager(requireContext());
         String token = "Bearer " + tm.getAccessToken();
@@ -165,7 +175,6 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
         String serverId = getArguments().getString(ARG_SERVER_ID);
         String serverName = getArguments().getString(ARG_SERVER_NAME);
 
-        dismiss();
         startActivity(VoiceCallActivity.createIntent(
                 requireContext(), channelId, channelName, serverId, serverName, micEnabled));
     }

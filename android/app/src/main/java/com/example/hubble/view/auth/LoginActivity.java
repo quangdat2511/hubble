@@ -28,6 +28,7 @@ public class LoginActivity extends BaseAuthActivity {
     private ActivityLoginBinding binding;
     private AuthViewModel authViewModel;
     private GoogleSignInClient mGoogleSignInClient;
+    private String lastAttemptedEmail = "";
 
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -115,6 +116,8 @@ public class LoginActivity extends BaseAuthActivity {
             return;
         }
 
+        // Save the email for later use in case of EMAIL_NOT_VERIFIED error
+        lastAttemptedEmail = email;
         authViewModel.loginWithEmail(email, password);
     }
 
@@ -124,9 +127,37 @@ public class LoginActivity extends BaseAuthActivity {
     }
 
     private void observeViewModel() {
-        observeAuthResult(authViewModel.loginState,
-                authViewModel::resetLoginState,
-                this::registerDeviceTokenAndNavigate);
+        authViewModel.loginState.observe(this, result -> {
+            if (result == null) return;
+            
+            if (result.isLoading()) {
+                setLoadingState(true);
+            } else if (result.isSuccess()) {
+                setLoadingState(false);
+                authViewModel.resetLoginState();
+                registerDeviceTokenAndNavigate();
+            } else {
+                setLoadingState(false);
+                authViewModel.resetLoginState();
+                
+                android.util.Log.d("LoginActivity", "Login error - Code: " + result.getErrorCode() + ", Message: " + result.getMessage());
+                
+                // Check if this is an EMAIL_NOT_VERIFIED error (code 1020)
+                if (result.getErrorCode() == 1020) {
+                    android.util.Log.d("LoginActivity", "Email not verified, navigating to OTP screen with email: " + lastAttemptedEmail);
+                    if (!lastAttemptedEmail.isEmpty()) {
+                        Intent intent = new Intent(LoginActivity.this, OtpActivity.class);
+                        intent.putExtra(OtpActivity.EXTRA_EMAIL, lastAttemptedEmail);
+                        intent.putExtra(OtpActivity.EXTRA_AUTO_SEND_OTP, true);
+                        startActivity(intent);
+                        finish();
+                        return;
+                    }
+                }
+                
+                showError(result.getMessage());
+            }
+        });
     }
 
     private void registerDeviceTokenAndNavigate() {

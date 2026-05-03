@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -75,6 +79,10 @@
             android:name=".view.dm.DmChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.dm.DmDetailsActivity"
+            android:exported="false" />
 
         <activity
             android:name=".view.dm.NewMessageActivity"
@@ -151,6 +159,10 @@
             android:name=".view.server.ChannelSettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".view.server.ChannelDetailActivity"
+            android:exported="false" />
 
         <activity
             android:name=".view.server.CategorySettingsActivity"
@@ -249,6 +261,9 @@
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity android:name=".view.dm.InAppCameraActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
     </application>
 
 </manifest>

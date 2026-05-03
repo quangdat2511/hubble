@@ -15,6 +15,7 @@ import com.example.hubble.data.model.dm.CreateMessageRequest;
 import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
@@ -326,6 +327,34 @@ public class DmRepository {
         });
     }
 
+    public void getSharedContent(String channelId, String type, int page, int size,
+                                 RepositoryCallback<SharedContentPageResponse> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) {
+            return;
+        }
+
+        apiService.getSharedContent(token, channelId, type, page, size)
+                .enqueue(new Callback<ApiResponse<SharedContentPageResponse>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<SharedContentPageResponse>> call,
+                                           Response<ApiResponse<SharedContentPageResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(
+                                extractErrorMessage(response, "Khong tai duoc noi dung da chia se")
+                        ));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<SharedContentPageResponse>> call, Throwable t) {
+                        callback.onResult(AuthResult.error("Loi mang: " + t.getMessage()));
+                    }
+                });
+    }
+
     public void loadContextWindow(String channelId, String messageId, int limit,
                                   RepositoryCallback<List<MessageDto>> callback) {
         String token = requireAuthToken(callback);
@@ -378,11 +407,18 @@ public class DmRepository {
     public void sendMessage(String channelId, String replyToId, String content,
                             List<String> attachmentIds, String type,
                             RepositoryCallback<MessageDto> callback) {
+        sendMessage(channelId, replyToId, content, attachmentIds, type, null, callback);
+    }
+
+    public void sendMessage(String channelId, String replyToId, String content,
+                            List<String> attachmentIds, String type,
+                            List<String> mentionedUserIds,
+                            RepositoryCallback<MessageDto> callback) {
         String token = requireAuthToken(callback);
         if (token == null) return;
 
         CreateMessageRequest request = new CreateMessageRequest(
-                channelId, replyToId, content, type, attachmentIds
+                channelId, replyToId, content, type, attachmentIds, mentionedUserIds
         );
 
         apiService.sendMessage(token, request).enqueue(new Callback<ApiResponse<MessageDto>>() {
@@ -410,6 +446,29 @@ public class DmRepository {
 
     public void sendMessage(String channelId, String content, RepositoryCallback<MessageDto> callback) {
         sendMessage(channelId, null, content, new ArrayList<>(), "TEXT", callback);
+    }
+
+    public void searchChannelMembers(String channelId, String query,
+                                     RepositoryCallback<List<com.example.hubble.data.model.search.SearchMemberDto>> callback) {
+        String token = requireAuthToken(callback);
+        if (token == null) return;
+        apiService.searchChannelMembers(token, channelId, query)
+                .enqueue(new Callback<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> call,
+                                           Response<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.dm_send_error)));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<com.example.hubble.data.model.search.SearchMemberDto>>> call, Throwable t) {
+                        callback.onResult(AuthResult.error(buildNetworkError(t)));
+                    }
+                });
     }
 
     public void editMessage(String messageId, String content, RepositoryCallback<MessageDto> callback) {
@@ -581,4 +640,3 @@ public class DmRepository {
         return fallback + " (HTTP " + httpCode + ")";
     }
 }
-

@@ -39,6 +39,7 @@ public enum ErrorCode {
     QR_TOKEN_INVALID(1018, "QR token is invalid or expired", HttpStatus.BAD_REQUEST),
     LOCALE_INVALID(1019, "Locale is invalid", HttpStatus.BAD_REQUEST),
     INVALID_APP_LOCK_PIN(1020, "App lock PIN must be exactly 4 digits", HttpStatus.BAD_REQUEST),
+    EMAIL_NOT_VERIFIED(1021, "Email has not been verified. Please verify your email to continue.", HttpStatus.FORBIDDEN),
 
     // Friends
     FRIEND_REQUEST_EXISTED(2001, "Friend request already exists", HttpStatus.BAD_REQUEST),

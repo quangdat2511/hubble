@@ -5,9 +5,11 @@ import com.hubble.dto.response.FriendUserResponse;
 import com.hubble.entity.Friendship;
 import com.hubble.entity.User;
 import com.hubble.enums.FriendshipStatus;
+import com.hubble.enums.NotificationType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.repository.FriendshipRepository;
+import com.hubble.repository.NotificationRepository;
 import com.hubble.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,13 @@ public class FriendServiceTest {
 
     @Mock
     private FriendshipRepository friendshipRepository;
+
+    // Added the missing mocks here:
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private NotificationRepository notificationRepository;
 
     @InjectMocks
     private FriendService friendService;
@@ -118,6 +127,10 @@ public class FriendServiceTest {
 
     @Test
     void sendFriendRequest_Success() {
+        // Also stub the requester since it gets looked up in notifyFriendRequest
+        User requesterUser = User.builder().id(currentUserId).username("requester").build();
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(requesterUser));
+
         when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
         when(friendshipRepository.findRelationBetween(currentUserId, targetUserId)).thenReturn(Optional.empty());
 
@@ -136,10 +149,16 @@ public class FriendServiceTest {
         assertEquals(savedFriendship.getId(), response.getId());
         assertEquals("PENDING", response.getStatus());
         assertFalse(response.isIncoming());
+
+        // Optionally verify notification was sent
+        verify(notificationService).dispatchNotification(eq(targetUserId), eq(NotificationType.FRIEND_REQUEST), anyString(), anyString(), eq(false), eq(true));
     }
 
     @Test
     void sendFriendRequestByUsername_Success() {
+        User requesterUser = User.builder().id(currentUserId).username("requester").build();
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(requesterUser));
+
         when(userRepository.findByUsername("target_user")).thenReturn(Optional.of(targetUser));
         when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
         when(friendshipRepository.findRelationBetween(currentUserId, targetUserId)).thenReturn(Optional.empty());
@@ -228,10 +247,14 @@ public class FriendServiceTest {
 
         when(friendshipRepository.findById(requestId)).thenReturn(Optional.of(request));
 
+        User acceptorUser = User.builder().id(currentUserId).username("acceptor").build();
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(acceptorUser));
+
         friendService.acceptRequest(currentUserId, requestId);
 
         assertEquals(FriendshipStatus.ACCEPTED, request.getStatus());
         verify(friendshipRepository).save(request);
+        verify(notificationService).dispatchNotification(eq(targetUserId), eq(NotificationType.FRIEND_REQUEST), anyString(), anyString(), eq(false), eq(true));
     }
 
     @Test
@@ -330,6 +353,12 @@ public class FriendServiceTest {
         friendService.unblockUser(currentUserId, targetUserId);
 
         verify(friendshipRepository).delete(relation);
+        // Verified the new notification cleanup logic gets called correctly
+        verify(notificationRepository).deleteByUserIdAndTypeAndReferenceId(
+                eq(targetUserId),
+                eq(NotificationType.FRIEND_REQUEST),
+                eq(currentUserId.toString())
+        );
     }
 
     @Test

@@ -19,6 +19,7 @@ public class OtpActivity extends BaseAuthActivity {
 
     public static final String EXTRA_PHONE_NUMBER = "extra_phone_number";
     public static final String EXTRA_EMAIL = "extra_email";
+    public static final String EXTRA_AUTO_SEND_OTP = "extra_auto_send_otp";
 
     private ActivityOtpBinding binding;
     private AuthViewModel authViewModel;
@@ -27,6 +28,7 @@ public class OtpActivity extends BaseAuthActivity {
     private CountDownTimer countDownTimer;
     private boolean canResend = false;
     private EditText[] otpFields;
+    private boolean shouldAutoSendOtp = false;
 
     @Override
     protected View getRootView() { return binding.getRoot(); }
@@ -43,6 +45,7 @@ public class OtpActivity extends BaseAuthActivity {
 
         phoneNumber = getIntent().getStringExtra(EXTRA_PHONE_NUMBER);
         email = getIntent().getStringExtra(EXTRA_EMAIL);
+        shouldAutoSendOtp = getIntent().getBooleanExtra(EXTRA_AUTO_SEND_OTP, false);
 
         authViewModel = new ViewModelProvider(this,
                 new AuthViewModelFactory(new AuthRepository(this)))
@@ -63,6 +66,17 @@ public class OtpActivity extends BaseAuthActivity {
         startCountDown();
         setupClickListeners();
         observeViewModel();
+        
+        // Auto-send OTP if coming from login with unverified email
+        if (shouldAutoSendOtp) {
+            if (email != null) {
+                android.util.Log.d("OtpActivity", "Auto-sending OTP to email: " + email);
+                authViewModel.sendEmailOtp(email);
+            } else if (phoneNumber != null) {
+                android.util.Log.d("OtpActivity", "Auto-sending OTP to phone: " + phoneNumber);
+                authViewModel.sendPhoneOtp(phoneNumber);
+            }
+        }
     }
 
     private void setupOtpInputs() {
@@ -142,6 +156,7 @@ public class OtpActivity extends BaseAuthActivity {
         binding.tvResend.setOnClickListener(v -> {
             if (canResend) {
                 if (email != null) {
+                    authViewModel.sendEmailOtp(email);
                 } else if (phoneNumber != null) {
                     authViewModel.resendPhoneOtp(phoneNumber);
                 }
@@ -150,6 +165,7 @@ public class OtpActivity extends BaseAuthActivity {
     }
 
     private void observeViewModel() {
+        // Observe phone OTP send state
         authViewModel.otpSendState.observe(this, result -> {
             if (result == null) return;
             if (result.isLoading()) {
@@ -161,6 +177,22 @@ public class OtpActivity extends BaseAuthActivity {
             } else {
                 binding.tvResend.setEnabled(true);
                 authViewModel.resetOtpSendState();
+                showError(result.getMessage());
+            }
+        });
+
+        // Observe email OTP send state
+        authViewModel.emailOtpSendState.observe(this, result -> {
+            if (result == null) return;
+            if (result.isLoading()) {
+                binding.tvResend.setEnabled(false);
+            } else if (result.isSuccess()) {
+                authViewModel.resetEmailOtpSendState();
+                clearOtpFields();
+                startCountDown();
+            } else {
+                binding.tvResend.setEnabled(true);
+                authViewModel.resetEmailOtpSendState();
                 showError(result.getMessage());
             }
         });

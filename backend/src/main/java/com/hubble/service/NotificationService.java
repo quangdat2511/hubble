@@ -39,18 +39,11 @@ public class NotificationService {
         log.info("Dispatching {} notification to user {} | Content: {}", type, userId, content);
 
         if (type == NotificationType.FRIEND_REQUEST && referenceId != null) {
-            Optional<Notification> existing = notificationRepository.findRecentNotification(userId, type, referenceId);
-            if (existing.isPresent()) {
-                Notification notif = existing.get();
-                // If a similar notification was created within last 60 seconds, skip
-                long secondsAgo = java.time.temporal.ChronoUnit.SECONDS.between(
-                    notif.getCreatedAt(), java.time.LocalDateTime.now());
-                if (secondsAgo < 60) {
-                    log.info("Skipping duplicate {} notification for user {} (created {} seconds ago)", 
-                        type, userId, secondsAgo);
-                    return;
-                }
-            }
+            // For FRIEND_REQUEST notifications, delete any existing notification with the same user/type/reference
+            // This prevents unique constraint violations when a user unblocks and sends a new request
+            // or when resending requests after a previous attempt
+            notificationRepository.deleteByUserIdAndTypeAndReferenceId(userId, type, referenceId);
+            log.info("Cleaned up old {} notifications for user {} (reference: {})", type, userId, referenceId);
         }
         
         Notification notification = Notification.builder()

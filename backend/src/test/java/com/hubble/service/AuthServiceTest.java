@@ -227,7 +227,7 @@ public class AuthServiceTest {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
         AppException exception = assertThrows(AppException.class, () -> authService.login(request));
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        assertEquals(ErrorCode.EMAIL_NOT_VERIFIED, exception.getErrorCode());
     }
 
     @Test

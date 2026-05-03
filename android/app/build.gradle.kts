@@ -131,8 +131,16 @@ dependencies {
 
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
-    // WebRTC for voice/video calls
-    implementation("io.getstream:stream-webrtc-android:1.1.1")
+    // Agora Voice SDK (replaces WebRTC)
+    implementation("io.agora.rtc:voice-sdk:4.1.0")
+
+    val camerax_version = "1.3.3"
+
+    implementation("androidx.camera:camera-core:$camerax_version")
+    implementation("androidx.camera:camera-camera2:$camerax_version")
+    implementation("androidx.camera:camera-lifecycle:$camerax_version")
+    implementation("androidx.camera:camera-video:$camerax_version")
+    implementation("androidx.camera:camera-view:$camerax_version")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

@@ -11,6 +11,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SendEmailOtpRequest;
 import com.example.hubble.data.model.auth.SessionDto;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserCreationRequest;
@@ -21,6 +22,7 @@ import com.example.hubble.data.model.dm.FriendRequestResponse;
 import com.example.hubble.data.model.dm.FriendUserDto;
 import com.example.hubble.data.model.dm.MarkChannelReadRequest;
 import com.example.hubble.data.model.dm.MessageDto;
+import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
@@ -74,6 +76,9 @@ public interface ApiService {
 
     @POST("api/auth/email/verify")
     Call<ApiResponse<TokenResponse>> verifyEmailOtp(@Body EmailVerifyOtpRequest request);
+
+    @POST("api/auth/email/send-otp")
+    Call<ApiResponse<String>> sendEmailOtp(@Body SendEmailOtpRequest request);
 
     @POST("api/auth/login/google")
     Call<ApiResponse<TokenResponse>> loginWithGoogle(@Body GoogleLoginRequest request);
@@ -237,6 +242,15 @@ public interface ApiService {
     Call<ApiResponse<java.util.List<MessageDto>>> getMessages(
             @Header("Authorization") String token,
             @Path("channelId") String channelId,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/messages/{channelId}/shared-content")
+    Call<ApiResponse<SharedContentPageResponse>> getSharedContent(
+            @Header("Authorization") String token,
+            @Path("channelId") String channelId,
+            @Query("type") String type,
             @Query("page") int page,
             @Query("size") int size
     );

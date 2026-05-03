@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
+    <string name="camera_not_supported">Camera is not supported in voice-only channels</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -297,6 +298,11 @@
     <string name="status_days_ago">%d days ago</string>
     <string name="me_outgoing_requests">Sent requests</string>
     <string name="me_blocked_users">Blocked users</string>
+    <string name="friend_action_block">Block</string>
+    <string name="friend_action_unblock">Unblock</string>
+    <string name="block_user_confirm_title">Block user?</string>
+    <string name="block_user_confirm_message">Are you sure you want to block %1$s?</string>
+    <string name="blocked_user_blocked">User blocked successfully!</string>
     <string name="settings_sessions">Manage devices and sessions</string>
     <string name="dm_username_format">%1$s</string>
     <string name="dm_profile_intro_desc">This is the beginning of your conversation with %1$s.</string>
@@ -356,6 +362,49 @@
     <string name="editing_message_hint">Edit message</string>
     <string name="cd_cancel_edit">Cancel editing message</string>
     <string name="dm_media">Media</string>
+    <string name="dm_gallery_tab_media">Media</string>
+    <string name="dm_gallery_tab_links">Links</string>
+    <string name="dm_gallery_tab_files">Files</string>
+    <string name="dm_gallery_summary">Everything you have shared with %1$s lives here.</string>
+    <string name="dm_gallery_username_format">@%1$s</string>
+    <string name="dm_gallery_toolbar_subtitle">%1$s overview</string>
+    <string name="dm_gallery_retry">Try again</string>
+    <string name="dm_gallery_download">Download</string>
+    <string name="dm_gallery_download_in_progress">Saving to Downloads</string>
+    <string name="dm_gallery_download_started">%1$s is downloading</string>
+    <string name="dm_gallery_download_success">%1$s saved to Downloads</string>
+    <string name="dm_gallery_download_failed">Could not start the download</string>
+    <string name="dm_gallery_download_failed_with_reason">Download failed: %1$s</string>
+    <string name="dm_gallery_download_duplicate">This item is already downloading</string>
+    <string name="dm_gallery_download_unsupported">This item can\'t be downloaded here</string>
+    <string name="dm_gallery_open_failed">Unable to open this item</string>
+    <string name="dm_gallery_error_generic">Could not load this conversation overview.</string>
+    <string name="dm_gallery_empty_media_title">No shared media yet</string>
+    <string name="dm_gallery_empty_media_subtitle">Images and videos from this DM will appear here.</string>
+    <string name="dm_gallery_empty_links_title">No shared links yet</string>
+    <string name="dm_gallery_empty_links_subtitle">Links from your conversation will show up here once they are sent.</string>
+    <string name="dm_gallery_empty_files_title">No shared files yet</string>
+    <string name="dm_gallery_empty_files_subtitle">Documents and other attachments from this DM will appear here.</string>
+    <string name="dm_gallery_empty_filtered_title">No shared items match this filter</string>
+    <string name="dm_gallery_empty_filtered_subtitle">Try another content type or keep scrolling for more shared items.</string>
+    <string name="dm_gallery_filter_all">All</string>
+    <string name="dm_gallery_filter_images">Images</string>
+    <string name="dm_gallery_filter_videos">Videos</string>
+    <string name="dm_gallery_filter_documents">Documents</string>
+    <string name="dm_gallery_filter_audio">Audio</string>
+    <string name="dm_gallery_filter_archives">Archives</string>
+    <string name="dm_gallery_filter_other">Other</string>
+    <string name="dm_gallery_link_item_hint">Tap to open the original link.</string>
+    <string name="dm_gallery_fallback_shared_item">Shared item</string>
+    <string name="dm_gallery_fallback_attachment">Attachment</string>
+    <string name="dm_gallery_fallback_shared_media">Shared media</string>
+    <string name="dm_gallery_fallback_shared_link">Shared link</string>
+    <string name="channel_gallery_summary">Shared media and files from %1$s will appear here.</string>
+    <string name="channel_gallery_server_fallback">Server channel</string>
+    <string name="channel_gallery_error_generic">Could not load shared content for this channel.</string>
+    <string name="channel_gallery_empty_media_subtitle">Images and videos shared in this channel will appear here.</string>
+    <string name="channel_gallery_empty_files_subtitle">Documents and attachments shared in this channel will appear here.</string>
+    <string name="channel_gallery_empty_links_subtitle">Links shared in this channel will appear here.</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="add_friend_title">Add friend</string>
@@ -365,11 +414,6 @@
     <string name="invite_decline">Deny</string>
     <string name="session_management_title">Your devices</string>
     <string name="friend_action_add">Add</string>
-    <string name="friend_action_block">Block</string>
-    <string name="friend_action_unblock">Unblock</string>
-    <string name="blocked_user_blocked">User blocked successfully!</string>
-    <string name="block_user_confirm_title">Block user</string>
-    <string name="block_user_confirm_message">Block %1$s? They will no longer be able to send you friend requests or messages.</string>
     <string name="attachment_file">Attachment</string>
     <string name="dm_official">Official</string>
     <string name="profile_updated">Profile updated</string>
@@ -483,6 +527,8 @@
     <string name="me_qr_status_dnd">Do Not Disturb</string>
     <string name="me_qr_status_offline">Offline</string>
     <string name="me_qr_status_unknown">Unknown</string>
+    <string name="menu_attach_file">Choose File / Gallery</string>
+    <string name="menu_attach_camera">Camera / Video</string>
 
     <string name="search_hint">Search…</string>
     <string name="search_no_results">No results found</string>
@@ -583,6 +629,7 @@
     <string name="role_detail_display_separate">Display separately</string>
     <string name="role_detail_display_separate_desc">Display role members separately from online members</string>
     <string name="role_detail_mentionable">Allow anyone to @mention this role</string>
+    <string name="mention_everyone_label">Notify everyone</string>
     <string name="role_detail_permissions">Permissions</string>
     <string name="role_detail_links">Links</string>
     <string name="role_detail_members">Members</string>

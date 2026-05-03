@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Outer glow opacity raised to 80 (was 50) for visibility on both devices. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Outer glow ring -->
     <item>
         <shape android:shape="oval">
             <stroke
-                android:width="2dp"
-                android:color="#5000C853" />
+                android:width="3dp"
+                android:color="#8000C853" />
             <solid android:color="@android:color/transparent" />
         </shape>
     </item>
-    <!-- Inner solid ring -->
+    <!-- Inner solid ring — increased from 3dp to 4dp stroke -->
     <item
-        android:bottom="1dp"
-        android:left="1dp"
-        android:right="1dp"
-        android:top="1dp">
+        android:bottom="3dp"
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp">
         <shape android:shape="oval">
             <stroke
-                android:width="3dp"
+                android:width="4dp"
                 android:color="@color/color_success" />
             <solid android:color="@android:color/transparent" />
         </shape>

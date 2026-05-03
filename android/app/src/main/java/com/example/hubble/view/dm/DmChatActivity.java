@@ -25,6 +25,7 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -66,7 +67,7 @@ import com.example.hubble.databinding.DialogDeleteMessageBinding;
 import com.example.hubble.utils.AudioProximityManager;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
-import com.example.hubble.view.server.ChannelProfileBottomSheet;
+import com.example.hubble.view.server.ChannelDetailActivity;
 import com.example.hubble.viewmodel.MediaViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -145,10 +146,10 @@ public class DmChatActivity extends AppCompatActivity {
     private String currentUserId;
     private String currentUserName;
     private String currentUserAvatarUrl;
+    private String peerUserId;
     private String peerDisplayName;
     private String peerUsername;
     private String peerAvatarUrl;
-    private String peerUserId;
     private String peerCurrentStatus;
     private String peerCurrentLastSeenAt;
     private final CompositeDisposable statusDisposables = new CompositeDisposable();
@@ -206,6 +207,20 @@ public class DmChatActivity extends AppCompatActivity {
     private String contextWindowOldestMessageId = null;
     private boolean isLoadingContextOlder = false;
     private boolean contextWindowReachedTop = false;
+
+    // Mention autocomplete state
+    private static final long MENTION_DEBOUNCE_MS = 300L;
+    private final MentionState mentionState = new MentionState();
+    private com.example.hubble.adapter.dm.MentionDropdownAdapter mentionDropdownAdapter;
+    private final Handler mentionDebounceHandler = new Handler(Looper.getMainLooper());
+    private Runnable mentionSearchRunnable;
+
+    private static final class MentionState {
+        boolean isActive = false;
+        int startIndex = -1;
+        String query = "";
+        void reset() { isActive = false; startIndex = -1; query = ""; }
+    }
 
     public static Intent createIntent(Context context, String channelId, String username) {
         return createIntent(context, channelId, username, null);
@@ -285,6 +300,7 @@ public class DmChatActivity extends AppCompatActivity {
         channelParentId = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_ID);
         channelParentName = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_NAME);
         channelIsPrivate = getIntent().getBooleanExtra(EXTRA_CHANNEL_IS_PRIVATE, false);
+
 
         peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
         if (TextUtils.isEmpty(peerDisplayName)) {
@@ -391,36 +407,13 @@ public class DmChatActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.headerInfo.setOnClickListener(v -> openConversationDetails());
+        binding.ivHeaderChevron.setOnClickListener(v -> openConversationDetails());
         refreshPeerUi();
     }
 
     private void setupChannelHeaderInteractions() {
-        binding.ivHeaderChevron.setOnClickListener(v -> {
-            if (isServerTextChannel()) {
-                openChannelProfileSheet();
-            }
-        });
         binding.btnHeaderSearch.setOnClickListener(v -> openSearch());
-    }
-
-    private void openChannelProfileSheet() {
-        if (!isServerTextChannel() || TextUtils.isEmpty(serverIdForForward) || TextUtils.isEmpty(channelId)) {
-            return;
-        }
-        String rawName = peerDisplayName != null ? peerDisplayName.replaceFirst("^#\\s*", "").trim() : "";
-        ChannelProfileBottomSheet.newInstance(
-                serverIdForForward,
-                firstNonBlank(serverDisplayName, ""),
-                toAbsoluteAvatarUrl(serverIconUrlForSheet),
-                firstNonBlank(serverOwnerId, ""),
-                channelId,
-                rawName,
-                "TEXT",
-                channelTopic,
-                channelParentId,
-                channelParentName,
-                channelIsPrivate
-        ).show(getSupportFragmentManager(), "ChannelProfile");
     }
 
     private void setupProfileIntro() {
@@ -506,6 +499,214 @@ public class DmChatActivity extends AppCompatActivity {
         return t.isEmpty() ? getString(R.string.channel_untitled) : t;
     }
 
+    // --- Mention autocomplete methods ---
+
+    private void handleMentionTextChange(Editable s) {
+        if (s == null) { hideMentionDropdown(); return; }
+
+        // Task 8.1: remove any MentionSpan whose covered text no longer starts with @
+        MentionSpan[] existingSpans = s.getSpans(0, s.length(), MentionSpan.class);
+        for (MentionSpan span : existingSpans) {
+            int spanStart = s.getSpanStart(span);
+            int spanEnd = s.getSpanEnd(span);
+            if (spanStart < 0 || spanEnd > s.length() || spanEnd <= spanStart
+                    || s.charAt(spanStart) != '@') {
+                // Remove the marker span and its associated visual spans
+                removeMentionVisualSpans(s, spanStart, spanEnd);
+                s.removeSpan(span);
+            }
+        }
+
+        String text = s.toString();
+
+        // Check if @ was deleted while mention was active
+        if (mentionState.isActive) {
+            if (mentionState.startIndex >= text.length()
+                    || text.charAt(mentionState.startIndex) != '@') {
+                // @ was removed
+                mentionState.reset();
+                hideMentionDropdown();
+                return;
+            }
+            // Extract current query
+            String afterAt = text.substring(mentionState.startIndex + 1);
+            int spaceIdx = afterAt.indexOf(' ');
+            if (spaceIdx >= 0) {
+                // Space typed → dismiss
+                mentionState.reset();
+                hideMentionDropdown();
+                return;
+            }
+            mentionState.query = afterAt;
+            scheduleMentionSearch(mentionState.query);
+            return;
+        }
+
+        // Detect fresh @ trigger: cursor position
+        int cursorPos = binding.etComposer.getSelectionStart();
+        if (cursorPos <= 0) return;
+        char typed = text.charAt(cursorPos - 1);
+        if (typed != '@') return;
+
+        // Must be at start of text or preceded by whitespace
+        if (cursorPos >= 2 && !Character.isWhitespace(text.charAt(cursorPos - 2))) return;
+
+        // Activate
+        mentionState.isActive = true;
+        mentionState.startIndex = cursorPos - 1;
+        mentionState.query = "";
+        showDefaultMentionList();
+    }
+
+    private void scheduleMentionSearch(String query) {
+        if (mentionSearchRunnable != null) {
+            mentionDebounceHandler.removeCallbacks(mentionSearchRunnable);
+        }
+        if (query.isEmpty()) {
+            showDefaultMentionList();
+            return;
+        }
+        mentionSearchRunnable = () -> {
+            if (!TextUtils.isEmpty(channelId)) {
+                dmRepository.searchChannelMembers(channelId, query, result -> {
+                    if (result.getData() != null) {
+                        runOnUiThread(() -> {
+                            if (!mentionState.isActive) return;
+                            List<com.example.hubble.data.model.search.SearchMemberDto> filtered =
+                                    new ArrayList<>();
+                            for (com.example.hubble.data.model.search.SearchMemberDto m : result.getData()) {
+                                if (!m.getId().equals(currentUserId)) filtered.add(m);
+                            }
+                            mentionDropdownAdapter.setMembers(filtered);
+                            showMentionDropdown();
+                        });
+                    }
+                });
+            }
+        };
+        mentionDebounceHandler.postDelayed(mentionSearchRunnable, MENTION_DEBOUNCE_MS);
+    }
+
+    private void showDefaultMentionList() {
+        // Extract distinct senders from adapter's current items via message IDs
+        List<com.example.hubble.data.model.search.SearchMemberDto> defaults = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        // Walk adapter item count — use adapter.getItemCount() and getItemAtPosition
+        for (int i = adapter.getItemCount() - 1; i >= 0; i--) {
+            DmMessageItem item = adapter.getItemAtAdapterPosition(i);
+            if (item == null || item.isDateSeparator() || item.getAuthorId() == null) continue;
+            if (item.getAuthorId().equals(currentUserId)) continue;
+            if (seen.contains(item.getAuthorId())) continue;
+            seen.add(item.getAuthorId());
+            com.example.hubble.data.model.search.SearchMemberDto dto =
+                    new com.example.hubble.data.model.search.SearchMemberDto();
+            dto.setId(item.getAuthorId());
+            dto.setUsername(item.getAuthorUsername());
+            dto.setDisplayName(item.getSenderName());
+            defaults.add(dto);
+        }
+        mentionDropdownAdapter.setMembers(defaults);
+        showMentionDropdown();
+    }
+
+    private void showMentionDropdown() {
+        binding.rvMentionDropdown.setVisibility(View.VISIBLE);
+    }
+
+    private void hideMentionDropdown() {
+        if (mentionSearchRunnable != null) {
+            mentionDebounceHandler.removeCallbacks(mentionSearchRunnable);
+            mentionSearchRunnable = null;
+        }
+        binding.rvMentionDropdown.setVisibility(View.GONE);
+    }
+
+    /**
+     * Replaces the @query text starting at {@code mentionState.startIndex} with
+     * {@code @username} and marks it with a {@link MentionSpan}.
+     */
+    private void insertMention(String username, @Nullable String userId) {
+        Editable editable = binding.etComposer.getText();
+        if (editable == null || !mentionState.isActive) return;
+
+        int start = mentionState.startIndex;
+        int end = start + 1 + mentionState.query.length(); // @query
+        if (end > editable.length()) end = editable.length();
+
+        String replacement = "@" + username + " ";
+        editable.replace(start, end, replacement);
+
+        // Apply MentionSpan + visual highlight over @username (not the trailing space)
+        int spanEnd = start + 1 + username.length(); // excludes the trailing space
+        MentionSpan span = new MentionSpan(userId);
+        editable.setSpan(span, start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        int textColor = ContextCompat.getColor(this, R.color.mention_text_color);
+        int bgColor = ContextCompat.getColor(this, R.color.mention_bg_color);
+        editable.setSpan(new android.text.style.ForegroundColorSpan(textColor),
+                start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        editable.setSpan(new android.text.style.BackgroundColorSpan(bgColor),
+                start, spanEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        mentionState.reset();
+        hideMentionDropdown();
+    }
+
+    /** Removes ForegroundColorSpan and BackgroundColorSpan applied by insertMention() at the given range. */
+    private void removeMentionVisualSpans(android.text.Editable s, int start, int end) {
+        if (start < 0 || end < 0 || end > s.length()) return;
+        android.text.style.ForegroundColorSpan[] fgSpans =
+                s.getSpans(start, end, android.text.style.ForegroundColorSpan.class);
+        for (android.text.style.ForegroundColorSpan fg : fgSpans) s.removeSpan(fg);
+        android.text.style.BackgroundColorSpan[] bgSpans =
+                s.getSpans(start, end, android.text.style.BackgroundColorSpan.class);
+        for (android.text.style.BackgroundColorSpan bg : bgSpans) s.removeSpan(bg);
+    }
+
+    /**
+     * Lightweight marker span that carries the mentioned user's ID.
+     * Does not apply any visual styling itself — rendering is handled by {@link com.example.hubble.view.util.MentionRenderer}.
+     */
+    public static final class MentionSpan {
+        @Nullable public final String userId;
+        public MentionSpan(@Nullable String userId) { this.userId = userId; }
+    }
+
+    /** Scans all {@link MentionSpan} markers in the composer and collects non-null user IDs. */
+    private List<String> collectMentionedUserIds() {
+        Editable editable = binding.etComposer.getText();
+        if (editable == null) return Collections.emptyList();
+        MentionSpan[] spans = editable.getSpans(0, editable.length(), MentionSpan.class);
+        List<String> ids = new ArrayList<>();
+        for (MentionSpan span : spans) {
+            if (span.userId != null) ids.add(span.userId);
+        }
+        return ids;
+    }
+
+    private List<String> resolveMentionedUsernames(MessageDto dto) {
+        return resolveMentionedUsernames(dto, null);
+    }
+
+    private List<String> resolveMentionedUsernames(MessageDto dto, @Nullable Map<String, String> extraLookup) {
+        // Prefer server-resolved usernames when available (avoids client-side ID→username lookup)
+        List<String> serverUsernames = dto.getMentionedUsernames();
+        if (serverUsernames != null && !serverUsernames.isEmpty()) {
+            return serverUsernames;
+        }
+        // Fallback: resolve from IDs (for older messages or offline cache)
+        List<String> ids = dto.getMentionedUserIds();
+        if (ids == null || ids.isEmpty()) return java.util.Collections.emptyList();
+        List<String> usernames = new ArrayList<>();
+        for (String id : ids) {
+            // 1. check the batch-local lookup first
+            String username = extraLookup != null ? extraLookup.get(id) : null;
+            // 2. fall back to adapter cache
+            if (username == null && adapter != null) username = adapter.getUsernameByAuthorId(id);
+            if (username != null) usernames.add(username);
+        }
+        return usernames;
+    }
+
     private String resolveSenderLabelForMessage(MessageDto dto, boolean mine) {
         if (mine) {
             return currentUserName;
@@ -520,6 +721,7 @@ public class DmChatActivity extends AppCompatActivity {
     }
 
     private void applyPeerProfile(ChannelDto channel) {
+        peerUserId = firstNonBlank(channel.getPeerUserId(), peerUserId);
         peerDisplayName = firstNonBlank(channel.getPeerDisplayName(), channel.getPeerUsername(), peerDisplayName, getString(R.string.dm_default_user));
         peerUsername = firstNonBlank(channel.getPeerUsername(), peerUsername, peerDisplayName);
         peerAvatarUrl = toAbsoluteAvatarUrl(firstNonBlank(channel.getPeerAvatarUrl(), peerAvatarUrl));
@@ -528,6 +730,32 @@ public class DmChatActivity extends AppCompatActivity {
         if (channel.getPeerLastSeenAt() != null) peerCurrentLastSeenAt = channel.getPeerLastSeenAt();
         refreshPeerUi();
         updateHeaderStatus();
+    }
+
+    private void openConversationDetails() {
+        if (TextUtils.isEmpty(channelId)) {
+            Snackbar.make(binding.getRoot(), R.string.dm_gallery_error_generic, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        if (isServerTextChannel()) {
+            startActivity(ChannelDetailActivity.createIntent(
+                    this,
+                    serverIdForForward,
+                    serverDisplayName,
+                    serverIconUrlForSheet,
+                    channelId,
+                    peerDisplayName,
+                    channelTopic
+            ));
+            return;
+        }
+        startActivity(DmDetailsActivity.createIntent(
+                this,
+                channelId,
+                peerDisplayName,
+                peerUsername,
+                peerAvatarUrl
+        ));
     }
 
     private void refreshPeerUi() {
@@ -648,6 +876,7 @@ public class DmChatActivity extends AppCompatActivity {
         adapter = new DmMessageAdapter(this);
         adapter.setCurrentUserId(currentUserId);
         adapter.setShowMineMessageStatus(!isServerTextChannel());
+        adapter.setHighlightEveryone(isServerTextChannel());
         adapter.setParticipantAvatarUrls(currentUserAvatarUrl, peerAvatarUrl);
         adapter.setIntroItem(buildListIntroItem());
         adapter.setOnMessageLongClickListener((item, anchorView) -> showMessageActionsSheet(item));
@@ -694,6 +923,23 @@ public class DmChatActivity extends AppCompatActivity {
         binding.btnCancelReply.setOnClickListener(v -> clearReply());
         binding.btnCancelEdit.setOnClickListener(v -> clearEditMode(true));
 
+        // Set up mention dropdown
+        mentionDropdownAdapter = new com.example.hubble.adapter.dm.MentionDropdownAdapter();
+        mentionDropdownAdapter.setShowEveryone(isServerTextChannel());
+        binding.rvMentionDropdown.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvMentionDropdown.setAdapter(mentionDropdownAdapter);
+        mentionDropdownAdapter.setListener(new com.example.hubble.adapter.dm.MentionDropdownAdapter.OnMentionSelectedListener() {
+            @Override
+            public void onMemberSelected(com.example.hubble.data.model.search.SearchMemberDto member) {
+                insertMention(member.getUsername(), member.getId());
+            }
+
+            @Override
+            public void onEveryoneSelected() {
+                insertMention("everyone", null);
+            }
+        });
+
         binding.etComposer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (event.isShiftPressed()) return false;
@@ -725,6 +971,7 @@ public class DmChatActivity extends AppCompatActivity {
                         sendTypingEvent();
                     }
                 }
+                handleMentionTextChange(s);
             }
         });
 
@@ -733,23 +980,38 @@ public class DmChatActivity extends AppCompatActivity {
             updateComposerState();
         });
 
-        binding.btnAttach.setOnClickListener(v -> filePickerLauncher.launch("*/*"));
+
+        binding.btnAttach.setOnClickListener(v -> {
+            androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(DmChatActivity.this, v);
+
+            popup.getMenuInflater().inflate(R.menu.menu_attachment, popup.getMenu());
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                popup.setForceShowIcon(true);
+            }
+
+            popup.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+
+                if (id == R.id.action_pick_file) {
+                    filePickerLauncher.launch("*/*");
+                    return true;
+
+                } else if (id == R.id.action_open_camera) {
+                    Intent intent = new Intent(DmChatActivity.this, InAppCameraActivity.class);
+                    cameraLauncher.launch(intent);
+                    return true;
+                }
+                return false;
+            });
+
+            popup.show();
+        });
+        ;
+
         binding.btnCall.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
         binding.btnVideo.setOnClickListener(v -> Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-//        binding.btnVoice.setOnClickListener(v -> {
-//            if (!isRecording) {
-//                startRecording();
-//                binding.btnVoice.setIconResource(android.R.drawable.ic_media_pause);
-//                binding.btnSend.setEnabled(false);
-//                binding.btnAttach.setEnabled(false);
-//            } else {
-//                stopRecording();
-//                binding.btnVoice.setIconResource(android.R.drawable.ic_btn_speak_now);
-//                binding.btnSend.setEnabled(true);
-//                binding.btnAttach.setEnabled(true);
-//            }
-//        });
         // Khi bấm nút Mic, mở BottomSheet
         binding.btnVoice.setOnClickListener(v -> showVoiceRecordSheet());
     }
@@ -1103,6 +1365,67 @@ public class DmChatActivity extends AppCompatActivity {
         }
     }
 
+    // Nằm ở đầu class DmChatActivity
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                // Khi InAppCameraActivity đóng lại (gọi finish()), code sẽ nhảy vào đây
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    // Lấy đường dẫn file và loại file (Ảnh hay Video)
+                    String filePath = result.getData().getStringExtra("MEDIA_PATH");
+                    String mediaType = result.getData().getStringExtra("MEDIA_TYPE");
+
+                    if (filePath != null) {
+                        // Đẩy xuống một hàm riêng để xử lý cho Clean Code
+                        handleCapturedMedia(filePath, mediaType);
+                    }
+                }
+            }
+    );
+
+    // Hàm xử lý file sau khi CameraX chụp xong
+    private void handleCapturedMedia(String filePath, String mediaType) {
+        File mediaFile = new File(filePath);
+        if (!mediaFile.exists()) return;
+
+        // 1. Chuyển đổi đường dẫn String thành đối tượng Uri
+        Uri fileUri = Uri.fromFile(mediaFile);
+
+        // Khóa nút đính kèm để tránh người dùng bấm liên tục gây lỗi
+        binding.btnAttach.setEnabled(false);
+
+        // 2. Tái sử dụng nguyên xi logic Upload MVVM của bạn
+        mediaViewModel.uploadMedia(fileUri).observe(this, result -> {
+            switch (result.status) {
+                case LOADING:
+                    // Chỗ này bạn có thể cho hiện một cái ProgressBar nhỏ xoay xoay
+                    break;
+
+                case SUCCESS:
+                    // Thêm ID và Type vào danh sách chờ gửi (giống code cũ)
+                    pendingAttachmentIds.add(result.data.getAttachmentId());
+                    pendingAttachmentTypes.add(result.data.getContentType());
+
+                    // Gọi hàm show preview có sẵn của bạn để hiện hình/video lên thanh đính kèm
+                    showAttachmentPreview(fileUri, result.data.getAttachmentId(), result.data.getContentType(), result.data.getFilename());
+
+                    // Cập nhật lại trạng thái giao diện
+                    binding.btnAttach.setEnabled(true);
+                    updateComposerState();
+                    break;
+
+                case ERROR:
+                    binding.btnAttach.setEnabled(true);
+                    com.google.android.material.snackbar.Snackbar.make(
+                            binding.getRoot(),
+                            "Lỗi tải lên: " + result.errorMessage,
+                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                    ).show();
+                    break;
+            }
+        });
+    }
+
     private void uploadVoiceAndSend(File file) {
         Uri fileUri = Uri.fromFile(file);
         // Optimistic UI for voice
@@ -1302,6 +1625,8 @@ public class DmChatActivity extends AppCompatActivity {
             return;
         }
 
+        // Collect mentions BEFORE clearing the composer (spans are lost after setText(""))
+        List<String> mentionedUserIds = collectMentionedUserIds();
         binding.etComposer.setText("");
         String replyId = replyingToItem != null ? replyingToItem.getId() : null;
 
@@ -1325,7 +1650,8 @@ public class DmChatActivity extends AppCompatActivity {
         List<String> attachmentIdsCopy = new ArrayList<>(pendingAttachmentIds);
         clearReply();
 
-        dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType, result -> {
+        dmRepository.sendMessage(channelId, replyId, trimmed, attachmentIdsCopy, messageType,
+                mentionedUserIds, result -> {
             if (result.getData() != null) {
                 String serverId = result.getData().getId();
                 if (serverId != null) pendingServerIds.add(serverId);
@@ -2208,6 +2534,9 @@ public class DmChatActivity extends AppCompatActivity {
         item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
         item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
         item.setReactions(dto.getReactions());
+        item.setAuthorId(dto.getAuthorId());
+        item.setAuthorUsername(dto.getAuthorUsername());
+        item.setMentionedUsernames(resolveMentionedUsernames(dto));
         if (!TextUtils.isEmpty(dto.getReplyToId())) {
             DmMessageItem replyItem = adapter.getItemById(dto.getReplyToId());
             if (replyItem != null) {
@@ -2221,8 +2550,13 @@ public class DmChatActivity extends AppCompatActivity {
 
     private List<DmMessageItem> mapMessages(List<MessageDto> rawMessages) {
         Map<String, MessageDto> byId = new HashMap<>();
+        // Pre-build authorId → username map so mention resolution works before adapter is populated
+        Map<String, String> authorIdToUsername = new HashMap<>();
         for (MessageDto dto : rawMessages) {
             if (!TextUtils.isEmpty(dto.getId())) byId.put(dto.getId(), dto);
+            if (!TextUtils.isEmpty(dto.getAuthorId()) && !TextUtils.isEmpty(dto.getAuthorUsername())) {
+                authorIdToUsername.put(dto.getAuthorId(), dto.getAuthorUsername());
+            }
         }
 
         List<DmMessageItem> mapped = new ArrayList<>();
@@ -2240,6 +2574,9 @@ public class DmChatActivity extends AppCompatActivity {
             item.setEdited(!TextUtils.isEmpty(dto.getEditedAt()));
             item.setDeleted(Boolean.TRUE.equals(dto.getIsDeleted()));
             item.setReactions(dto.getReactions());
+            item.setAuthorId(dto.getAuthorId());
+            item.setAuthorUsername(dto.getAuthorUsername());
+            item.setMentionedUsernames(resolveMentionedUsernames(dto, authorIdToUsername));
 
             if (!TextUtils.isEmpty(dto.getReplyToId())) {
                 MessageDto replyDto = byId.get(dto.getReplyToId());

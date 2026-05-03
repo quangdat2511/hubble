@@ -24,9 +24,9 @@
         android:id="@+id/headerInfo"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="52dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="52dp"
         android:paddingEnd="12dp"
         app:layout_constraintEnd_toStartOf="@+id/headerActions"
         app:layout_constraintStart_toStartOf="parent"
@@ -146,6 +146,8 @@
             app:icon="@drawable/ic_search"
             app:iconTint="?attr/colorOnSurfaceVariant"
             app:backgroundTint="?attr/colorSurfaceVariant" />
+
+
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCall"
@@ -492,7 +494,7 @@
         android:paddingEnd="@dimen/spacing_sm"
         android:scrollbars="none"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/composerBar"
+        app:layout_constraintBottom_toTopOf="@id/rvMentionDropdown"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -504,6 +506,19 @@
             android:orientation="horizontal" />
 
     </HorizontalScrollView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMentionDropdown"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp"
+        android:maxHeight="220dp"
+        android:overScrollMode="never"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/composerBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
         android:id="@+id/composerBar"
