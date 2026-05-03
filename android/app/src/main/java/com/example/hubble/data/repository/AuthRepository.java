@@ -15,6 +15,7 @@ import com.example.hubble.data.model.auth.PhoneVerifyOtpRequest;
 import com.example.hubble.data.model.auth.RefreshTokenRequest;
 import com.example.hubble.data.model.auth.RegisterRequest;
 import com.example.hubble.data.model.auth.ResetPasswordRequest;
+import com.example.hubble.data.model.auth.SendEmailOtpRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
 import com.example.hubble.utils.ThemeSyncManager;
@@ -53,15 +54,20 @@ public class AuthRepository {
             @Override
             public void onResponse(Call<ApiResponse<TokenResponse>> call,
                                    Response<ApiResponse<TokenResponse>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                android.util.Log.d("AuthRepository", "Login response - Code: " + (response != null ? response.code() : "null") + ", isSuccessful: " + (response != null && response.isSuccessful()));
+
+                if (response != null && response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
                     handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error(extractErrorMessage(response, "Login failed")));
+                    ErrorInfo errorInfo = extractErrorInfo(response);
+                    android.util.Log.d("AuthRepository", "Login error extracted - Code: " + errorInfo.getCode() + ", Message: " + errorInfo.getMessage());
+                    callback.onResult(AuthResult.error(errorInfo.getMessage(), errorInfo.getCode()));
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<TokenResponse>> call, Throwable t) {
+                android.util.Log.e("AuthRepository", "Login failed with exception: " + t.getMessage());
                 callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
             }
         });
@@ -238,6 +244,34 @@ public class AuthRepository {
         tokenManager.clear();
     }
 
+    public void sendEmailOtp(String email, RepositoryCallback<String> callback) {
+        callback.onResult(AuthResult.loading());
+        SendEmailOtpRequest request = new SendEmailOtpRequest(email);
+
+        android.util.Log.d("AuthRepository", "Sending email OTP to: " + email);
+        apiService.sendEmailOtp(request).enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call,
+                                   Response<ApiResponse<String>> response) {
+                android.util.Log.d("AuthRepository", "Send email OTP response - Code: " + (response != null ? response.code() : "null"));
+                if (response != null && response.isSuccessful() && response.body() != null) {
+                    android.util.Log.d("AuthRepository", "Email OTP sent successfully");
+                    callback.onResult(AuthResult.success("OTP sent successfully"));
+                } else {
+                    String errorMsg = extractErrorMessage(response, "Failed to send OTP");
+                    android.util.Log.e("AuthRepository", "Failed to send email OTP: " + errorMsg);
+                    callback.onResult(AuthResult.error(errorMsg));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                android.util.Log.e("AuthRepository", "Send email OTP failed with exception: " + t.getMessage());
+                callback.onResult(AuthResult.error("Connection error: " + t.getMessage()));
+            }
+        });
+    }
+
     private void handleAuthenticatedResponse(TokenResponse tokenResponse,
                                              RepositoryCallback<UserResponse> callback) {
         tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
@@ -255,7 +289,8 @@ public class AuthRepository {
             if (response.errorBody() != null) {
                 String raw = response.errorBody().string();
                 if (raw != null && !raw.trim().isEmpty()) {
-                    Type type = new TypeToken<ApiResponse<Object>>() {}.getType();
+                    Type type = new TypeToken<ApiResponse<Object>>() {
+                    }.getType();
                     ApiResponse<Object> apiError = gson.fromJson(raw, type);
                     if (apiError != null && apiError.getMessage() != null && !apiError.getMessage().trim().isEmpty()) {
                         return apiError.getMessage();
@@ -267,5 +302,79 @@ public class AuthRepository {
         }
 
         return fallback;
+    }
+
+    private <T> int extractErrorCode(Response<T> response) {
+        if (response == null) {
+            return -1;
+        }
+
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    Type type = new TypeToken<ApiResponse<Object>>() {
+                    }.getType();
+                    ApiResponse<Object> apiError = gson.fromJson(raw, type);
+                    if (apiError != null) {
+                        return apiError.getCode();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Ignore parse errors
+        }
+
+        return -1;
+    }
+
+    private <T> ErrorInfo extractErrorInfo(Response<T> response) {
+        if (response == null) {
+            return new ErrorInfo(-1, "Login failed");
+        }
+
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                android.util.Log.d("AuthRepository", "Error body: " + raw);
+
+                if (raw != null && !raw.trim().isEmpty()) {
+                    Type type = new TypeToken<ApiResponse<Object>>() {
+                    }.getType();
+                    ApiResponse<Object> apiError = gson.fromJson(raw, type);
+                    if (apiError != null) {
+                        String message = apiError.getMessage();
+                        int code = apiError.getCode();
+                        android.util.Log.d("AuthRepository", "Parsed error - Code: " + code + ", Message: " + message);
+                        return new ErrorInfo(code, message != null && !message.trim().isEmpty() ? message : "Login failed");
+                    }
+                }
+            } else {
+                android.util.Log.d("AuthRepository", "Error body is null");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("AuthRepository", "Error parsing error response: " + e.getMessage());
+        }
+
+        return new ErrorInfo(-1, "Login failed");
+    }
+
+    // Helper class to hold error code and message
+    private static class ErrorInfo {
+        private final int code;
+        private final String message;
+
+        ErrorInfo(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        int getCode() {
+            return code;
+        }
+
+        String getMessage() {
+            return message;
+        }
     }
 }

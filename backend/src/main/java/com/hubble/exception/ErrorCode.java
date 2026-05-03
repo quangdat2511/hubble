@@ -38,6 +38,7 @@ public enum ErrorCode {
     PASSWORDS_NOT_MATCH(1016, "Passwords do not match", HttpStatus.BAD_REQUEST),
     QR_TOKEN_INVALID(1018, "QR token is invalid or expired", HttpStatus.BAD_REQUEST),
     LOCALE_INVALID(1019, "Locale is invalid", HttpStatus.BAD_REQUEST),
+    EMAIL_NOT_VERIFIED(1020, "Email has not been verified. Please verify your email to continue.", HttpStatus.FORBIDDEN),
 
     // Friends
     FRIEND_REQUEST_EXISTED(2001, "Friend request already exists", HttpStatus.BAD_REQUEST),
