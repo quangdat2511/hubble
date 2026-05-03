@@ -1261,23 +1261,31 @@ public class DmChatActivity extends AppCompatActivity {
         ImageView ivFileIcon = previewView.findViewById(R.id.ivFileIcon);
         View btnRemove = previewView.findViewById(R.id.btnRemove);
 
-        if (contentType != null && (contentType.startsWith("image/") || contentType.startsWith("video/"))) {
+        // 1. Chuẩn hóa chuỗi (chống crash nếu null và chuyển về chữ thường)
+        String safeMime = contentType != null ? contentType.toLowerCase() : "";
+        String safeName = filename != null ? filename.toLowerCase() : "";
+
+        // 2. Bắt chết Ảnh và Video bằng cả MimeType LẪN Đuôi file
+        boolean isImage = safeMime.startsWith("image/") || safeName.endsWith(".jpg") || safeName.endsWith(".png") || safeName.endsWith(".jpeg");
+        boolean isVideo = safeMime.startsWith("video/") || safeName.endsWith(".mp4") || safeName.endsWith(".mov");
+
+        if (isImage || isVideo) {
+            // NẾU LÀ ẢNH HOẶC VIDEO -> Dùng Glide load thumbnail
             ivPreview.setVisibility(View.VISIBLE);
             ivFileIcon.setVisibility(View.GONE);
             Glide.with(this).load(uri).centerCrop().into(ivPreview);
+
         } else {
+            // CÁC LOẠI FILE KHÁC -> Hiện icon
             ivPreview.setVisibility(View.GONE);
             ivFileIcon.setVisibility(View.VISIBLE);
 
-            String lowerMime = contentType != null ? contentType.toLowerCase() : "";
-            String lowerName = filename != null ? filename.toLowerCase() : "";
-
-            if (lowerMime.contains("pdf") || lowerName.endsWith(".pdf")) ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
-            else if (lowerMime.contains("word") || lowerMime.contains("document") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) ivFileIcon.setImageResource(R.drawable.ic_file_docx);
-            else if (lowerMime.contains("excel") || lowerMime.contains("spreadsheet") || lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) ivFileIcon.setImageResource(R.drawable.ic_file_excel);
-            else if (lowerMime.contains("powerpoint") || lowerMime.contains("presentation") || lowerName.endsWith(".pptx") || lowerName.endsWith(".ppt")) ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
-            else if (lowerMime.contains("zip") || lowerMime.contains("rar") || lowerName.endsWith(".zip") || lowerName.endsWith(".rar")) ivFileIcon.setImageResource(R.drawable.ic_file_zip);
-            else if (lowerMime.startsWith("text/") || lowerName.endsWith(".txt")) ivFileIcon.setImageResource(R.drawable.ic_file_text);
+            if (safeMime.contains("pdf") || safeName.endsWith(".pdf")) ivFileIcon.setImageResource(R.drawable.ic_file_pdf);
+            else if (safeMime.contains("word") || safeMime.contains("document") || safeName.endsWith(".docx") || safeName.endsWith(".doc")) ivFileIcon.setImageResource(R.drawable.ic_file_docx);
+            else if (safeMime.contains("excel") || safeMime.contains("spreadsheet") || safeName.endsWith(".xlsx") || safeName.endsWith(".xls")) ivFileIcon.setImageResource(R.drawable.ic_file_excel);
+            else if (safeMime.contains("powerpoint") || safeMime.contains("presentation") || safeName.endsWith(".pptx") || safeName.endsWith(".ppt")) ivFileIcon.setImageResource(R.drawable.ic_file_powerpoint);
+            else if (safeMime.contains("zip") || safeMime.contains("rar") || safeName.endsWith(".zip") || safeName.endsWith(".rar")) ivFileIcon.setImageResource(R.drawable.ic_file_zip);
+            else if (safeMime.startsWith("text/") || safeName.endsWith(".txt")) ivFileIcon.setImageResource(R.drawable.ic_file_text);
             else ivFileIcon.setImageResource(R.drawable.ic_file_generic);
         }
 

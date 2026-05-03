@@ -46,9 +46,19 @@ public class MediaRepository {
             return result;
         }
 
-        String originalFileName = fileUri.getLastPathSegment();
-        if (originalFileName == null) {
-            originalFileName = file.getName();
+        String originalFileName = getFileNameFromUri(context, fileUri);
+
+        // Cứu cánh cuối cùng: Nếu xui xẻo vẫn không có tên file, ta tự tạo tên kèm đuôi cho nó
+        if (originalFileName == null || !originalFileName.contains(".")) {
+            String mimeTypeHelper = context.getContentResolver().getType(fileUri);
+            String extension = ".dat"; // Mặc định
+
+            if (mimeTypeHelper != null) {
+                if (mimeTypeHelper.startsWith("image/")) extension = ".jpg";
+                else if (mimeTypeHelper.startsWith("video/")) extension = ".mp4";
+                else if (mimeTypeHelper.startsWith("audio/")) extension = ".m4a";
+            }
+            originalFileName = "Hubble_Media_" + System.currentTimeMillis() + extension;
         }
 
         String mimeType = context.getContentResolver().getType(fileUri);
@@ -103,6 +113,28 @@ public class MediaRepository {
             }
         });
 
+        return result;
+    }
+
+    @android.annotation.SuppressLint("Range")
+    private String getFileNameFromUri(Context context, Uri uri) {
+        String result = null;
+        if ("content".equals(uri.getScheme())) {
+            try (android.database.Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result != null ? result.lastIndexOf('/') : -1;
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
         return result;
     }
 
