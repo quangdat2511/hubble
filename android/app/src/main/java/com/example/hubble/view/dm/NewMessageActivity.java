@@ -70,8 +70,10 @@ public class NewMessageActivity extends AppCompatActivity {
         binding.rowNewGroup.setOnClickListener(v ->
                 Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
 
-        binding.rowAddFriend.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), getString(R.string.main_coming_soon), Snackbar.LENGTH_SHORT).show());
+        binding.rowAddFriend.setOnClickListener(v -> {
+            Intent intent = new Intent(this, com.example.hubble.view.friend.AddFriendActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupList() {
