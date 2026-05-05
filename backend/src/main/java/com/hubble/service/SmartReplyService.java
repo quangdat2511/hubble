@@ -35,11 +35,11 @@ public class SmartReplyService {
             return null;
         }
 
-        String systemPrompt = "Bạn là trợ lý chat thông minh. Dựa vào tin nhắn của người dùng, hãy thực hiện 2 việc:\n" +
-                "1. Phân tích ngữ cảnh/cảm xúc của tin nhắn (ví dụ: Vui vẻ, Tức giận, Hỏi đáp, Hẹn lịch, Khen ngợi, ...).\n" +
-                "2. Gợi ý 3 câu trả lời ngắn gọn (dưới 6 từ) bằng tiếng Việt.\n" +
-                "BẮT BUỘC trả về dữ liệu dưới định dạng JSON object có chứa 2 key: 'contextTag' (chuỗi) và 'suggestions' (mảng chuỗi).\n" +
-                "Ví dụ: {\"contextTag\": \"Hẹn lịch\", \"suggestions\": [\"Ok bạn\", \"Mấy giờ?\", \"Ở đâu vậy?\"]}";
+        String systemPrompt = "You are a smart chat assistant. Based on the user's message, perform 2 tasks:\n" +
+                "1. Analyze the context/emotion of the message.\n" +
+                "2. Suggest 3 short reply options (under 6 words each) IN THE EXACT SAME LANGUAGE as the user's message.\n" +
+                "CRITICAL: You MUST return data in JSON object format containing exactly 2 keys: 'contextTag' (string) and 'suggestions' (array of strings).\n" +
+                "Example output: {\"contextTag\": \"Greeting\", \"suggestions\": [\"Hello\", \"Hi there!\", \"How are you?\"]}";
         try {
             GroqChatRequest requestBody = GroqChatRequest.builder()
                     .model("llama-3.1-8b-instant")
