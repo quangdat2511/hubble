@@ -59,6 +59,7 @@ import com.example.hubble.data.realtime.ActiveDmChannelTracker;
 import com.example.hubble.data.realtime.ActiveServerChannelTracker;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.data.repository.SmartReplyRepository;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.databinding.ActivityDmChatBinding;
 import com.example.hubble.databinding.BottomSheetForwardMessageBinding;
@@ -69,6 +70,7 @@ import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.server.ChannelDetailActivity;
 import com.example.hubble.viewmodel.MediaViewModel;
+import com.example.hubble.viewmodel.SmartReplyViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
@@ -137,6 +139,7 @@ public class DmChatActivity extends AppCompatActivity {
     private DmRepository dmRepository;
     private TokenManager tokenManager;
     private MediaViewModel mediaViewModel;
+    private SmartReplyViewModel smartReplyViewModel;
 
     private StompClient stompClient;
     private CompositeDisposable disposables = new CompositeDisposable();
@@ -277,6 +280,67 @@ public class DmChatActivity extends AppCompatActivity {
         dmRepository = new DmRepository(this);
         tokenManager = new TokenManager(this);
         mediaViewModel = new ViewModelProvider(this).get(MediaViewModel.class);
+        smartReplyViewModel = new ViewModelProvider(this).get(SmartReplyViewModel.class);
+        smartReplyViewModel.getSmartReplyState().observe(this, result -> {
+            if (result == null || result.status == SmartReplyRepository.SmartReplyResult.Status.IDLE) {
+                binding.suggestionBar.setVisibility(android.view.View.GONE);
+                return;
+            }
+
+            switch (result.status) {
+                case LOADING:
+                    binding.suggestionBar.setVisibility(android.view.View.VISIBLE);
+                    binding.tvContextTag.setVisibility(android.view.View.VISIBLE);
+                    binding.tvContextTag.setText("🧠 AI đang phân tích...");
+                    binding.tvContextTag.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_secondary));
+
+                    binding.cgSuggestions.removeAllViews();
+                    com.google.android.material.chip.Chip loadingChip = new com.google.android.material.chip.Chip(this);
+                    loadingChip.setText("Đang suy nghĩ...");
+                    loadingChip.setChipBackgroundColorResource(R.color.color_surface_elevated);
+                    loadingChip.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_secondary));
+                    loadingChip.setEnabled(false);
+                    binding.cgSuggestions.addView(loadingChip);
+                    break;
+
+                case SUCCESS:
+                    binding.cgSuggestions.removeAllViews();
+                    com.example.hubble.data.model.dm.SmartReplyResponse reply = result.data;
+                    java.util.List<String> suggestions = reply.getSuggestions();
+
+                    if (suggestions != null && !suggestions.isEmpty()) {
+                        binding.tvContextTag.setText(reply.getContextTag() != null ? "🧠 " + reply.getContextTag() + ":" : "🧠 Gợi ý:");
+                        binding.tvContextTag.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_primary));
+
+                        for (String text : suggestions) {
+                            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
+                            chip.setText(text);
+                            chip.setChipBackgroundColorResource(R.color.color_surface_elevated);
+                            chip.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_primary));
+                            chip.setChipStrokeColorResource(R.color.color_divider);
+                            chip.setChipStrokeWidth(1f);
+
+                            chip.setOnClickListener(v -> {
+                                binding.etComposer.setText(text); // Hoặc etMessage tùy id của bạn
+                                attemptSendMessage();
+                                smartReplyViewModel.hideSmartReply(); // Gửi xong thì báo ViewModel dọn UI
+                            });
+                            binding.cgSuggestions.addView(chip);
+                        }
+
+                        binding.suggestionBar.setAlpha(0f);
+                        binding.suggestionBar.animate().alpha(1f).setDuration(300).start();
+                    } else {
+                        smartReplyViewModel.hideSmartReply();
+                    }
+                    break;
+
+                case ERROR:
+                    // Có lỗi thì âm thầm giấu đi, không làm phiền người dùng
+                    smartReplyViewModel.hideSmartReply();
+                    break;
+            }
+        });
         proximityManager = new AudioProximityManager(this);
         currentUserId = dmRepository.getCurrentUserId();
 
@@ -1700,6 +1764,7 @@ public class DmChatActivity extends AppCompatActivity {
                     // message right away; subsequent live messages still go
                     // through the debounced scheduler.
                     flushMarkChannelReadImmediately();
+                    binding.rvMessages.postDelayed(() -> checkAndTriggerSmartReply(), 300);
                 });
             }
         });
@@ -1743,6 +1808,7 @@ public class DmChatActivity extends AppCompatActivity {
                 if (incoming.size() < 30) {
                     contextWindowReachedTop = true;
                 }
+                binding.rvMessages.post(() -> checkAndTriggerSmartReply());
             });
         });
     }
@@ -2174,6 +2240,30 @@ public class DmChatActivity extends AppCompatActivity {
             }
         };
     }
+    // --- SMART REPLY TRIGGER ---
+    private void checkAndTriggerSmartReply() {
+        if (adapter == null || adapter.getItemCount() == 0) return;
+        DmMessageItem lastValidMessage = null;
+        for (int i = adapter.getItemCount() - 1; i >= 0; i--) {
+            DmMessageItem item = adapter.getItemAtAdapterPosition(i);
+
+            if (item == null || item.isDateSeparator() || item.isIntro() || item.isDeleted()) {
+                continue;
+            }
+
+            lastValidMessage = item;
+            break;
+        }
+
+        if (lastValidMessage != null) {
+            // Điều kiện vàng: Tin nhắn LÀ CỦA NGƯỜI KIA và CÓ TEXT
+            if (!lastValidMessage.isMine() && !TextUtils.isEmpty(lastValidMessage.getContent())) {
+                smartReplyViewModel.fetchSmartReply(lastValidMessage.getContent());
+            } else {
+                smartReplyViewModel.hideSmartReply();
+            }
+        }
+    }
 
     private void subscribeToChannel() {
         if (TextUtils.isEmpty(channelId) || stompClient == null) return;
@@ -2187,6 +2277,7 @@ public class DmChatActivity extends AppCompatActivity {
                     MessageDto dto = parseMessagePayload(stompMessage.getPayload());
                     if (dto == null) return;
                     appendOrUpdateMessage(dto);
+                    binding.rvMessages.post(() -> checkAndTriggerSmartReply());
                 }, throwable -> {}));
 
         // Subscribe to reaction events
@@ -2253,29 +2344,7 @@ public class DmChatActivity extends AppCompatActivity {
                         }
                     } catch (Exception ignored) {}
                 }, throwable -> {}));
-        disposables.add(stompClient
-                .topic("/topic/channels/" + channelId + "/suggestions")
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(stompMessage -> {
-                    android.util.Log.d("SmartReply", "Nhận được payload: " + stompMessage.getPayload());
-                    try {
-                        com.example.hubble.data.model.dm.SmartReplyResponse response =
-                                gson.fromJson(stompMessage.getPayload(), com.example.hubble.data.model.dm.SmartReplyResponse.class);
 
-                        // CHỈ HIỆN GỢI Ý NẾU TIN NHẮN KHÔNG PHẢI DO CHÍNH MÌNH GỬI
-                        if (response != null) {
-                            android.util.Log.d("SmartReply", "Author: " + response.getMessageAuthorId() + ", Me: " + currentUserId);
-                            if (!currentUserId.equals(response.getMessageAuthorId())) {
-                                runOnUiThread(() -> showSmartReplies(response.getSuggestions(), response.getContextTag()));
-                            }
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.e("SmartReply", "Lỗi Parse JSON từ Backend: ", e);
-                    }
-                }, throwable -> {
-                    android.util.Log.e("SmartReply", "Lỗi đường truyền Stomp: ", throwable);
-                }));
     }
 
     /**
@@ -2600,43 +2669,7 @@ public class DmChatActivity extends AppCompatActivity {
         return mapped;
     }
 
-    private void showSmartReplies(List<String> suggestions, String contextTag) {
-        if (suggestions == null || suggestions.isEmpty()) {
-            binding.suggestionBar.setVisibility(View.GONE);
-            return;
-        }
-        if (!TextUtils.isEmpty(contextTag)) {
-            binding.tvContextTag.setVisibility(View.VISIBLE);
-            binding.tvContextTag.setText("🧠 " + contextTag + ":");
-            binding.tvContextTag.setTextColor(ContextCompat.getColor(this, R.color.color_primary));
-        } else {
-            binding.tvContextTag.setVisibility(View.GONE);
-        }
 
-        binding.cgSuggestions.removeAllViews();
-        for (String text : suggestions) {
-            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
-            chip.setText(text);
-
-            chip.setChipBackgroundColorResource(R.color.color_surface_elevated);
-
-            chip.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.color_text_primary));
-
-            chip.setChipStrokeColorResource(R.color.color_divider);
-            chip.setChipStrokeWidth(1f);
-            chip.setOnClickListener(v -> {
-                binding.etComposer.setText(text);
-                attemptSendMessage();
-                binding.suggestionBar.setVisibility(View.GONE);
-            });
-
-            binding.cgSuggestions.addView(chip);
-        }
-
-        binding.suggestionBar.setVisibility(View.VISIBLE);
-        binding.suggestionBar.setAlpha(0f);
-        binding.suggestionBar.animate().alpha(1f).setDuration(300).start();
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Reply, Edit, Delete (Main)

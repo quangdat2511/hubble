@@ -25,6 +25,7 @@ import com.example.hubble.data.model.dm.MessageDto;
 import com.example.hubble.data.model.dm.SharedContentPageResponse;
 import com.example.hubble.data.model.dm.PeerReadStatusDto;
 import com.example.hubble.data.model.dm.ReactionDto;
+import com.example.hubble.data.model.dm.SmartReplyResponse;
 import com.example.hubble.data.model.dm.UpdateMessageRequest;
 import com.example.hubble.data.model.dm.UploadResponse;
 import com.example.hubble.data.model.me.AvatarResponse;
@@ -37,6 +38,7 @@ import com.example.hubble.data.model.settings.PushConfigRequest;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.MultipartBody;
 import retrofit2.Call;
@@ -273,6 +275,9 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Path("messageId") String messageId
     );
+
+    @POST("api/messages/smart-reply")
+    Call<SmartReplyResponse> getSmartReply(@Body Map<String, String> request);
 
     @Multipart
     @POST("api/users/me/avatar")
