@@ -43,6 +43,5 @@
         style="@style/Widget.Material3.Button.TonalButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/cancel"
-        app:cornerRadius="8dp" />
+        android:text="@string/cancel" />
 </LinearLayout>
