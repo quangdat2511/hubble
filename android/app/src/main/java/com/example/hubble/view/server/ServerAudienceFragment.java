@@ -43,8 +43,7 @@ public class ServerAudienceFragment extends Fragment {
             activity.navigateTo(new CustomizeServerFragment(), true);
         });
 
-        binding.btnBack.setOnClickListener(v ->
-                requireActivity().getSupportFragmentManager().popBackStack());
+
     }
 
     @Override

@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.databinding.BottomSheetServerProfileBinding;
@@ -65,21 +66,19 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
             binding.tvMemberCount.setText(
                     getString(R.string.server_profile_member_count_only, memberCount));
 
-            // Load icon or show initials fallback
+            // Load icon or show default avatar fallback
+            binding.tvServerInitials.setVisibility(View.GONE);
+            binding.ivServerIcon.setVisibility(View.VISIBLE);
             if (iconUrl != null && !iconUrl.isEmpty()) {
-                binding.ivServerIcon.setVisibility(View.VISIBLE);
-                binding.tvServerInitials.setVisibility(View.GONE);
                 Glide.with(this)
                         .load(iconUrl)
-                        .placeholder(R.color.color_primary)
+                        .placeholder(AvatarPlaceholderUtils.createServerAvatarDrawable(
+                                requireContext(), serverName, 0))
                         .into(binding.ivServerIcon);
             } else {
-                binding.ivServerIcon.setVisibility(View.GONE);
-                binding.tvServerInitials.setVisibility(View.VISIBLE);
-                binding.tvServerInitials.setText(
-                        serverName != null && !serverName.isEmpty()
-                                ? serverName.substring(0, 1).toUpperCase() : "?");
-                binding.tvServerInitials.setBackgroundResource(R.drawable.bg_server_icon_initials_rounded);
+                binding.ivServerIcon.setImageDrawable(
+                        AvatarPlaceholderUtils.createServerAvatarDrawable(
+                                requireContext(), serverName, 0));
             }
 
             // Settings button — now passes ownerId + iconUrl

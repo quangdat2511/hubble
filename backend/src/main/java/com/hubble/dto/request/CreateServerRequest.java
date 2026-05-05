@@ -12,5 +12,6 @@ public class CreateServerRequest {
     String name;
     String description;
     Boolean isPublic;
+    String serverType;
 }
 

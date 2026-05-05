@@ -334,7 +334,7 @@
                 style="@style/Widget.Hubble.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_lg"
+                android:layout_marginBottom="@dimen/spacing_xs"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="@dimen/radius_md">
@@ -373,38 +373,6 @@
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/color_divider" />
-
-            <!-- Join server section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:paddingTop="@dimen/spacing_lg"
-                android:paddingBottom="@dimen/spacing_sm">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/create_server_join_hint"
-                    android:textColor="@color/color_text_secondary"
-                    android:textSize="14sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnJoinServer"
-                    style="@style/Widget.Hubble.Button.Secondary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
-                    android:text="@string/create_server_join_btn" />
-
-            </LinearLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

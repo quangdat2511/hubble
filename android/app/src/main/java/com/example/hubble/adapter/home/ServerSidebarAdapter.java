@@ -1,6 +1,5 @@
 package com.example.hubble.adapter.home;
 
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -256,9 +255,10 @@ public class ServerSidebarAdapter extends RecyclerView.Adapter<RecyclerView.View
                         .into(b.ivServerIcon);
             } else {
                 Glide.with(b.ivServerIcon.getContext()).clear(b.ivServerIcon);
-                b.ivServerIcon.setImageDrawable(new ColorDrawable(server.getBackgroundColor()));
-                b.tvServerInitials.setVisibility(View.VISIBLE);
-                b.tvServerInitials.setText(server.getInitials());
+                b.tvServerInitials.setVisibility(View.GONE);
+                b.ivServerIcon.setImageDrawable(
+                        AvatarPlaceholderUtils.createServerAvatarDrawable(
+                                b.ivServerIcon.getContext(), server.getName(), 0));
             }
         }
 

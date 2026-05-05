@@ -37,6 +37,7 @@ public class ServerController {
             @RequestParam("name") String name,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "isPublic", required = false, defaultValue = "false") Boolean isPublic,
+            @RequestParam(value = "serverType", required = false) String serverType,
             @RequestPart(value = "icon", required = false) MultipartFile iconFile,
             Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
@@ -44,6 +45,7 @@ public class ServerController {
                 .name(name)
                 .description(description)
                 .isPublic(isPublic)
+                .serverType(serverType)
                 .build();
         return ResponseEntity.ok(ApiResponse.<ServerResponse>builder()
                 .result(serverService.createServer(userId, request, iconFile))

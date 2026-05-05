@@ -33,6 +33,7 @@ public interface ServerService {
     Call<ApiResponse<ServerResponse>> createServer(
             @Header("Authorization") String token,
             @Part("name") RequestBody name,
+            @Part("serverType") RequestBody serverType,
             @Part MultipartBody.Part icon   // nullable — omitted when no icon
     );
 
