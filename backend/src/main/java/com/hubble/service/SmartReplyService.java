@@ -35,11 +35,12 @@ public class SmartReplyService {
             return null;
         }
 
-        String systemPrompt = "You are a smart chat assistant. Based on the user's message, perform 2 tasks:\n" +
-                "1. Analyze the context/emotion of the message.\n" +
-                "2. Suggest 3 short reply options (under 6 words each) IN THE EXACT SAME LANGUAGE as the user's message.\n" +
-                "CRITICAL: You MUST return data in JSON object format containing exactly 2 keys: 'contextTag' (string) and 'suggestions' (array of strings).\n" +
-                "Example output: {\"contextTag\": \"Greeting\", \"suggestions\": [\"Hello\", \"Hi there!\", \"How are you?\"]}";
+        String systemPrompt = "You are a smart chat assistant. Based on the user's message, return a JSON object with exactly 2 keys: 'contextTag' and 'suggestions'.\n\n" +
+                "CRITICAL LANGUAGE RULE: BOTH the 'contextTag' value AND the 'suggestions' array MUST be written IN THE EXACT SAME LANGUAGE as the user's message. If the user writes in Vietnamese, the output MUST be entirely in Vietnamese.\n\n" +
+                "1. 'contextTag' (string): A 1-3 word summary of the message's context or emotion (e.g., 'Chào hỏi', 'Hẹn lịch', 'Tức giận' if Vietnamese).\n" +
+                "2. 'suggestions' (array of strings): 3 short reply options (under 6 words each).\n\n" +
+                "Example output (if user says 'Ê tối nay đi nhậu không?'):\n" +
+                "{\"contextTag\": \"Rủ rê\", \"suggestions\": [\"Ok chốt\", \"Mấy giờ?\", \"Ở đâu vậy?\"]}";
         try {
             GroqChatRequest requestBody = GroqChatRequest.builder()
                     .model("llama-3.1-8b-instant")
