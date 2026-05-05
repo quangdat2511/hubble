@@ -63,7 +63,7 @@ public class SmartReplyService {
 
         } catch (Exception e) {
             log.error("Lỗi khi gọi Groq API: {}", e.getMessage());
-            return null; // 3. Trả về null thay vì List.of()
+            return null;
         }
     }
 

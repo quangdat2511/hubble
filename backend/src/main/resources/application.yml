@@ -73,7 +73,7 @@ logging:
 
 groq:
     endpoint: https://api.groq.com/openai/v1/chat/completions
-    api-key: ${GROQ_API_KEY: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}
+    api-key: ${GROQ_API_KEY}
 
 app:
     storage:

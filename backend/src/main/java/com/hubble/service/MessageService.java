@@ -8,7 +8,6 @@ import com.hubble.dto.response.MessageResponse;
 import com.hubble.dto.response.ReactionResponse;
 import com.hubble.dto.response.SharedContentItemResponse;
 import com.hubble.dto.response.SharedContentPageResponse;
-import com.hubble.dto.response.SmartReplyResponse;
 import com.hubble.entity.Attachment;
 import com.hubble.entity.Channel;
 import com.hubble.entity.Message;
@@ -64,7 +63,6 @@ public class MessageService {
     MemberRoleRepository memberRoleRepository;
     UserRepository userRepository;
     SimpMessagingTemplate messagingTemplate;
-    SmartReplyService smartReplyService;
     ReactionService reactionService;
 
     @Transactional(readOnly = true)
@@ -303,24 +301,6 @@ public class MessageService {
                 );
             }
         });
-
-        if ("TEXT".equalsIgnoreCase(request.getType())) {
-            CompletableFuture.runAsync(() -> {
-                SmartReplyResponse aiResponse = smartReplyService.generateSuggestions(saved.getContent());
-
-                if (aiResponse != null && aiResponse.getSuggestions() != null && !aiResponse.getSuggestions().isEmpty()) {
-                    aiResponse.setMessageAuthorId(authorId);
-
-                    messagingTemplate.convertAndSend(
-                            "/topic/channels/" + request.getChannelId() + "/suggestions",
-                            aiResponse
-                    );
-                }
-            }).exceptionally(ex -> {
-                System.out.println("Error generating smart reply suggestions: " + ex.getMessage());
-                return null;
-            });
-        }
         return response;
     }
 
