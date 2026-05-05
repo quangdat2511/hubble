@@ -5,8 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingStart="@dimen/spacing_sm"
+    android:paddingTop="0dp"
     android:paddingEnd="@dimen/spacing_md"
-    android:paddingBottom="@dimen/spacing_sm">
+    android:paddingBottom="0dp">
 
     <!--
         Reply quote row: appears at the TOP of the message item (above avatar/header),
@@ -132,6 +133,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
         app:layout_constraintTop_toBottomOf="@id/headerRow"
+        app:layout_goneMarginStart="48dp"
+        app:layout_goneMarginTop="0dp"
         app:strokeWidth="0dp">
 
         <LinearLayout
@@ -182,6 +185,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
         app:layout_constraintTop_toBottomOf="@id/headerRow"
+        app:layout_goneMarginStart="48dp"
+        app:layout_goneMarginTop="0dp"
         app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium" />
 
     <androidx.constraintlayout.widget.Barrier
@@ -203,6 +208,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
         app:layout_constraintTop_toBottomOf="@id/contentBarrier"
+        app:layout_goneMarginStart="48dp"
         app:singleLine="false" />
 
     <TextView
@@ -215,5 +221,6 @@
         android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"
         app:layout_constraintStart_toEndOf="@id/ivAvatar"
-        app:layout_constraintTop_toBottomOf="@id/reactionContainer" />
+        app:layout_constraintTop_toBottomOf="@id/reactionContainer"
+        app:layout_goneMarginStart="48dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

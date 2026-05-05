@@ -19,7 +19,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -575,6 +574,9 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         DmMessageItem previous = rawPos > 0 ? items.get(rawPos - 1) : null;
         if (previous != null && previous.isDateSeparator()) previous = null;
         boolean groupedWithPrevious = shouldGroupWithPrevious(item, previous);
+        DmMessageItem next = (rawPos + 1 < items.size()) ? items.get(rawPos + 1) : null;
+        if (next != null && next.isDateSeparator()) next = null;
+        boolean groupedWithNext = shouldGroupWithPrevious(next, item);
         boolean isLastMine = item.isMine() && isLastMineMessageAt(rawPos);
         String rowAvatarUrl = item.isMine() ? currentUserAvatarUrl : peerAvatarUrl;
         String replyAvatarUrl = item.hasReply()
@@ -582,7 +584,7 @@ public class DmMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 : null;
 
         if (holder instanceof MessageRowHolder) {
-            ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, rowAvatarUrl,
+            ((MessageRowHolder) holder).bind(item, !groupedWithPrevious, groupedWithNext, rowAvatarUrl,
                     replyAvatarUrl, currentUserId, isLastMine, peerLastReadAtMillis, showMineMessageStatus, highlightQuery, highlightEveryone);
         }
     }
@@ -1100,34 +1102,41 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
             this.onReactionClickListener = onReactionClickListener;
         }
 
-        void bind(DmMessageItem item, boolean showHeader, @Nullable String avatarUrl,
+        void bind(DmMessageItem item, boolean showHeader, boolean groupedWithNext,
+                  @Nullable String avatarUrl,
                   @Nullable String replyAvatarUrl,
                   @Nullable String currentUserId, boolean isLastMine, long peerLastReadAtMillis,
                   boolean showMineMessageStatus, @Nullable String highlightQuery,
                   boolean highlightEveryone) {
             b.tvName.setText(item.getSenderName());
             b.tvTime.setText(item.getTimestamp());
-            b.ivAvatar.setVisibility(showHeader ? View.VISIBLE : View.INVISIBLE);
-            b.headerRow.setVisibility(showHeader ? View.VISIBLE : View.GONE);
+
+            // Group head (showHeader=true) renders avatar + name + time.
+            // Subsequent grouped messages set BOTH to GONE so they truly disappear from layout.
+            // The dependent views (cardMessage, ivMedia, reactionContainer, tvStatus) preserve
+            // their indent via app:layout_goneMarginStart="48dp" defined in item_dm_message.xml,
+            // so text stays aligned under where the avatar would be.
+            int headerVis = showHeader ? View.VISIBLE : View.GONE;
+            b.ivAvatar.setVisibility(headerVis);
+            b.headerRow.setVisibility(headerVis);
 
             if (showHeader) {
                 bindAvatar(avatarUrl, item.getSenderName());
             }
 
-            int topMargin = showHeader || item.hasReply() ? dp(2) : dp(0);
-            try {
-                if (b.cardMessage.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-                    ConstraintLayout.LayoutParams p = (ConstraintLayout.LayoutParams) b.cardMessage.getLayoutParams();
-                    p.topMargin = topMargin;
-                    b.cardMessage.setLayoutParams(p);
-                }
-                if (b.ivMedia.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-                    ConstraintLayout.LayoutParams p = (ConstraintLayout.LayoutParams) b.ivMedia.getLayoutParams();
-                    p.topMargin = topMargin;
-                    b.ivMedia.setLayoutParams(p);
-                }
-            } catch (Exception ignored) {
-            }
+            // Vertical row spacing comes entirely from the row's own padding so that
+            // every grouped item is visually identical regardless of recycler state:
+            //   - top: small gap (8dp) when this row starts a new group; 0 when continuing one
+            //   - bottom: tight (2dp) within a group; wider (8dp) at the end of a group
+            // This produces a uniform tight stack within a block and a clear separation
+            // between blocks from different senders or after a long pause.
+            int topPadding = showHeader ? dp(8) : 0;
+            int bottomPadding = groupedWithNext ? dp(2) : dp(8);
+            b.getRoot().setPadding(
+                    b.getRoot().getPaddingLeft(),
+                    topPadding,
+                    b.getRoot().getPaddingRight(),
+                    bottomPadding);
 
             if (item.hasReply()) {
                 b.replyQuoteContainer.setVisibility(View.VISIBLE);
