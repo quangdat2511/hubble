@@ -59,7 +59,7 @@ public class AuthService {
         }
 
         User user = User.builder()
-                .username(request.getUsername().toLowerCase())
+                .username(generateUniqueUsernameFromDisplayName(request.getUsername()))
                 .displayName(request.getDisplayName() != null ? request.getDisplayName() : request.getUsername())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -138,15 +138,7 @@ public class AuthService {
         User user = userRepository.findByEmail(googleInfo.getEmail()).orElse(null);
 
         if (user == null) {
-            String baseUsername = googleInfo.getName() != null
-                    ? googleInfo.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_")
-                    : "user_" + System.currentTimeMillis();
-
-            String username = baseUsername;
-            int counter = 1;
-            while (userRepository.existsByUsername(username)) {
-                username = baseUsername + "_" + counter++;
-            }
+            String username = generateUniqueUsernameFromDisplayName(googleInfo.getName());
 
             user = User.builder()
                     .username(username)
@@ -172,18 +164,14 @@ public class AuthService {
         if (user != null) {
             userId = user.getId();
         } else {
+            String phoneBasedUsername = "phone_" + request.getPhone().replaceAll("[^0-9]", "");
+            String username = generateUniqueUsernameFromExisting(phoneBasedUsername);
+
             User tempUser = User.builder()
-                    .username("phone_" + request.getPhone().replaceAll("[^0-9]", ""))
+                    .username(username)
                     .phone(request.getPhone())
                     .authProvider(AuthProvider.PHONE)
                     .build();
-
-            String username = tempUser.getUsername();
-            int counter = 1;
-            while (userRepository.existsByUsername(username)) {
-                username = tempUser.getUsername() + "_" + counter++;
-            }
-            tempUser.setUsername(username);
 
             tempUser = userRepository.save(tempUser);
             userId = tempUser.getId();
@@ -412,5 +400,50 @@ public class AuthService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    /**
+     * Tạo username duy nhất từ display name
+     * - Loại bỏ khoảng trắng và các ký tự đặc biệt (thay bằng gạch dưới)
+     * - Đảm bảo tính duy nhất trong hệ thống
+     * - Nếu display name trống, sử dụng fallback với timestamp
+     *
+     * @param displayName tên hiển thị gốc
+     * @return username duy nhất và không có khoảng trắng
+     */
+    private String generateUniqueUsernameFromDisplayName(String displayName) {
+        String baseUsername = hasText(displayName)
+                ? displayName.toLowerCase().replaceAll("[^a-z0-9_]", "_")
+                : "user_" + System.currentTimeMillis();
+
+        return ensureUsernameUniqueness(baseUsername);
+    }
+
+    /**
+     * Đảm bảo username đã được format sẵn là duy nhất
+     * - Nếu username tồn tại, thêm counter (username_1, username_2, ...)
+     *
+     * @param baseUsername username base đã được format
+     * @return username duy nhất
+     */
+    private String generateUniqueUsernameFromExisting(String baseUsername) {
+        return ensureUsernameUniqueness(baseUsername);
+    }
+
+    /**
+     * Helper method để kiểm tra và đảm bảo tính duy nhất của username
+     *
+     * @param baseUsername username gốc
+     * @return username duy nhất (có thể kèm counter nếu cần)
+     */
+    private String ensureUsernameUniqueness(String baseUsername) {
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + "_" + counter++;
+        }
+
+        return username;
     }
 }
