@@ -1177,8 +1177,14 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
                     if (content != null && !content.isEmpty()) {
                         b.tvMessage.setVisibility(View.VISIBLE);
                         if (highlightQuery != null && !highlightQuery.isEmpty()) {
-                            b.tvMessage.setText(applyHighlight(content, highlightQuery,
-                                    b.tvMessage.getContext()));
+                            // Apply mention spans first, then search highlight on top so
+                            // search background color takes priority over mention background.
+                            android.text.SpannableString highlighted =
+                                    com.example.hubble.view.util.MentionRenderer.applyMentionSpans(
+                                            b.tvMessage.getContext(), content,
+                                            item.getMentionedUsernames(), highlightEveryone);
+                            applyHighlightOnto(highlighted, highlightQuery, b.tvMessage.getContext());
+                            b.tvMessage.setText(highlighted);
                         } else {
                             b.tvMessage.setText(com.example.hubble.view.util.MentionRenderer
                                     .applyMentionSpans(b.tvMessage.getContext(), content,
@@ -1346,7 +1352,14 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
     private static android.text.SpannableString applyHighlight(
             String text, String query, Context ctx) {
         android.text.SpannableString spannable = new android.text.SpannableString(text);
-        String lowerText = text.toLowerCase(java.util.Locale.getDefault());
+        applyHighlightOnto(spannable, query, ctx);
+        return spannable;
+    }
+
+    /** Applies search-term highlight spans onto an existing {@link android.text.Spannable} in-place. */
+    private static void applyHighlightOnto(
+            android.text.Spannable spannable, String query, Context ctx) {
+        String lowerText = spannable.toString().toLowerCase(java.util.Locale.getDefault());
         String lowerQuery = query.toLowerCase(java.util.Locale.getDefault());
         int start = 0;
         int highlightColor = ctx.getResources().getColor(
@@ -1357,6 +1370,5 @@ private static void loadAttachments(LinearLayout container, List<AttachmentRespo
                     start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             start = end;
         }
-        return spannable;
     }
 }

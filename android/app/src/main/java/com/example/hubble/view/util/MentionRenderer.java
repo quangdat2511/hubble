@@ -80,6 +80,38 @@ public final class MentionRenderer {
     }
 
     /**
+     * Applies mention highlight spans onto an *existing* {@link Spannable} in-place.
+     * Use this when the spannable already carries other spans (e.g. search-term highlights)
+     * that must be preserved.
+     */
+    public static void applyMentionSpansOnto(Context context, Spannable spannable,
+                                              List<String> mentionedUsernames,
+                                              boolean highlightEveryone) {
+        if (spannable == null || spannable.length() == 0) return;
+
+        Set<String> mentionSet = new HashSet<>();
+        if (mentionedUsernames != null) mentionSet.addAll(mentionedUsernames);
+        if (highlightEveryone) mentionSet.add("everyone");
+        if (mentionSet.isEmpty()) return;
+
+        int textColor = ContextCompat.getColor(context, R.color.mention_text_color);
+        int bgColor = ContextCompat.getColor(context, R.color.mention_bg_color);
+
+        Matcher matcher = MENTION_PATTERN.matcher(spannable);
+        while (matcher.find()) {
+            String username = matcher.group(1);
+            if (username != null && mentionSet.contains(username)) {
+                int start = matcher.start();
+                int end = matcher.end();
+                spannable.setSpan(new ForegroundColorSpan(textColor), start, end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannable.setSpan(new BackgroundColorSpan(bgColor), start, end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+    }
+
+    /**
      * Convenience overload with an empty mentions list (no highlighting applied
      * except for @everyone).
      */

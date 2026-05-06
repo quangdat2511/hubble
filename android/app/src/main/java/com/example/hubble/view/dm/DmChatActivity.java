@@ -400,6 +400,10 @@ public class DmChatActivity extends AppCompatActivity {
         }
         String jumpMessageId = getIntent().getStringExtra(EXTRA_JUMP_MESSAGE_ID);
         if (!TextUtils.isEmpty(jumpMessageId)) {
+            // Set context-window mode immediately (synchronously) so that when
+            // connectStomp() fires in onStart() and STOMP OPENED arrives, it
+            // won't call loadMessageHistory() and clobber our target scroll.
+            isContextWindowMode = true;
             String highlightQuery = getIntent().getStringExtra(EXTRA_HIGHLIGHT_QUERY);
             jumpToMessage(jumpMessageId, highlightQuery);
         } else {
@@ -1851,7 +1855,7 @@ public class DmChatActivity extends AppCompatActivity {
             loadMessageHistory();
             return;
         }
-        dmRepository.loadContextWindow(channelId, targetMessageId, 30, result -> {
+        dmRepository.loadContextWindow(channelId, targetMessageId, 60, result -> {
             if (result.getData() != null) {
                 List<DmMessageItem> items = mapMessages(result.getData());
                 runOnUiThread(() -> {
@@ -2221,7 +2225,11 @@ public class DmChatActivity extends AppCompatActivity {
                             // STOMP does not replay missed messages after disconnect (airplane, etc.).
                             // Always sync from REST on connect/reconnect so B sees server state and
                             // sendDeliveryAck() can notify A → "✓✓ Đã nhận".
-                            loadMessageHistory();
+                            // Exception: if we are in context-window mode (jumped here from a search
+                            // result), don't reload history and clobber the target scroll position.
+                            if (!isContextWindowMode) {
+                                loadMessageHistory();
+                            }
                             sendDeliveryAck();
                             break;
                         case CLOSED:
@@ -2626,7 +2634,11 @@ public class DmChatActivity extends AppCompatActivity {
         // Peer messages: status stays null (no indicator needed for received messages)
 
         adapter.upsertItem(item);
-        scrollToBottom();
+        // Don't jump to bottom when the user is viewing a historical context window
+        // (e.g. navigated here from a search result). Only auto-scroll for live view.
+        if (!isContextWindowMode) {
+            scrollToBottom();
+        }
         scheduleMarkChannelRead();
     }
 
