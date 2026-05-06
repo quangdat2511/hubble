@@ -56,6 +56,7 @@ public class PushConfigService {
                 .locale("vi")
                 .notificationEnabled(true)
                 .notificationSound(true)
+                .newDeviceLoginAlertsEnabled(true)
                 .updatedAt(LocalDateTime.now())
                 .build();
     }

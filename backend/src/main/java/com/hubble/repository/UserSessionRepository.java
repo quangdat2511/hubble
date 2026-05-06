@@ -15,6 +15,12 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
 
     Optional<UserSession> findByRefreshTokenAndIsActiveTrue(String refreshToken);
 
+    boolean existsByUserId(UUID userId);
+
+    boolean existsByUserIdAndDeviceFingerprint(UUID userId, String deviceFingerprint);
+
+    boolean existsByUserIdAndDeviceName(UUID userId, String deviceName);
+
     List<UserSession> findAllByUserIdAndIsActiveTrueOrderByLastActiveAtDesc(UUID userId);
 
     Optional<UserSession> findByIdAndUserIdAndIsActiveTrue(UUID id, UUID userId);

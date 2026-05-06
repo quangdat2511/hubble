@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Hubble</string>
     <string name="default_web_client_id">571998074420-sc599ois6r8jm4c1sg09q4d9d6nbpbv6.apps.googleusercontent.com</string>
+    <string name="camera_not_supported">Camera is not supported in voice-only channels</string>
 
     <string name="splash_tagline">Connect. Communicate. Collaborate.</string>
 
@@ -14,6 +15,9 @@
     <string name="login_forgot_password">Forgot password?</string>
     <string name="login_btn">Log In</string>
     <string name="login_google">Continue with Google</string>
+    <string name="error_google_no_id_token">Could not get a Google sign-in token. Check OAuth (Web client ID) configuration.</string>
+    <string name="error_google_sign_in_cancelled">Google sign-in was cancelled.</string>
+    <string name="error_google_sign_in_failed">Google sign-in failed (error code: %1$d).</string>
     <string name="login_send_otp">Send OTP</string>
     <string name="login_no_account">Don’t have an account? <b>Sign up</b></string>
 
@@ -91,6 +95,7 @@
     <string name="notification_friend_request_text">%1$s sent you a friend request.</string>
     <string name="notification_server_invite_text">%1$s invited you to join %2$s.</string>
     <string name="notification_friend_accepted_text">%1$s accepted your friend request.</string>
+    <string name="notification_new_device_alert_text">New login detected on %1$s (%2$s). If this wasn\'t you, change your password now.</string>
     <string name="notification_channel_name">Hubble notifications</string>
     <string name="notification_channel_desc">Notifications from the Hubble app</string>
     <string name="notification_system_section">System notifications</string>
@@ -114,6 +119,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_section_preferences">Quick settings</string>
     <string name="settings_section_app">App</string>
+    <string name="settings_section_security">Security</string>
     <string name="settings_section_support">Support</string>
     <string name="settings_section_info">What’s New</string>
     <string name="settings_language">Language</string>
@@ -128,6 +134,52 @@
     <string name="settings_logout_confirm_yes">Log out</string>
     <string name="settings_logout_confirm_no">Cancel</string>
     <string name="cd_settings_back">Back</string>
+    <string name="settings_passcode_lock">Passcode Lock</string>
+    <string name="settings_passcode_lock_summary_disabled">Off, no PIN set yet</string>
+    <string name="settings_passcode_lock_summary_configured">PIN saved, currently turned off</string>
+    <string name="settings_passcode_lock_summary_enabled">On, require your PIN when you reopen the app</string>
+    <string name="settings_passcode_lock_status_enabled">App lock is on</string>
+    <string name="settings_passcode_lock_status_disabled">App lock is off</string>
+    <string name="settings_passcode_lock_manage_description">Set a 4-digit PIN to protect the app when you come back from the background.</string>
+    <string name="settings_passcode_lock_toggle_title">Require PIN</string>
+    <string name="settings_passcode_lock_toggle_summary">Ask for your PIN whenever you reopen the app</string>
+    <string name="settings_passcode_lock_toggle_summary_empty">Turn this on to create a PIN for the app</string>
+    <string name="settings_passcode_change">Change PIN</string>
+    <string name="settings_passcode_change_summary">Update the PIN you currently use</string>
+    <string name="settings_passcode_remove">Remove PIN</string>
+    <string name="settings_passcode_remove_summary">Confirm your current PIN to remove it completely</string>
+    <string name="settings_passcode_create_title">Create PIN</string>
+    <string name="settings_passcode_change_title">Change PIN</string>
+    <string name="settings_passcode_remove_title">Remove PIN</string>
+    <string name="settings_passcode_create_action">Save PIN</string>
+    <string name="settings_passcode_change_action">Update</string>
+    <string name="settings_passcode_remove_action">Remove PIN</string>
+    <string name="settings_passcode_pin_hint">4-digit PIN</string>
+    <string name="settings_passcode_pin_confirm_hint">Confirm PIN</string>
+    <string name="settings_passcode_pin_current_hint">Current PIN</string>
+    <string name="settings_passcode_pin_helper">Your PIN must be exactly 4 digits</string>
+    <string name="settings_passcode_pin_error_invalid">Enter a PIN with exactly 4 digits</string>
+    <string name="settings_passcode_pin_error_mismatch">The confirmation PIN does not match</string>
+    <string name="settings_passcode_pin_error_same">Your new PIN must be different from the current PIN</string>
+    <string name="settings_passcode_pin_error_current">Your current PIN is incorrect</string>
+    <string name="settings_passcode_pin_error_storage">This device could not save your PIN securely</string>
+    <string name="settings_passcode_saved_enabled">App lock enabled</string>
+    <string name="settings_passcode_saved_disabled">App lock disabled</string>
+    <string name="settings_passcode_saved_changed">PIN updated</string>
+    <string name="settings_passcode_saved_removed">PIN removed</string>
+    <string name="settings_passcode_prompt_title">Unlock Hubble</string>
+    <string name="settings_passcode_prompt_subtitle">Enter your PIN to keep using the app</string>
+    <string name="settings_passcode_prompt_action">Unlock</string>
+    <string name="settings_passcode_prompt_exit">Exit app</string>
+    <string name="settings_passcode_prompt_error">That PIN was incorrect. Please try again.</string>
+    <string name="settings_passcode_timeout_hint">The app locks again when you leave it and come back.</string>
+    <string name="settings_app_switcher_protection">Protect App in App Switcher</string>
+    <string name="settings_app_switcher_protection_summary_off">Allow the app preview to appear normally in recent apps</string>
+    <string name="settings_app_switcher_protection_summary_on">Hide sensitive content from recent apps previews and screenshots</string>
+    <string name="settings_device_alert">New Device Login Alerts</string>
+    <string name="settings_device_alert_summary_off">Do not send alerts when your account signs in on a new device</string>
+    <string name="settings_device_alert_summary_on">Send a system alert when we detect a login from an unrecognized device</string>
+    <string name="settings_device_alert_saved">New device login alerts updated</string>
     <string name="settings_notifications_summary">Manage push notifications on this device</string>
     <string name="settings_notifications_enable_title">Enable push notifications</string>
     <string name="settings_notifications_enable_summary">Receive alerts for new messages and activity</string>
@@ -494,6 +546,8 @@
     <string name="search_friend_state_pending_outgoing">Request sent</string>
     <string name="search_friend_state_pending_incoming">Request received</string>
     <string name="search_profile_status_hint">Status: %1$s</string>
+    <string name="friend_request_send_success">Friend request sent</string>
+    <string name="common_avatar">Avatar</string>
     <string name="server_settings_title">Server Settings</string>
     <string name="server_settings_section_overview">OVERVIEW</string>
     <string name="server_settings_section_members">MEMBERS</string>
@@ -657,4 +711,11 @@
     <string name="category_settings_delete">Delete category</string>
     <string name="category_settings_delete_confirm_title">Delete category</string>
     <string name="category_settings_delete_confirm_message">Are you sure you want to delete %s? Channels inside this category will not be deleted.</string>
+    <string name="friends_title">Friends</string>
+    <string name="friends_empty">You do not have any friends yet</string>
+    <string name="friend_unfriend">Remove friend</string>
+    <string name="friend_unfriend_confirm_title">Remove friend</string>
+    <string name="friend_unfriend_confirm_message">Are you sure you want to remove %1$s from your friends?</string>
+    <string name="friend_unfriend_success">Friend removed successfully!</string>
+    <string name="friend_unfriend_error">Could not remove friend. Please try again.</string>
 </resources>

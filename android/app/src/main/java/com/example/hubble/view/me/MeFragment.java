@@ -18,7 +18,6 @@ import com.example.hubble.view.friend.BlockedUsersActivity;
 import com.example.hubble.view.friend.FriendsActivity;
 import com.example.hubble.view.friend.OutgoingRequestsActivity;
 import com.example.hubble.view.settings.SettingsActivity;
-import com.google.android.material.snackbar.Snackbar;
 
 public class MeFragment extends Fragment {
 
@@ -54,11 +53,6 @@ public class MeFragment extends Fragment {
 
         binding.cardFriends.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), FriendsActivity.class)));
-
-        binding.cardNotes.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(),
-                        getString(R.string.main_coming_soon),
-                        Snackbar.LENGTH_SHORT).show());
 
         if (getChildFragmentManager().findFragmentById(binding.profileFragmentContainer.getId()) == null) {
             getChildFragmentManager()

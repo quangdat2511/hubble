@@ -24,14 +24,39 @@ android {
 
     // Đọc local.properties (BASE_URL, GIPHY_API_KEY, …)
     val localProps = Properties()
-    val localPropsFile = rootProject.file("local.properties")
-    if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
+
+    fun loadPropertiesIfExists(path: String) {
+        val file = rootProject.file(path)
+        if (file.exists()) {
+            file.inputStream().use(localProps::load)
+        }
+    }
+
+    fun propertyOrEnv(name: String, defaultValue: String = ""): String {
+        val propertyValue = localProps.getProperty(name)?.trim().orEmpty()
+        if (propertyValue.isNotEmpty()) {
+            return propertyValue
+        }
+
+        val envValue = System.getenv(name)?.trim().orEmpty()
+        if (envValue.isNotEmpty()) {
+            return envValue
+        }
+
+        return defaultValue
+    }
+
+    // Support both android/local.properties and the repo-root local.properties.
+    // The android-local file wins if both define the same key.
+    loadPropertiesIfExists("../local.properties")
+    loadPropertiesIfExists("local.properties")
+
     val releaseBaseUrl = "https://hubble-production.up.railway.app/"
-    val debugBaseUrlOverride = localProps.getProperty("BASE_URL_DEBUG", "").trim()
-    val devBackendScheme = localProps.getProperty("DEV_BACKEND_SCHEME", "http").trim()
-    val devBackendHost = localProps.getProperty("DEV_BACKEND_HOST", "").trim()
-    val devBackendPort = localProps.getProperty("DEV_BACKEND_PORT", "8080").trim()
-    val giphyApiKey = localProps.getProperty("GIPHY_API_KEY", "")
+    val debugBaseUrlOverride = propertyOrEnv("BASE_URL_DEBUG")
+    val devBackendScheme = propertyOrEnv("DEV_BACKEND_SCHEME", "http")
+    val devBackendHost = propertyOrEnv("DEV_BACKEND_HOST")
+    val devBackendPort = propertyOrEnv("DEV_BACKEND_PORT", "8080")
+    val giphyApiKey = propertyOrEnv("GIPHY_API_KEY")
 
     buildTypes {
         debug {
@@ -67,6 +92,9 @@ android {
         buildConfig = true
     }
 
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 dependencies {
@@ -75,6 +103,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-livedata:${lifecycle_version}")
     implementation("androidx.lifecycle:lifecycle-runtime:${lifecycle_version}")
+    implementation("androidx.lifecycle:lifecycle-process:${lifecycle_version}")
 
     implementation("com.hbb20:ccp:2.5.0")
 

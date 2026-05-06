@@ -4,14 +4,17 @@ import com.hubble.dto.request.*;
 import com.hubble.dto.response.TokenResponse;
 import com.hubble.dto.response.UserResponse;
 import com.hubble.entity.User;
+import com.hubble.entity.UserSettings;
 import com.hubble.entity.UserSession;
 import com.hubble.enums.AuthProvider;
 import com.hubble.enums.DeviceType;
+import com.hubble.enums.NotificationType;
 import com.hubble.enums.OtpType;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.UserMapper;
 import com.hubble.repository.UserRepository;
+import com.hubble.repository.UserSettingsRepository;
 import com.hubble.repository.UserSessionRepository;
 import com.hubble.security.GoogleTokenVerifier;
 import com.hubble.security.JwtService;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -36,12 +40,14 @@ public class AuthService {
 
     UserRepository userRepository;
     UserSessionRepository userSessionRepository;
+    UserSettingsRepository userSettingsRepository;
     UserMapper userMapper;
     JwtService jwtService;
     PasswordEncoder passwordEncoder;
     GoogleTokenVerifier googleTokenVerifier;
     OtpService otpService;
     EmailService emailService;
+    NotificationService notificationService;
 
     @Transactional
     public String register(RegisterRequest request) {
@@ -53,7 +59,7 @@ public class AuthService {
         }
 
         User user = User.builder()
-                .username(request.getUsername().toLowerCase())
+                .username(generateUniqueUsernameFromDisplayName(request.getUsername()))
                 .displayName(request.getDisplayName() != null ? request.getDisplayName() : request.getUsername())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -132,15 +138,7 @@ public class AuthService {
         User user = userRepository.findByEmail(googleInfo.getEmail()).orElse(null);
 
         if (user == null) {
-            String baseUsername = googleInfo.getName() != null
-                    ? googleInfo.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_")
-                    : "user_" + System.currentTimeMillis();
-
-            String username = baseUsername;
-            int counter = 1;
-            while (userRepository.existsByUsername(username)) {
-                username = baseUsername + "_" + counter++;
-            }
+            String username = generateUniqueUsernameFromDisplayName(googleInfo.getName());
 
             user = User.builder()
                     .username(username)
@@ -166,18 +164,14 @@ public class AuthService {
         if (user != null) {
             userId = user.getId();
         } else {
+            String phoneBasedUsername = "phone_" + request.getPhone().replaceAll("[^0-9]", "");
+            String username = generateUniqueUsernameFromExisting(phoneBasedUsername);
+
             User tempUser = User.builder()
-                    .username("phone_" + request.getPhone().replaceAll("[^0-9]", ""))
+                    .username(username)
                     .phone(request.getPhone())
                     .authProvider(AuthProvider.PHONE)
                     .build();
-
-            String username = tempUser.getUsername();
-            int counter = 1;
-            while (userRepository.existsByUsername(username)) {
-                username = tempUser.getUsername() + "_" + counter++;
-            }
-            tempUser.setUsername(username);
 
             tempUser = userRepository.save(tempUser);
             userId = tempUser.getId();
@@ -286,6 +280,7 @@ public class AuthService {
 
         String ipAddress = "Unknown";
         String deviceName = "Unknown Device";
+        String deviceFingerprint = null;
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
@@ -294,22 +289,37 @@ public class AuthService {
                 if (ipAddress == null || ipAddress.isEmpty()) {
                     ipAddress = request.getRemoteAddr();
                 }
-                String userAgent = request.getHeader("User-Agent");
-                if (userAgent != null && !userAgent.isEmpty()) {
-                    deviceName = userAgent;
+                String providedDeviceName = request.getHeader("X-Device-Name");
+                if (hasText(providedDeviceName)) {
+                    deviceName = providedDeviceName.trim();
+                } else {
+                    String userAgent = request.getHeader("User-Agent");
+                    if (hasText(userAgent)) {
+                        deviceName = userAgent.trim();
+                    }
+                }
+                String providedFingerprint = request.getHeader("X-Device-Fingerprint");
+                if (hasText(providedFingerprint)) {
+                    deviceFingerprint = providedFingerprint.trim();
                 }
             }
         } catch (Exception ignored) {}
+
+        boolean hasPriorSessions = userSessionRepository.existsByUserId(user.getId());
+        boolean knownDevice = isKnownDevice(user.getId(), deviceFingerprint, deviceName);
 
         UserSession session = UserSession.builder()
                 .userId(user.getId())
                 .refreshToken(refreshToken)
                 .deviceType(DeviceType.MOBILE)
                 .deviceName(deviceName)
+                .deviceFingerprint(deviceFingerprint)
                 .ipAddress(ipAddress)
                 .isActive(true)
                 .build();
         session = userSessionRepository.save(session);
+
+        maybeDispatchNewDeviceAlert(user.getId(), session, deviceName, ipAddress, hasPriorSessions, knownDevice);
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), session.getId());
 
@@ -319,5 +329,121 @@ public class AuthService {
                 .expiresIn(jwtService.getAccessTokenExpiration())
                 .user(userMapper.toUserResponse(user))
                 .build();
+    }
+
+    private void maybeDispatchNewDeviceAlert(UUID userId,
+                                             UserSession session,
+                                             String deviceName,
+                                             String ipAddress,
+                                             boolean hasPriorSessions,
+                                             boolean knownDevice) {
+        if (!hasPriorSessions || knownDevice) {
+            return;
+        }
+
+        UserSettings settings = userSettingsRepository.findById(userId).orElse(null);
+        boolean alertsEnabled = settings == null
+                || settings.getNewDeviceLoginAlertsEnabled() == null
+                || Boolean.TRUE.equals(settings.getNewDeviceLoginAlertsEnabled());
+        if (!alertsEnabled) {
+            return;
+        }
+
+        boolean sendPush = settings == null || Boolean.TRUE.equals(settings.getNotificationEnabled());
+        String content = localizeNewDeviceAlertContent(settings, deviceName, ipAddress);
+
+        notificationService.dispatchNotification(
+                userId,
+                NotificationType.SYSTEM_ALERT,
+                session.getId().toString(),
+                content,
+                false,
+                sendPush
+        );
+    }
+
+    private boolean isKnownDevice(UUID userId, String deviceFingerprint, String deviceName) {
+        if (hasText(deviceFingerprint)) {
+            return userSessionRepository.existsByUserIdAndDeviceFingerprint(userId, deviceFingerprint.trim());
+        }
+        if (hasText(deviceName)) {
+            return userSessionRepository.existsByUserIdAndDeviceName(userId, deviceName.trim());
+        }
+        return false;
+    }
+
+    private String localizeNewDeviceAlertContent(UserSettings settings, String deviceName, String ipAddress) {
+        String locale = settings != null && hasText(settings.getLocale())
+                ? settings.getLocale().trim().toLowerCase(Locale.ROOT)
+                : "vi";
+
+        if ("en".equals(locale)) {
+            String safeDeviceName = hasText(deviceName) ? deviceName : "New device";
+            String safeIpAddress = hasText(ipAddress) ? ipAddress : "Unknown IP";
+            return String.format(
+                    Locale.ROOT,
+                    "New login detected on %s (%s). If this wasn't you, change your password now.",
+                    safeDeviceName,
+                    safeIpAddress
+            );
+        }
+
+        String safeDeviceName = hasText(deviceName) ? deviceName : "Thiết bị mới";
+        String safeIpAddress = hasText(ipAddress) ? ipAddress : "IP không xác định";
+        return String.format(
+                Locale.ROOT,
+                "Phát hiện đăng nhập trên thiết bị mới: %s (%s). Nếu không phải bạn, hãy đổi mật khẩu ngay.",
+                safeDeviceName,
+                safeIpAddress
+        );
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    /**
+     * Tạo username duy nhất từ display name
+     * - Loại bỏ khoảng trắng và các ký tự đặc biệt (thay bằng gạch dưới)
+     * - Đảm bảo tính duy nhất trong hệ thống
+     * - Nếu display name trống, sử dụng fallback với timestamp
+     *
+     * @param displayName tên hiển thị gốc
+     * @return username duy nhất và không có khoảng trắng
+     */
+    private String generateUniqueUsernameFromDisplayName(String displayName) {
+        String baseUsername = hasText(displayName)
+                ? displayName.toLowerCase().replaceAll("[^a-z0-9_]", "_")
+                : "user_" + System.currentTimeMillis();
+
+        return ensureUsernameUniqueness(baseUsername);
+    }
+
+    /**
+     * Đảm bảo username đã được format sẵn là duy nhất
+     * - Nếu username tồn tại, thêm counter (username_1, username_2, ...)
+     *
+     * @param baseUsername username base đã được format
+     * @return username duy nhất
+     */
+    private String generateUniqueUsernameFromExisting(String baseUsername) {
+        return ensureUsernameUniqueness(baseUsername);
+    }
+
+    /**
+     * Helper method để kiểm tra và đảm bảo tính duy nhất của username
+     *
+     * @param baseUsername username gốc
+     * @return username duy nhất (có thể kèm counter nếu cần)
+     */
+    private String ensureUsernameUniqueness(String baseUsername) {
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + "_" + counter++;
+        }
+
+        return username;
     }
 }

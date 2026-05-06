@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.utils.InAppMessageUtils;
 import com.example.hubble.utils.MediaDownloadHelper;
 import com.example.hubble.utils.TokenManager;
@@ -26,6 +27,7 @@ public class ImageViewerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_image_viewer);
 
         imageUrl = getIntent().getStringExtra(EXTRA_IMAGE_URL);
+        imageUrl = NetworkConfig.resolveUrl(imageUrl);
         fileName = getIntent().getStringExtra(EXTRA_FILE_NAME);
 
         if (fileName == null || fileName.isEmpty()) {

@@ -16,6 +16,9 @@
     <string name="login_forgot_password">Quên mật khẩu?</string>
     <string name="login_btn">Đăng nhập</string>
     <string name="login_google">Đăng nhập với Google</string>
+    <string name="error_google_no_id_token">Không lấy được mã đăng nhập Google. Kiểm tra cấu hình OAuth (Web client ID) trong ứng dụng.</string>
+    <string name="error_google_sign_in_cancelled">Bạn đã hủy đăng nhập Google.</string>
+    <string name="error_google_sign_in_failed">Đăng nhập Google thất bại (mã lỗi: %1$d).</string>
     <string name="login_send_otp">Gửi mã OTP</string>
     <string name="login_no_account">Chưa có tài khoản? <b>Đăng ký ngay</b></string>
 
@@ -97,6 +100,7 @@
     <string name="notification_friend_request_text">%1$s đã gửi cho bạn lời mời kết bạn.</string>
     <string name="notification_server_invite_text">%1$s đã mời bạn tham gia %2$s.</string>
     <string name="notification_friend_accepted_text">%1$s đã chấp nhận lời mời kết bạn của bạn.</string>
+    <string name="notification_new_device_alert_text">Phát hiện đăng nhập trên thiết bị mới: %1$s (%2$s). Nếu không phải bạn, hãy đổi mật khẩu ngay.</string>
     <string name="notification_channel_name">Thông báo Hubble</string>
     <string name="notification_channel_desc">Thông báo từ ứng dụng Hubble</string>
     <string name="notification_system_section">Thông báo hệ thống</string>
@@ -172,6 +176,7 @@
     <string name="settings_title">Cài Đặt</string>
     <string name="settings_section_preferences">Cài đặt nhanh</string>
     <string name="settings_section_app">Ứng dụng</string>
+    <string name="settings_section_security">Bảo mật</string>
     <string name="settings_section_support">Hỗ trợ</string>
     <string name="settings_section_info">Có gì mới</string>
     <string name="settings_language">Ngôn ngữ</string>
@@ -187,6 +192,53 @@
     <string name="settings_logout_confirm_yes">Đăng xuất</string>
     <string name="settings_logout_confirm_no">Hủy</string>
     <string name="cd_settings_back">Quay lại</string>
+    <string name="settings_passcode_lock">Khóa ứng dụng bằng mã PIN</string>
+    <string name="settings_passcode_lock_summary_disabled">Tắt, chưa thiết lập mã PIN</string>
+    <string name="settings_passcode_lock_summary_configured">Đã thiết lập mã PIN, hiện đang tắt</string>
+    <string name="settings_passcode_lock_summary_enabled">Đang bật, yêu cầu mã PIN khi mở lại ứng dụng</string>
+    <string name="settings_passcode_lock_status_enabled">Khóa ứng dụng đang bật</string>
+    <string name="settings_passcode_lock_status_disabled">Khóa ứng dụng đang tắt</string>
+    <string name="settings_passcode_lock_manage_description">Thiết lập mã PIN 4 số để bảo vệ ứng dụng khi quay lại từ nền.</string>
+    <string name="settings_passcode_lock_toggle_title">Yêu cầu mã PIN</string>
+    <string name="settings_passcode_lock_toggle_summary">Yêu cầu mã PIN mỗi khi bạn mở lại ứng dụng</string>
+    <string name="settings_passcode_lock_toggle_summary_empty">Bật để tạo mã PIN bảo vệ ứng dụng</string>
+    <string name="settings_passcode_change">Đổi mã PIN</string>
+    <string name="settings_passcode_change_summary">Cập nhật mã PIN hiện tại của bạn</string>
+    <string name="settings_passcode_remove">Xóa mã PIN</string>
+    <string name="settings_passcode_remove_summary">Xác nhận mã PIN hiện tại để xóa hoàn toàn</string>
+    <string name="settings_passcode_create_title">Tạo mã PIN</string>
+    <string name="settings_passcode_change_title">Đổi mã PIN</string>
+    <string name="settings_passcode_remove_title">Xóa mã PIN</string>
+    <string name="settings_passcode_create_action">Lưu mã PIN</string>
+    <string name="settings_passcode_change_action">Cập nhật</string>
+    <string name="settings_passcode_remove_action">Xóa mã PIN</string>
+    <string name="settings_passcode_pin_hint">Mã PIN 4 số</string>
+    <string name="settings_passcode_pin_confirm_hint">Nhập lại mã PIN</string>
+    <string name="settings_passcode_pin_current_hint">Mã PIN hiện tại</string>
+    <string name="settings_passcode_pin_helper">Mã PIN phải gồm đúng 4 chữ số</string>
+    <string name="settings_passcode_pin_error_invalid">Nhập mã PIN gồm đúng 4 chữ số</string>
+    <string name="settings_passcode_pin_error_mismatch">Mã PIN xác nhận không khớp</string>
+    <string name="settings_passcode_pin_error_same">Mã PIN mới phải khác mã PIN hiện tại</string>
+    <string name="settings_passcode_pin_error_current">Mã PIN hiện tại không đúng</string>
+    <string name="settings_passcode_pin_error_storage">Không thể lưu mã PIN trên thiết bị này</string>
+    <string name="settings_passcode_saved_enabled">Đã bật khóa ứng dụng</string>
+    <string name="settings_passcode_saved_disabled">Đã tắt khóa ứng dụng</string>
+    <string name="settings_passcode_saved_changed">Đã cập nhật mã PIN</string>
+    <string name="settings_passcode_saved_removed">Đã xóa mã PIN</string>
+    <string name="settings_passcode_prompt_title">Mở khóa Hubble</string>
+    <string name="settings_passcode_prompt_subtitle">Nhập mã PIN để tiếp tục sử dụng ứng dụng</string>
+    <string name="settings_passcode_prompt_action">Mở khóa</string>
+    <string name="settings_passcode_prompt_exit">Thoát ứng dụng</string>
+    <string name="settings_passcode_prompt_error">Mã PIN không đúng. Vui lòng thử lại.</string>
+    <string name="settings_passcode_timeout_hint">Ứng dụng sẽ khóa lại mỗi khi bạn rời ứng dụng và quay lại.</string>
+
+    <string name="settings_app_switcher_protection">Bảo vệ màn hình đa nhiệm</string>
+    <string name="settings_app_switcher_protection_summary_off">Cho phép xem trước giao diện ứng dụng trong đa nhiệm</string>
+    <string name="settings_app_switcher_protection_summary_on">Ẩn nội dung nhạy cảm khỏi màn hình đa nhiệm và ảnh chụp màn hình</string>
+    <string name="settings_device_alert">Cảnh báo đăng nhập thiết bị lạ</string>
+    <string name="settings_device_alert_summary_off">Không gửi cảnh báo khi tài khoản đăng nhập trên thiết bị mới</string>
+    <string name="settings_device_alert_summary_on">Gửi thông báo hệ thống khi phát hiện đăng nhập trên thiết bị chưa nhận diện</string>
+    <string name="settings_device_alert_saved">Đã cập nhật cảnh báo đăng nhập thiết bị lạ</string>
 
     <!-- Create / Join Server -->
     <string name="create_server_title">Tạo máy chủ</string>
@@ -870,7 +922,6 @@
     <string name="voice_speaker_on">Loa ngoài</string>
     <string name="voice_speaker_off">Loa trong</string>
     <string name="voice_permission_required">Cần quyền truy cập micro để tham gia kênh thoại</string>
-
     <!-- Search -->
     <string name="search_hint">Tìm kiếm…</string>
     <string name="search_no_results">Không tìm thấy kết quả</string>
@@ -887,6 +938,7 @@
     <string name="search_profile_status_hint">Trạng thái: %1$s</string>
     <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
     <string name="common_avatar">Ảnh đại diện</string>
+
     <!-- Friends list screen -->
     <string name="friends_title">Bạn bè</string>
     <string name="friends_empty">Bạn chưa có bạn bè nào</string>

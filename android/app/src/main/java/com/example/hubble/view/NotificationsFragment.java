@@ -25,7 +25,6 @@ import com.example.hubble.data.repository.NotificationRepository;
 import com.example.hubble.data.repository.ServerInviteRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.FragmentNotificationsBinding;
-import com.example.hubble.view.settings.SettingsActivity;
 import com.example.hubble.viewmodel.FriendViewModel;
 import com.example.hubble.viewmodel.FriendViewModelFactory;
 import com.example.hubble.viewmodel.NotificationViewModel;
@@ -88,9 +87,6 @@ public class NotificationsFragment extends Fragment {
                         new DmRepository(requireContext()),
                         new ServerRepository(requireContext())))
                 .get(MainViewModel.class);
-
-        binding.btnNotificationsMore.setOnClickListener(v ->
-                startActivity(SettingsActivity.createIntent(requireContext(), true)));
 
         setupRecyclerViews();
         observeFriendRequests();

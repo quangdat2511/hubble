@@ -67,14 +67,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp1"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -85,14 +81,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp2"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -103,14 +95,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp3"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -121,14 +109,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp4"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -139,14 +123,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp5"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -156,14 +136,10 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etOtp6"
+                style="@style/Widget.Hubble.EditText.Otp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_otp_input"
-                android:gravity="center"
-                android:inputType="number"
-                android:maxLength="1"
-                android:textColor="@color/color_text_primary"
-                android:textSize="24sp" />
+                android:maxLength="1" />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
@@ -194,7 +170,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/otp_resend_active"
-            android:textColor="@color/color_link"
+            android:textColor="@color/otp_resend_text"
             android:textStyle="bold"/>
     </LinearLayout>
 

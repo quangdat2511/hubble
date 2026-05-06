@@ -11,6 +11,9 @@ import com.example.hubble.data.api.ApiService;
 import com.example.hubble.data.api.RetrofitClient;
 import com.example.hubble.data.model.ApiResponse;
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.AppLockSettingsRequest;
+import com.example.hubble.data.model.settings.AppLockSettingsResponse;
+import com.example.hubble.utils.TokenManager;
 import com.example.hubble.viewmodel.SettingsViewModel;
 
 import retrofit2.Call;
@@ -24,6 +27,7 @@ public class SettingsRepository {
 
     private final Context appContext;
     private final ApiService apiService;
+    private final TokenManager tokenManager;
 
     public interface LanguageFetchCallback {
         void onSuccess(String language);
@@ -33,6 +37,7 @@ public class SettingsRepository {
     public SettingsRepository(Context context) {
         appContext = context.getApplicationContext();
         apiService = RetrofitClient.getApiService(appContext);
+        tokenManager = new TokenManager(appContext);
     }
 
     public LiveData<AuthResult<String>> getTheme(String authHeader) {
@@ -164,8 +169,71 @@ public class SettingsRepository {
         });
     }
 
-    private String extractErrorMessage(Response<ApiResponse<String>> response, String fallbackMessage) {
-        ApiResponse<String> body = response.body();
+    public void getAppLockSettings(RepositoryCallback<AppLockSettingsResponse> callback) {
+        callback.onResult(AuthResult.loading());
+        String authHeader = requireAuthHeader(callback);
+        if (authHeader == null) {
+            return;
+        }
+
+        apiService.getAppLockSettings(authHeader).enqueue(new Callback<ApiResponse<AppLockSettingsResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<AppLockSettingsResponse>> call,
+                                   Response<ApiResponse<AppLockSettingsResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
+                    callback.onResult(AuthResult.success(response.body().getResult()));
+                    return;
+                }
+
+                callback.onResult(AuthResult.error(extractErrorMessage(
+                        response,
+                        appContext.getString(R.string.error_generic)
+                )));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<AppLockSettingsResponse>> call, Throwable t) {
+                Log.e(TAG, "getAppLockSettings failed", t);
+                callback.onResult(AuthResult.error(appContext.getString(R.string.error_network_unknown)));
+            }
+        });
+    }
+
+    public void updateAppLockSettings(String pin, RepositoryCallback<AppLockSettingsResponse> callback) {
+        callback.onResult(AuthResult.loading());
+        String authHeader = requireAuthHeader(callback);
+        if (authHeader == null) {
+            return;
+        }
+
+        apiService.updateAppLockSettings(authHeader, new AppLockSettingsRequest(pin))
+                .enqueue(new Callback<ApiResponse<AppLockSettingsResponse>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<AppLockSettingsResponse>> call,
+                                           Response<ApiResponse<AppLockSettingsResponse>> response) {
+                        if (response.isSuccessful()
+                                && response.body() != null
+                                && response.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(response.body().getResult()));
+                            return;
+                        }
+
+                        callback.onResult(AuthResult.error(extractErrorMessage(
+                                response,
+                                appContext.getString(R.string.error_generic)
+                        )));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<AppLockSettingsResponse>> call, Throwable t) {
+                        Log.e(TAG, "updateAppLockSettings failed", t);
+                        callback.onResult(AuthResult.error(appContext.getString(R.string.error_network_unknown)));
+                    }
+                });
+    }
+
+    private <T> String extractErrorMessage(Response<ApiResponse<T>> response, String fallbackMessage) {
+        ApiResponse<T> body = response.body();
         if (body != null && body.getMessage() != null && !body.getMessage().trim().isEmpty()) {
             return body.getMessage();
         }
@@ -180,5 +248,14 @@ public class SettingsRepository {
             return DEFAULT_LANGUAGE;
         }
         return language.trim().toLowerCase();
+    }
+
+    private <T> String requireAuthHeader(RepositoryCallback<T> callback) {
+        String accessToken = tokenManager.getAccessToken();
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onResult(AuthResult.error(appContext.getString(R.string.error_generic)));
+            return null;
+        }
+        return "Bearer " + accessToken;
     }
 }

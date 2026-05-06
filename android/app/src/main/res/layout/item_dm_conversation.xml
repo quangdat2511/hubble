@@ -70,7 +70,7 @@
                     android:layout_marginStart="@dimen/spacing_xs"
                     android:contentDescription="@string/dm_favorite"
                     android:src="@drawable/ic_star"
-                    android:tint="?attr/colorOnSurfaceVariant"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:visibility="gone" />
 
                 <TextView

@@ -25,6 +25,7 @@ import com.google.android.gms.tasks.Task;
 
 public class LoginActivity extends BaseAuthActivity {
 
+    private static final int EMAIL_NOT_VERIFIED_CODE = 1021;
     private ActivityLoginBinding binding;
     private AuthViewModel authViewModel;
     private GoogleSignInClient mGoogleSignInClient;
@@ -33,16 +34,23 @@ public class LoginActivity extends BaseAuthActivity {
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-                    try {
-                        GoogleSignInAccount account = task.getResult(ApiException.class);
-                        if (account != null && account.getIdToken() != null) {
-                            authViewModel.loginWithGoogle(account.getIdToken());
-                        }
-                    } catch (ApiException e) {
-                        showError("Google sign in failed: " + e.getStatusCode());
+                if (result.getData() == null) {
+                    showError(getString(R.string.error_google_sign_in_cancelled));
+                    return;
+                }
+
+                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                try {
+                    GoogleSignInAccount account = task.getResult(ApiException.class);
+                    if (account != null && account.getIdToken() != null) {
+                        authViewModel.loginWithGoogle(account.getIdToken());
+                    } else if (account != null) {
+                        showError(getString(R.string.error_google_no_id_token));
+                    } else {
+                        showError(getString(R.string.error_google_sign_in_cancelled));
                     }
+                } catch (ApiException e) {
+                    showError(getString(R.string.error_google_sign_in_failed, e.getStatusCode()));
                 }
             }
     );
@@ -122,8 +130,12 @@ public class LoginActivity extends BaseAuthActivity {
     }
 
     private void handleGoogleLogin() {
-        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        googleSignInLauncher.launch(signInIntent);
+        // Revoke + sign out to prevent silent reuse of the previous Google account.
+        mGoogleSignInClient.revokeAccess().addOnCompleteListener(this, revokeTask ->
+                mGoogleSignInClient.signOut().addOnCompleteListener(this, signOutTask -> {
+                    Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+                    googleSignInLauncher.launch(signInIntent);
+                }));
     }
 
     private void observeViewModel() {
@@ -142,12 +154,15 @@ public class LoginActivity extends BaseAuthActivity {
                 
                 android.util.Log.d("LoginActivity", "Login error - Code: " + result.getErrorCode() + ", Message: " + result.getMessage());
                 
-                // Check if this is an EMAIL_NOT_VERIFIED error (code 1020)
-                if (result.getErrorCode() == 1020) {
-                    android.util.Log.d("LoginActivity", "Email not verified, navigating to OTP screen with email: " + lastAttemptedEmail);
-                    if (!lastAttemptedEmail.isEmpty()) {
+                if (isEmailNotVerifiedError(result.getErrorCode(), result.getMessage())) {
+                    String emailToVerify = lastAttemptedEmail;
+                    if (emailToVerify.isEmpty() && binding.etEmail.getText() != null) {
+                        emailToVerify = binding.etEmail.getText().toString().trim();
+                    }
+                    android.util.Log.d("LoginActivity", "Email not verified, navigating to OTP screen with email: " + emailToVerify);
+                    if (!emailToVerify.isEmpty()) {
                         Intent intent = new Intent(LoginActivity.this, OtpActivity.class);
-                        intent.putExtra(OtpActivity.EXTRA_EMAIL, lastAttemptedEmail);
+                        intent.putExtra(OtpActivity.EXTRA_EMAIL, emailToVerify);
                         intent.putExtra(OtpActivity.EXTRA_AUTO_SEND_OTP, true);
                         startActivity(intent);
                         finish();
@@ -158,6 +173,17 @@ public class LoginActivity extends BaseAuthActivity {
                 showError(result.getMessage());
             }
         });
+    }
+
+    private boolean isEmailNotVerifiedError(int errorCode, String message) {
+        if (errorCode == EMAIL_NOT_VERIFIED_CODE) {
+            return true;
+        }
+        if (message == null) {
+            return false;
+        }
+        String normalized = message.toLowerCase();
+        return normalized.contains("not verified") || normalized.contains("xác thực");
     }
 
     private void registerDeviceTokenAndNavigate() {

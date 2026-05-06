@@ -18,8 +18,13 @@ import com.example.hubble.data.model.auth.ResetPasswordRequest;
 import com.example.hubble.data.model.auth.SendEmailOtpRequest;
 import com.example.hubble.data.model.auth.TokenResponse;
 import com.example.hubble.data.model.auth.UserResponse;
+import com.example.hubble.R;
+import com.example.hubble.security.AppLockManager;
+import com.example.hubble.utils.AppLockSyncManager;
 import com.example.hubble.utils.ThemeSyncManager;
 import com.example.hubble.utils.TokenManager;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -128,7 +133,10 @@ public class AuthRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().getResult() != null) {
                     handleAuthenticatedResponse(response.body().getResult(), callback);
                 } else {
-                    callback.onResult(AuthResult.error("Google login failed"));
+                    ErrorInfo errorInfo = extractErrorInfo(response);
+                    callback.onResult(AuthResult.error(
+                            errorInfo.getMessage() != null ? errorInfo.getMessage() : "Google login failed",
+                            errorInfo.getCode()));
                 }
             }
 
@@ -242,6 +250,17 @@ public class AuthRepository {
             });
         }
         tokenManager.clear();
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(context.getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        com.google.android.gms.auth.api.signin.GoogleSignInClient client = GoogleSignIn.getClient(context, gso);
+        client.revokeAccess();
+        client.signOut();
+        AppLockManager manager = AppLockManager.getInstance();
+        if (manager != null) {
+            manager.onSessionEnded();
+        }
     }
 
     public void sendEmailOtp(String email, RepositoryCallback<String> callback) {
@@ -277,7 +296,8 @@ public class AuthRepository {
         tokenManager.saveTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
         tokenManager.saveUser(tokenResponse.getUser());
         ThemeSyncManager.syncThemeIfAuthenticated(context,
-                () -> callback.onResult(AuthResult.success(tokenResponse.getUser())));
+                () -> AppLockSyncManager.syncAppLockIfAuthenticated(context,
+                        () -> callback.onResult(AuthResult.success(tokenResponse.getUser()))));
     }
 
     private <T> String extractErrorMessage(Response<T> response, String fallback) {

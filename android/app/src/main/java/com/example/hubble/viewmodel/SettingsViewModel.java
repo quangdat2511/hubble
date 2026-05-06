@@ -6,8 +6,11 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.example.hubble.data.model.auth.AuthResult;
+import com.example.hubble.data.model.settings.AppLockSettingsResponse;
+import com.example.hubble.data.model.settings.DeviceAlertSettingsResponse;
 import com.example.hubble.data.model.settings.PushConfigResponse;
 import com.example.hubble.data.repository.AuthRepository;
+import com.example.hubble.data.repository.DeviceAlertSettingsRepository;
 import com.example.hubble.data.repository.PushConfigRepository;
 import com.example.hubble.data.repository.SettingsRepository;
 import com.example.hubble.utils.ThemeManager;
@@ -22,6 +25,7 @@ public class SettingsViewModel extends ViewModel {
     private final AuthRepository authRepository;
     private final SettingsRepository settingsRepository;
     private final PushConfigRepository pushConfigRepository;
+    private final DeviceAlertSettingsRepository deviceAlertSettingsRepository;
 
     private final MutableLiveData<AuthResult<PushConfigResponse>> pushConfigStateMutable = new MutableLiveData<>();
     public final LiveData<AuthResult<PushConfigResponse>> pushConfigState = pushConfigStateMutable;
@@ -31,6 +35,24 @@ public class SettingsViewModel extends ViewModel {
 
     private final MutableLiveData<PushConfigResponse> currentPushConfigMutable = new MutableLiveData<>();
     public final LiveData<PushConfigResponse> currentPushConfig = currentPushConfigMutable;
+
+    private final MutableLiveData<AuthResult<AppLockSettingsResponse>> appLockStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<AppLockSettingsResponse>> appLockState = appLockStateMutable;
+
+    private final MutableLiveData<AuthResult<AppLockSettingsResponse>> appLockSaveStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<AppLockSettingsResponse>> appLockSaveState = appLockSaveStateMutable;
+
+    private final MutableLiveData<AppLockSettingsResponse> currentAppLockSettingsMutable = new MutableLiveData<>();
+    public final LiveData<AppLockSettingsResponse> currentAppLockSettings = currentAppLockSettingsMutable;
+
+    private final MutableLiveData<AuthResult<DeviceAlertSettingsResponse>> deviceAlertSettingsStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<DeviceAlertSettingsResponse>> deviceAlertSettingsState = deviceAlertSettingsStateMutable;
+
+    private final MutableLiveData<AuthResult<DeviceAlertSettingsResponse>> deviceAlertSettingsSaveStateMutable = new MutableLiveData<>();
+    public final LiveData<AuthResult<DeviceAlertSettingsResponse>> deviceAlertSettingsSaveState = deviceAlertSettingsSaveStateMutable;
+
+    private final MutableLiveData<DeviceAlertSettingsResponse> currentDeviceAlertSettingsMutable = new MutableLiveData<>();
+    public final LiveData<DeviceAlertSettingsResponse> currentDeviceAlertSettings = currentDeviceAlertSettingsMutable;
 
     private final MutableLiveData<AuthResult<String>> themeState = new MutableLiveData<>();
     private final MutableLiveData<AuthResult<String>> themeUpdateState = new MutableLiveData<>();
@@ -47,10 +69,12 @@ public class SettingsViewModel extends ViewModel {
 
     public SettingsViewModel(AuthRepository authRepository,
                              SettingsRepository settingsRepository,
-                             PushConfigRepository pushConfigRepository) {
+                             PushConfigRepository pushConfigRepository,
+                             DeviceAlertSettingsRepository deviceAlertSettingsRepository) {
         this.authRepository = authRepository;
         this.settingsRepository = settingsRepository;
         this.pushConfigRepository = pushConfigRepository;
+        this.deviceAlertSettingsRepository = deviceAlertSettingsRepository;
     }
 
     public void logout() {
@@ -173,6 +197,42 @@ public class SettingsViewModel extends ViewModel {
         });
     }
 
+    public void loadAppLockSettings() {
+        settingsRepository.getAppLockSettings(result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentAppLockSettingsMutable.setValue(result.getData());
+            }
+            appLockStateMutable.setValue(result);
+        });
+    }
+
+    public void updateAppLockSettings(String pin) {
+        settingsRepository.updateAppLockSettings(pin, result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentAppLockSettingsMutable.setValue(result.getData());
+            }
+            appLockSaveStateMutable.setValue(result);
+        });
+    }
+
+    public void loadDeviceAlertSettings() {
+        deviceAlertSettingsRepository.getSettings(result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentDeviceAlertSettingsMutable.setValue(result.getData());
+            }
+            deviceAlertSettingsStateMutable.setValue(result);
+        });
+    }
+
+    public void updateDeviceAlertSettings(boolean enabled) {
+        deviceAlertSettingsRepository.updateSettings(enabled, result -> {
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                currentDeviceAlertSettingsMutable.setValue(result.getData());
+            }
+            deviceAlertSettingsSaveStateMutable.setValue(result);
+        });
+    }
+
     public PushConfigResponse getCurrentPushConfigValue() {
         return currentPushConfigMutable.getValue();
     }
@@ -183,6 +243,30 @@ public class SettingsViewModel extends ViewModel {
 
     public void resetPushConfigSaveState() {
         pushConfigSaveStateMutable.setValue(null);
+    }
+
+    public AppLockSettingsResponse getCurrentAppLockSettingsValue() {
+        return currentAppLockSettingsMutable.getValue();
+    }
+
+    public void resetAppLockState() {
+        appLockStateMutable.setValue(null);
+    }
+
+    public void resetAppLockSaveState() {
+        appLockSaveStateMutable.setValue(null);
+    }
+
+    public DeviceAlertSettingsResponse getCurrentDeviceAlertSettingsValue() {
+        return currentDeviceAlertSettingsMutable.getValue();
+    }
+
+    public void resetDeviceAlertSettingsState() {
+        deviceAlertSettingsStateMutable.setValue(null);
+    }
+
+    public void resetDeviceAlertSettingsSaveState() {
+        deviceAlertSettingsSaveStateMutable.setValue(null);
     }
 
     @Override
