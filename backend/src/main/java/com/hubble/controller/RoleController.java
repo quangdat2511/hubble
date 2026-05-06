@@ -3,16 +3,21 @@ package com.hubble.controller;
 import com.hubble.dto.common.ApiResponse;
 import com.hubble.dto.request.*;
 import com.hubble.dto.response.*;
+import com.hubble.enums.Permission;
 import com.hubble.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/servers/{serverId}/roles")
@@ -71,6 +76,18 @@ public class RoleController {
 
     // ──────────────── permissions ────────────────
 
+    @GetMapping("/my-permissions")
+    public ResponseEntity<ApiResponse<Set<String>>> getMyPermissions(
+            @PathVariable UUID serverId, Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        long bitmask = roleService.getEffectivePermissions(serverId, userId);
+        Set<String> perms = Arrays.stream(Permission.values())
+                .filter(p -> Permission.hasPermission(bitmask, p))
+                .map(Enum::name)
+                .collect(Collectors.toSet());
+        return ResponseEntity.ok(ApiResponse.<Set<String>>builder().result(perms).build());
+    }
+
     @GetMapping("/{roleId}/permissions")
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getPermissions(
             @PathVariable UUID serverId, @PathVariable UUID roleId) {
@@ -113,5 +130,13 @@ public class RoleController {
             @PathVariable UUID memberId) {
         roleService.removeMember(serverId, roleId, memberId);
         return ResponseEntity.ok(ApiResponse.<Void>builder().build());
+    }
+
+    @GetMapping("/members/{userId}")
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getMemberRoles(
+            @PathVariable UUID serverId, @PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.<List<RoleResponse>>builder()
+                .result(roleService.getMemberRoles(serverId, userId))
+                .build());
     }
 }

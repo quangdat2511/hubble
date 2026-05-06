@@ -21,8 +21,10 @@ import com.example.hubble.R;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.repository.ServerMemberRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.data.repository.RoleRepository;
 import com.example.hubble.databinding.FragmentServerSettingsBinding;
 import com.example.hubble.utils.TokenManager;
+import com.example.hubble.utils.PermissionsCache;
 import com.example.hubble.viewmodel.server.ServerSettingsViewModel;
 import com.example.hubble.viewmodel.server.ServerSettingsViewModelFactory;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -143,6 +145,33 @@ public class ServerSettingsFragment extends Fragment {
         // Delete server card: owner-only
         binding.cardDeleteServer.setVisibility(isOwner ? View.VISIBLE : View.GONE);
 
+        // ── Non-owner permission-gated views ──────────────────────────────
+        // For non-owners: hide rows first, then apply cache immediately (no flicker),
+        // then always refresh in background so stale cache is silently corrected.
+        if (!isOwner) {
+            binding.rowRoles.setVisibility(View.GONE);
+            binding.rowInvites.setVisibility(View.GONE);
+
+            // Cache-first: apply instantly if permissions are already known
+            Set<String> cached = PermissionsCache.get(serverId);
+            if (cached != null) {
+                applyPermissionVisibility(cached);
+            }
+
+            // Background refresh: always re-fetch to keep state fresh
+            new RoleRepository(requireContext()).loadMyPermissions(serverId, result -> {
+                if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                    Set<String> perms = result.getData();
+                    PermissionsCache.put(serverId, perms);
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() -> {
+                        if (binding == null) return;
+                        applyPermissionVisibility(perms);
+                    });
+                }
+            });
+        }
+
         // ── Members count ──────────────────────────────────────────────────
 
         viewModel.getMembersState().observe(getViewLifecycleOwner(), result -> {
@@ -173,6 +202,7 @@ public class ServerSettingsFragment extends Fragment {
                         RolesListFragment.newInstance(serverId), true);
             }
         });
+        // rowRoles + rowInvites visibility: owner always sees them; non-owners handled by cache-first block above
         binding.rowEmoji.setOnClickListener(v -> showComingSoon());
         binding.rowStickers.setOnClickListener(v -> showComingSoon());
 
@@ -256,6 +286,29 @@ public class ServerSettingsFragment extends Fragment {
     }
 
     // ── Icon helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Applies visibility to all permission-gated views for non-owner users.
+     * Safe to call multiple times (idempotent). Must be called on the main thread.
+     */
+    private void applyPermissionVisibility(Set<String> perms) {
+        if (binding == null) return;
+        if (perms.contains("MANAGE_ROLES")) binding.rowRoles.setVisibility(View.VISIBLE);
+        if (perms.contains("INVITE_MEMBERS")) binding.rowInvites.setVisibility(View.VISIBLE);
+        if (perms.contains("MANAGE_SERVER")) {
+            binding.sectionOverview.setVisibility(View.VISIBLE);
+            binding.rowServerName.setOnClickListener(v ->
+                    ((ServerSettingsActivity) requireActivity()).navigateTo(
+                            EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_NAME, serverName), true));
+            binding.rowServerDescription.setOnClickListener(v ->
+                    ((ServerSettingsActivity) requireActivity()).navigateTo(
+                            EditServerFieldFragment.newInstance(serverId, EditServerFieldFragment.FIELD_DESCRIPTION, description), true));
+            binding.rowServerIcon.setVisibility(View.VISIBLE);
+            binding.rowServerIcon.setOnClickListener(v -> openIconPicker());
+            updateRemoveIconVisibility();
+            binding.rowRemoveIcon.setOnClickListener(v -> confirmRemoveIcon());
+        }
+    }
 
     private void openIconPicker() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);

@@ -57,6 +57,7 @@ public class SearchService {
     ServerMemberRepository serverMemberRepository;
     MemberRoleRepository memberRoleRepository;
     ChannelRoleRepository channelRoleRepository;
+    RoleService roleService;
 
     @NonFinal
     @Value("${app.search.hybrid.enabled:true}")

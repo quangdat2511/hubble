@@ -7,6 +7,7 @@ import com.hubble.entity.ServerMember;
 import com.hubble.entity.User;
 import com.hubble.entity.Server;
 import com.hubble.enums.NotificationType;
+import com.hubble.enums.Permission;
 import com.hubble.enums.ServerInviteStatus;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
@@ -36,6 +37,7 @@ public class ServerInviteService {
     UserRepository userRepository;
     ServerInviteMapper serverInviteMapper;
     NotificationService notificationService;
+    RoleService roleService;
 
     @Transactional
     public ServerInviteResponse inviteUser(UUID inviterId, UUID serverId, ServerInviteRequest request) {
@@ -51,7 +53,8 @@ public class ServerInviteService {
         Server server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
 
-        if (!server.getOwnerId().equals(inviterId)) {
+        if (!server.getOwnerId().equals(inviterId)
+                && !roleService.hasServerPermission(serverId, inviterId, Permission.INVITE_MEMBERS)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 

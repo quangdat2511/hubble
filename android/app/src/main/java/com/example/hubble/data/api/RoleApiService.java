@@ -8,6 +8,7 @@ import com.example.hubble.data.model.server.PermissionResponse;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -98,5 +99,18 @@ public interface RoleApiService {
             @Path("serverId") String serverId,
             @Path("roleId") String roleId,
             @Path("memberId") String memberId
+    );
+
+    @GET("api/servers/{serverId}/roles/my-permissions")
+    Call<ApiResponse<Set<String>>> getMyPermissions(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId
+    );
+
+    @GET("api/servers/{serverId}/roles/members/{userId}")
+    Call<ApiResponse<List<RoleResponse>>> getMemberRoles(
+            @Header("Authorization") String token,
+            @Path("serverId") String serverId,
+            @Path("userId") String userId
     );
 }

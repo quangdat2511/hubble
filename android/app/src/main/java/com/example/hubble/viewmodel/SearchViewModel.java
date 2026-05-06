@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -13,16 +14,24 @@ import com.example.hubble.data.model.search.PagedResponse;
 import com.example.hubble.data.model.search.SearchChannelDto;
 import com.example.hubble.data.model.search.SearchMemberDto;
 import com.example.hubble.data.model.search.SearchMessageDto;
+import com.example.hubble.data.model.server.RoleResponse;
+import com.example.hubble.data.repository.RoleRepository;
 import com.example.hubble.data.repository.SearchRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SearchViewModel extends ViewModel {
 
     public enum ScopeType { CHANNEL, SERVER, DM }
 
     private SearchRepository repository;
+    private RoleRepository roleRepository;
+
+    // Roles cache: key = "serverId:userId"
+    private final Map<String, List<RoleResponse>> memberRolesCache = new ConcurrentHashMap<>();
 
     private final MutableLiveData<String> _currentQuery = new MutableLiveData<>("");
     public final LiveData<String> currentQuery = _currentQuery;
@@ -52,6 +61,7 @@ public class SearchViewModel extends ViewModel {
 
     public void init(Context context, ScopeType scope, String scopeId) {
         this.repository = new SearchRepository(context);
+        this.roleRepository = new RoleRepository(context);
         this._scopeType.setValue(scope);
         this.scopeId = scopeId;
         // Load tabs that can be shown immediately when query is empty.
@@ -197,6 +207,42 @@ public class SearchViewModel extends ViewModel {
     }
 
     public boolean isMessagesLastPage() { return messagesLastPage; }
+
+    // ── Member roles cache ────────────────────────────────────────────────
+
+    @Nullable
+    public List<RoleResponse> getCachedMemberRoles(String serverId, String userId) {
+        if (serverId == null || userId == null) return null;
+        return memberRolesCache.get(serverId + ":" + userId);
+    }
+
+    /**
+     * Fire-and-forget prefetch: fetch roles for a member and store in cache.
+     * Called before the bottom sheet is shown so data is ready on open.
+     */
+    public void prefetchMemberRoles(String serverId, String userId) {
+        if (serverId == null || userId == null || roleRepository == null) return;
+        roleRepository.getMemberRoles(serverId, userId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                memberRolesCache.put(serverId + ":" + userId, result.getData());
+            }
+        });
+    }
+
+    /**
+     * Background refresh: fetch fresh roles, update cache, invoke callback on main thread.
+     */
+    public void refreshMemberRoles(String serverId, String userId,
+                                    java.util.function.Consumer<List<RoleResponse>> onUpdated) {
+        if (serverId == null || userId == null || roleRepository == null) return;
+        roleRepository.getMemberRoles(serverId, userId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                memberRolesCache.put(serverId + ":" + userId, result.getData());
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> onUpdated.accept(result.getData()));
+            }
+        });
+    }
 
     @Override
     protected void onCleared() {

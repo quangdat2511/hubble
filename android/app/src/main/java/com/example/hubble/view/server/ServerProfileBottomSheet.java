@@ -26,6 +26,11 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
     private String serverId;
 
     public static ServerProfileBottomSheet newInstance(ServerItem server, int memberCount, int onlineCount) {
+        return newInstance(server, memberCount, onlineCount, false, false);
+    }
+
+    public static ServerProfileBottomSheet newInstance(ServerItem server, int memberCount, int onlineCount,
+                                                        boolean canManageChannels, boolean canInviteMembers) {
         ServerProfileBottomSheet fragment = new ServerProfileBottomSheet();
         Bundle args = new Bundle();
         args.putString("server_id",       server.getId());
@@ -35,6 +40,8 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
         args.putString("description",     server.getDescription());
         args.putInt("member_count",  memberCount);
         args.putInt("online_count",  onlineCount);
+        args.putBoolean("can_manage_channels", canManageChannels);
+        args.putBoolean("can_invite_members", canInviteMembers);
         fragment.setArguments(args);
         return fragment;
     }
@@ -101,13 +108,21 @@ public class ServerProfileBottomSheet extends BottomSheetDialogFragment {
                         requireContext(), serverId, serverName, ownerId, iconUrl, description));
             });
 
-            // Show create actions card only to server owner
+            // Show create actions card to owner or members with MANAGE_CHANNELS permission
             TokenManager tokenManager = new TokenManager(requireContext());
             String currentUserId = tokenManager.getUser() != null ? tokenManager.getUser().getId() : null;
-            if (ownerId != null && ownerId.equals(currentUserId)) {
+            boolean isOwner = ownerId != null && ownerId.equals(currentUserId);
+            boolean canManageChannels = getArguments().getBoolean("can_manage_channels", false);
+            boolean canInviteMembers = getArguments().getBoolean("can_invite_members", false);
+            if (isOwner || canManageChannels) {
                 binding.cardCreateActions.setVisibility(View.VISIBLE);
             } else {
                 binding.cardCreateActions.setVisibility(View.GONE);
+            }
+
+            // Invite button: owner or members with INVITE_MEMBERS permission
+            if (!isOwner && !canInviteMembers) {
+                binding.rowInvitePeople.setVisibility(View.GONE);
             }
 
             // List items

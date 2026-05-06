@@ -4,6 +4,7 @@ import com.hubble.dto.request.*;
 import com.hubble.dto.response.*;
 import com.hubble.entity.MemberRole;
 import com.hubble.entity.Role;
+import com.hubble.entity.Server;
 import com.hubble.entity.ServerMember;
 import com.hubble.entity.User;
 import com.hubble.enums.Permission;
@@ -14,6 +15,7 @@ import com.hubble.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +34,20 @@ public class RoleService {
     ServerMemberRepository serverMemberRepository;
     UserRepository userRepository;
     RoleMapper roleMapper;
+    SimpMessagingTemplate messagingTemplate;
 
     // ──────────────── preset bitmasks ────────────────
     static final long PRESET_MEMBER = Permission.buildBitmask(List.of(
             Permission.VIEW_CHANNELS, Permission.SEND_MESSAGES,
-            Permission.EMBED_LINKS, Permission.ATTACH_FILES,
-            Permission.ADD_REACTIONS, Permission.USE_EXTERNAL_EMOJIS,
-            Permission.CHANGE_NICKNAME, Permission.CREATE_INVITE
+            Permission.ATTACH_FILES, Permission.INVITE_MEMBERS
     ));
-    static final long PRESET_MODERATOR = PRESET_MEMBER
-            | Permission.KICK_MEMBERS.bit | Permission.BAN_MEMBERS.bit
-            | Permission.TIMEOUT_MEMBERS.bit | Permission.MANAGE_NICKNAMES.bit
-            | Permission.MANAGE_CHANNELS.bit;
-    static final long PRESET_ADMIN = Permission.ALL;
+    // ADMIN gets all permissions except HIDE_FROM_SEARCH (that one is opt-in per role)
+    static final long PRESET_ADMIN = Permission.buildBitmask(List.of(
+            Permission.VIEW_CHANNELS, Permission.MANAGE_CHANNELS,
+            Permission.MANAGE_ROLES, Permission.MANAGE_SERVER,
+            Permission.INVITE_MEMBERS, Permission.KICK_MEMBERS,
+            Permission.SEND_MESSAGES, Permission.ATTACH_FILES
+    ));
 
     // ──────────────── queries ────────────────
 
@@ -203,6 +206,26 @@ public class RoleService {
 
         role.setPermissions(Permission.buildBitmask(granted));
         roleRepository.save(role);
+
+        // Broadcast permission change to affected members in real time
+        List<UUID> affectedUserIds;
+        if (Boolean.TRUE.equals(role.getIsDefault())) {
+            // @everyone role — broadcast to all server members
+            affectedUserIds = serverMemberRepository.findAllByServerId(serverId)
+                    .stream().map(ServerMember::getUserId).toList();
+        } else {
+            // Custom role — broadcast only to members assigned this role
+            affectedUserIds = memberRoleRepository.findByRoleId(roleId)
+                    .stream().map(mr -> mr.getMemberId()).toList();
+        }
+        ServerEventNotification event = ServerEventNotification.builder()
+                .type("ROLE_PERMISSIONS_UPDATED")
+                .serverId(serverId)
+                .roleId(roleId)
+                .build();
+        affectedUserIds.forEach(uid ->
+                messagingTemplate.convertAndSend("/topic/users/" + uid + "/server-events", event));
+
         return getPermissions(serverId, roleId);
     }
 
@@ -227,6 +250,24 @@ public class RoleService {
         memberRoleRepository.deleteByMemberIdAndRoleId(memberId, roleId);
     }
 
+    /**
+     * Returns all custom roles (non-default, non-@everyone) assigned to a specific user in a server.
+     */
+    public List<RoleResponse> getMemberRoles(UUID serverId, UUID userId) {
+        serverRepository.findById(serverId)
+                .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
+        ServerMember member = serverMemberRepository.findByServerIdAndUserId(serverId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        List<UUID> roleIds = memberRoleRepository.findRoleIdsByMemberId(member.getId());
+        if (roleIds.isEmpty()) return List.of();
+
+        return roleRepository.findAllById(roleIds).stream()
+                .filter(role -> !Boolean.TRUE.equals(role.getIsDefault()))
+                .map(roleMapper::toRoleResponse)
+                .toList();
+    }
+
     // ──────────────── helpers ────────────────
 
     private Role getRole(UUID serverId, UUID roleId) {
@@ -242,10 +283,44 @@ public class RoleService {
         if (preset == null) return 0L;
         return switch (preset.toUpperCase()) {
             case "MEMBER" -> PRESET_MEMBER;
-            case "MODERATOR" -> PRESET_MODERATOR;
             case "ADMIN" -> PRESET_ADMIN;
             default -> 0L;
         };
+    }
+
+    // ──────────────── effective permission helpers ────────────────
+
+    /**
+     * Returns the combined permissions bitmask for a user in a server.
+     * Server owner always has all permissions.
+     * Combines the @everyone default role + all custom roles assigned to the member.
+     */
+    public long getEffectivePermissions(UUID serverId, UUID userId) {
+        Server server = serverRepository.findById(serverId).orElse(null);
+        if (server == null) return 0L;
+        if (server.getOwnerId().equals(userId)) return Permission.ALL;
+
+        Optional<ServerMember> memberOpt = serverMemberRepository.findByServerIdAndUserId(serverId, userId);
+        if (memberOpt.isEmpty()) return 0L;
+
+        ServerMember member = memberOpt.get();
+
+        // Start with the @everyone default role permissions
+        long perms = roleRepository.findByServerIdAndIsDefaultTrue(serverId)
+                .map(Role::getPermissions).orElse(0L);
+
+        // OR in each custom role
+        List<UUID> roleIds = memberRoleRepository.findRoleIdsByMemberId(member.getId());
+        if (!roleIds.isEmpty()) {
+            perms = roleRepository.findAllById(roleIds).stream()
+                    .mapToLong(Role::getPermissions)
+                    .reduce(perms, (a, b) -> a | b);
+        }
+        return perms;
+    }
+
+    public boolean hasServerPermission(UUID serverId, UUID userId, Permission perm) {
+        return Permission.hasPermission(getEffectivePermissions(serverId, userId), perm);
     }
 
     private void assignMembersInternal(UUID roleId, UUID serverId, List<UUID> userIds) {

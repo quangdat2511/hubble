@@ -5,6 +5,7 @@ import com.hubble.dto.response.ServerMemberResponse;
 import com.hubble.entity.Server;
 import com.hubble.entity.ServerMember;
 import com.hubble.entity.User;
+import com.hubble.enums.Permission;
 import com.hubble.exception.AppException;
 import com.hubble.exception.ErrorCode;
 import com.hubble.mapper.ServerMemberMapper;
@@ -33,6 +34,7 @@ public class ServerMemberService {
     UserRepository userRepository;
     ServerMemberMapper serverMemberMapper;
     SimpMessagingTemplate messagingTemplate;
+    RoleService roleService;
 
     public List<ServerMemberResponse> getServerMembers(UUID requestorId, UUID serverId) {
         Server server = serverRepository.findById(serverId)
@@ -57,7 +59,8 @@ public class ServerMemberService {
         Server server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
 
-        if (!server.getOwnerId().equals(requestorId)) {
+        if (!server.getOwnerId().equals(requestorId)
+                && !roleService.hasServerPermission(serverId, requestorId, Permission.KICK_MEMBERS)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 

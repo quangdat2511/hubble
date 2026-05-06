@@ -110,6 +110,37 @@
                         app:cornerRadius="24dp" />
                 </LinearLayout>
 
+                <!-- Roles cluster (server scope only) -->
+                <LinearLayout
+                    android:id="@+id/sectionRoles"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?attr/colorOutlineVariant"
+                        android:layout_marginBottom="@dimen/spacing_md" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/search_member_roles_label"
+                        android:textAppearance="?attr/textAppearanceLabelMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginBottom="@dimen/spacing_sm" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupRoles"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="4dp"
+                        app:chipSpacingVertical="4dp" />
+                </LinearLayout>
+
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

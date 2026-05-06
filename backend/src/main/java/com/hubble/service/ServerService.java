@@ -65,6 +65,7 @@ public class ServerService {
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final RoleService roleService;
     private final String supabaseUrl;
     private final String serviceRoleKey;
     private final String serverIconBucket;
@@ -81,6 +82,7 @@ public class ServerService {
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
             SimpMessagingTemplate messagingTemplate,
+            RoleService roleService,
             @Value("${supabase.url}") String supabaseUrl,
             @Value("${supabase.service-role-key}") String serviceRoleKey,
             @Value("${supabase.server-icon-bucket}") String serverIconBucket) {
@@ -95,6 +97,7 @@ public class ServerService {
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
         this.messagingTemplate = messagingTemplate;
+        this.roleService = roleService;
         this.supabaseUrl = supabaseUrl;
         this.serviceRoleKey = serviceRoleKey;
         this.serverIconBucket = serverIconBucket;
@@ -190,12 +193,8 @@ public class ServerService {
                 .permissions(Permission.buildBitmask(List.of(
                         Permission.VIEW_CHANNELS,
                         Permission.SEND_MESSAGES,
-                        Permission.EMBED_LINKS,
                         Permission.ATTACH_FILES,
-                        Permission.ADD_REACTIONS,
-                        Permission.USE_EXTERNAL_EMOJIS,
-                        Permission.CHANGE_NICKNAME,
-                        Permission.CREATE_INVITE)))
+                        Permission.INVITE_MEMBERS)))
                 .position((short) 0)
                 .isDefault(true)
                 .build());
@@ -206,7 +205,7 @@ public class ServerService {
 
     @Transactional
     public ServerResponse updateServer(UUID userId, UUID serverId, UpdateServerRequest request) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         if (request.getName() != null) {
             String name = request.getName().trim();
             if (name.isEmpty() || name.length() > 100) {
@@ -224,7 +223,7 @@ public class ServerService {
 
     @Transactional
     public ServerResponse updateServerIcon(UUID userId, UUID serverId, MultipartFile iconFile) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(uploadIcon(iconFile));
         ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
@@ -234,7 +233,7 @@ public class ServerService {
 
     @Transactional
     public ServerResponse removeServerIcon(UUID userId, UUID serverId) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(null);
         ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
@@ -339,6 +338,16 @@ public class ServerService {
         Server server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
         if (!server.getOwnerId().equals(userId)) throw new AppException(ErrorCode.NOT_SERVER_OWNER);
+        return server;
+    }
+
+    private Server getServerWithManagePermission(UUID userId, UUID serverId) {
+        Server server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
+        if (!server.getOwnerId().equals(userId)
+                && !roleService.hasServerPermission(serverId, userId, Permission.MANAGE_SERVER)) {
+            throw new AppException(ErrorCode.NOT_SERVER_OWNER);
+        }
         return server;
     }
 

@@ -1,6 +1,7 @@
 package com.example.hubble.view.search;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,15 +16,21 @@ import com.example.hubble.R;
 import com.example.hubble.data.api.NetworkConfig;
 import com.example.hubble.data.model.auth.AuthResult;
 import com.example.hubble.data.model.search.SearchMemberDto;
+import com.example.hubble.data.model.server.RoleResponse;
 import com.example.hubble.data.repository.DmRepository;
 import com.example.hubble.data.repository.FriendRepository;
 import com.example.hubble.databinding.BottomSheetSearchUserPreviewBinding;
 import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.example.hubble.utils.TokenManager;
 import com.example.hubble.view.dm.DmChatActivity;
+import com.example.hubble.viewmodel.SearchViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.android.material.chip.Chip;
+
+import java.util.List;
 
 public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
     public static final String RESULT_KEY_RELATION_UPDATED = "search_relation_updated";
@@ -37,8 +44,13 @@ public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
     private static final String ARG_IS_SELF = "is_self";
     private static final String ARG_IS_FRIEND = "is_friend";
     private static final String ARG_FRIENDSHIP_STATE = "friendship_state";
+    private static final String ARG_SERVER_ID = "server_id";
 
     public static SearchUserPreviewBottomSheet newInstance(SearchMemberDto member) {
+        return newInstance(member, null);
+    }
+
+    public static SearchUserPreviewBottomSheet newInstance(SearchMemberDto member, @Nullable String serverId) {
         SearchUserPreviewBottomSheet sheet = new SearchUserPreviewBottomSheet();
         Bundle args = new Bundle();
         args.putString(ARG_ID, member.getId());
@@ -49,6 +61,7 @@ public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
         args.putBoolean(ARG_IS_SELF, member.isSelf());
         args.putBoolean(ARG_IS_FRIEND, member.isFriend());
         args.putString(ARG_FRIENDSHIP_STATE, member.getFriendshipState());
+        args.putString(ARG_SERVER_ID, serverId);
         sheet.setArguments(args);
         return sheet;
     }
@@ -75,6 +88,7 @@ public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
         friendRepository = new FriendRepository(requireContext());
 
         String userId = args.getString(ARG_ID, "");
+        String serverId = args.getString(ARG_SERVER_ID, null);
         String username = args.getString(ARG_USERNAME, "");
         String displayName = args.getString(ARG_DISPLAY_NAME, "");
         String avatarUrl = args.getString(ARG_AVATAR_URL, "");
@@ -105,6 +119,22 @@ public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
 
         binding.btnMessage.setOnClickListener(v -> startDm(userId, resolvedName, avatarUrl));
         binding.btnAddFriend.setOnClickListener(v -> sendFriendRequest(userId));
+
+        // Load and display member roles (server scope only — cache-first, background refresh)
+        if (serverId != null && !serverId.isBlank() && !userId.isBlank()) {
+            SearchViewModel searchVm = new ViewModelProvider(requireActivity()).get(SearchViewModel.class);
+            List<RoleResponse> cached = searchVm.getCachedMemberRoles(serverId, userId);
+            if (cached != null && !cached.isEmpty()) {
+                renderRoles(cached);
+            }
+            // Always refresh in background; update UI if the data changed
+            final String finalServerId = serverId;
+            final String finalUserId = userId;
+            searchVm.refreshMemberRoles(finalServerId, finalUserId, fresh -> {
+                if (binding == null) return;
+                if (!fresh.isEmpty()) renderRoles(fresh);
+            });
+        }
     }
 
     @Override
@@ -116,6 +146,37 @@ public class SearchUserPreviewBottomSheet extends BottomSheetDialogFragment {
             behavior.setPeekHeight(BottomSheetBehavior.PEEK_HEIGHT_AUTO);
             behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             behavior.setSkipCollapsed(true);
+        }
+    }
+
+    private void renderRoles(List<RoleResponse> roles) {
+        if (binding == null) return;
+        binding.sectionRoles.setVisibility(View.VISIBLE);
+        binding.chipGroupRoles.removeAllViews();
+        for (RoleResponse role : roles) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(role.getName());
+            chip.setClickable(false);
+            chip.setCheckable(false);
+            chip.setTextSize(12f);
+            if (role.getColor() != null && role.getColor() != 0) {
+                int color = role.getColor();
+                chip.setChipBackgroundColor(
+                        android.content.res.ColorStateList.valueOf(
+                                Color.argb(40,
+                                        Color.red(color),
+                                        Color.green(color),
+                                        Color.blue(color))));
+                chip.setTextColor(color);
+                chip.setChipStrokeWidth(1.5f);
+                chip.setChipStrokeColor(
+                        android.content.res.ColorStateList.valueOf(
+                                Color.argb(120,
+                                        Color.red(color),
+                                        Color.green(color),
+                                        Color.blue(color))));
+            }
+            binding.chipGroupRoles.addView(chip);
         }
     }
 

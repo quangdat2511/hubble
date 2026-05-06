@@ -171,6 +171,15 @@ public class SearchResultFragment extends Fragment {
                         List<SearchMemberDto> data = result.getData();
                         memberAdapter.setItemsWithClustering(data);
                         setEmpty(data == null || data.isEmpty());
+                        // Prefetch roles for all visible members in server scope
+                        if (category == Category.MEMBERS
+                                && scopeType == ScopeType.SERVER
+                                && scopeId != null
+                                && data != null) {
+                            for (SearchMemberDto m : data) {
+                                viewModel.prefetchMemberRoles(scopeId, m.getId());
+                            }
+                        }
                     } else if (result.isError()) {
                         setEmpty(true);
                     }
@@ -206,7 +215,7 @@ public class SearchResultFragment extends Fragment {
             intent = DmChatActivity.createIntentForServerText(
                     requireContext(), scopeId, null, null, null,
                     item.getChannelId(), item.getChannelName() != null ? "#" + item.getChannelName() : "",
-                    null, null, null, false);
+                    null, null, null, false, true, true);
         } else {
             intent = DmChatActivity.createIntent(requireContext(), item.getChannelId(), null);
         }
@@ -218,7 +227,12 @@ public class SearchResultFragment extends Fragment {
     }
 
     private void onMemberClick(SearchMemberDto item) {
-        SearchUserPreviewBottomSheet.newInstance(item)
+        String serverIdForRoles = (scopeType == ScopeType.SERVER) ? scopeId : null;
+        // Prefetch roles so they are ready when the bottom sheet opens
+        if (serverIdForRoles != null) {
+            viewModel.prefetchMemberRoles(serverIdForRoles, item.getId());
+        }
+        SearchUserPreviewBottomSheet.newInstance(item, serverIdForRoles)
                 .show(getChildFragmentManager(), "search_user_preview");
     }
 
@@ -227,7 +241,7 @@ public class SearchResultFragment extends Fragment {
         Intent intent = DmChatActivity.createIntentForServerText(
                 requireContext(), scopeId, null, null, null,
                 item.getId(), item.getName() != null ? "#" + item.getName() : "",
-                item.getTopic(), null, null, false);
+                item.getTopic(), null, null, false, true, true);
         startActivity(intent);
     }
 

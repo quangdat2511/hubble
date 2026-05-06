@@ -57,6 +57,8 @@ public class VoiceCallActivity extends AppCompatActivity {
     private static final String EXTRA_SERVER_NAME = "server_name";
     private static final String EXTRA_MIC_ENABLED = "mic_enabled";
 
+    private static final String EXTRA_CAN_INVITE_MEMBERS = "can_invite_members";
+
     private ActivityVoiceCallBinding binding;
     private VoiceParticipantAdapter adapter;
 
@@ -101,12 +103,19 @@ public class VoiceCallActivity extends AppCompatActivity {
 
     public static Intent createIntent(Context ctx, String channelId, String channelName,
                                        String serverId, String serverName, boolean micEnabled) {
+        return createIntent(ctx, channelId, channelName, serverId, serverName, micEnabled, false);
+    }
+
+    public static Intent createIntent(Context ctx, String channelId, String channelName,
+                                       String serverId, String serverName, boolean micEnabled,
+                                       boolean canInviteMembers) {
         Intent intent = new Intent(ctx, VoiceCallActivity.class);
         intent.putExtra(EXTRA_CHANNEL_ID, channelId);
         intent.putExtra(EXTRA_CHANNEL_NAME, channelName);
         intent.putExtra(EXTRA_SERVER_ID, serverId);
         intent.putExtra(EXTRA_SERVER_NAME, serverName);
         intent.putExtra(EXTRA_MIC_ENABLED, micEnabled);
+        intent.putExtra(EXTRA_CAN_INVITE_MEMBERS, canInviteMembers);
         return intent;
     }
 
@@ -156,6 +165,8 @@ public class VoiceCallActivity extends AppCompatActivity {
 
         // Top bar buttons
         binding.btnClose.setOnClickListener(v -> minimizeToBackground());
+        boolean canInviteMembers = getIntent().getBooleanExtra(EXTRA_CAN_INVITE_MEMBERS, false);
+        binding.btnAddUser.setVisibility(canInviteMembers ? View.VISIBLE : View.GONE);
         binding.btnAddUser.setOnClickListener(v ->
                 InvitePeopleBottomSheet.newInstance(serverId, serverName)
                         .show(getSupportFragmentManager(), "invite_people"));

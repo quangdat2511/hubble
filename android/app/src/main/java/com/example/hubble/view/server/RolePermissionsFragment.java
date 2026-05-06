@@ -63,15 +63,11 @@ public class RolePermissionsFragment extends Fragment {
 
     // Section groupings
     private static final List<String> GENERAL_PERMS = Arrays.asList(
-            "VIEW_CHANNELS", "MANAGE_CHANNELS", "MANAGE_ROLES",
-            "MANAGE_EXPRESSIONS", "VIEW_AUDIT_LOG", "MANAGE_SERVER");
+            "VIEW_CHANNELS", "MANAGE_CHANNELS", "MANAGE_ROLES", "MANAGE_SERVER");
     private static final List<String> MEMBER_PERMS = Arrays.asList(
-            "CREATE_INVITE", "CHANGE_NICKNAME", "MANAGE_NICKNAMES",
-            "KICK_MEMBERS", "BAN_MEMBERS", "TIMEOUT_MEMBERS");
+            "INVITE_MEMBERS", "KICK_MEMBERS");
     private static final List<String> TEXT_PERMS = Arrays.asList(
-            "SEND_MESSAGES", "SEND_MESSAGES_IN_THREADS", "CREATE_PUBLIC_THREADS",
-            "CREATE_PRIVATE_THREADS", "EMBED_LINKS", "ATTACH_FILES",
-            "ADD_REACTIONS", "USE_EXTERNAL_EMOJIS");
+            "SEND_MESSAGES", "ATTACH_FILES");
 
     public static RolePermissionsFragment newInstance(String roleId, String roleName, String serverId) {
         RolePermissionsFragment fragment = new RolePermissionsFragment();
@@ -191,44 +187,20 @@ public class RolePermissionsFragment extends Fragment {
         PERM_LABELS.put("VIEW_CHANNELS", getString(R.string.role_perm_view_channels));
         PERM_LABELS.put("MANAGE_CHANNELS", getString(R.string.role_perm_manage_channels));
         PERM_LABELS.put("MANAGE_ROLES", getString(R.string.role_perm_manage_roles));
-        PERM_LABELS.put("MANAGE_EXPRESSIONS", getString(R.string.role_perm_manage_expressions));
-        PERM_LABELS.put("VIEW_AUDIT_LOG", getString(R.string.role_perm_view_audit_log));
         PERM_LABELS.put("MANAGE_SERVER", getString(R.string.role_perm_manage_server));
-        PERM_LABELS.put("CREATE_INVITE", getString(R.string.role_perm_create_invite));
-        PERM_LABELS.put("CHANGE_NICKNAME", getString(R.string.role_perm_change_nickname));
-        PERM_LABELS.put("MANAGE_NICKNAMES", getString(R.string.role_perm_manage_nicknames));
+        PERM_LABELS.put("INVITE_MEMBERS", getString(R.string.role_perm_invite_members));
         PERM_LABELS.put("KICK_MEMBERS", getString(R.string.role_perm_kick_members));
-        PERM_LABELS.put("BAN_MEMBERS", getString(R.string.role_perm_ban_members));
-        PERM_LABELS.put("TIMEOUT_MEMBERS", getString(R.string.role_perm_timeout_members));
         PERM_LABELS.put("SEND_MESSAGES", getString(R.string.role_perm_send_messages));
-        PERM_LABELS.put("SEND_MESSAGES_IN_THREADS", getString(R.string.role_perm_send_messages_threads));
-        PERM_LABELS.put("CREATE_PUBLIC_THREADS", getString(R.string.role_perm_create_public_threads));
-        PERM_LABELS.put("CREATE_PRIVATE_THREADS", getString(R.string.role_perm_create_private_threads));
-        PERM_LABELS.put("EMBED_LINKS", getString(R.string.role_perm_embed_links));
         PERM_LABELS.put("ATTACH_FILES", getString(R.string.role_perm_attach_files));
-        PERM_LABELS.put("ADD_REACTIONS", getString(R.string.role_perm_add_reactions));
-        PERM_LABELS.put("USE_EXTERNAL_EMOJIS", getString(R.string.role_perm_use_external_emojis));
 
         PERM_DESCS.put("VIEW_CHANNELS", getString(R.string.role_perm_view_channels_desc));
         PERM_DESCS.put("MANAGE_CHANNELS", getString(R.string.role_perm_manage_channels_desc));
         PERM_DESCS.put("MANAGE_ROLES", getString(R.string.role_perm_manage_roles_desc));
-        PERM_DESCS.put("MANAGE_EXPRESSIONS", getString(R.string.role_perm_manage_expressions_desc));
-        PERM_DESCS.put("VIEW_AUDIT_LOG", getString(R.string.role_perm_view_audit_log_desc));
         PERM_DESCS.put("MANAGE_SERVER", getString(R.string.role_perm_manage_server_desc));
-        PERM_DESCS.put("CREATE_INVITE", getString(R.string.role_perm_create_invite_desc));
-        PERM_DESCS.put("CHANGE_NICKNAME", getString(R.string.role_perm_change_nickname_desc));
-        PERM_DESCS.put("MANAGE_NICKNAMES", getString(R.string.role_perm_manage_nicknames_desc));
+        PERM_DESCS.put("INVITE_MEMBERS", getString(R.string.role_perm_invite_members_desc));
         PERM_DESCS.put("KICK_MEMBERS", getString(R.string.role_perm_kick_members_desc));
-        PERM_DESCS.put("BAN_MEMBERS", getString(R.string.role_perm_ban_members_desc));
-        PERM_DESCS.put("TIMEOUT_MEMBERS", getString(R.string.role_perm_timeout_members_desc));
         PERM_DESCS.put("SEND_MESSAGES", getString(R.string.role_perm_send_messages_desc));
-        PERM_DESCS.put("SEND_MESSAGES_IN_THREADS", getString(R.string.role_perm_send_messages_threads_desc));
-        PERM_DESCS.put("CREATE_PUBLIC_THREADS", getString(R.string.role_perm_create_public_threads_desc));
-        PERM_DESCS.put("CREATE_PRIVATE_THREADS", getString(R.string.role_perm_create_private_threads_desc));
-        PERM_DESCS.put("EMBED_LINKS", getString(R.string.role_perm_embed_links_desc));
         PERM_DESCS.put("ATTACH_FILES", getString(R.string.role_perm_attach_files_desc));
-        PERM_DESCS.put("ADD_REACTIONS", getString(R.string.role_perm_add_reactions_desc));
-        PERM_DESCS.put("USE_EXTERNAL_EMOJIS", getString(R.string.role_perm_use_external_emojis_desc));
     }
 
     @Override

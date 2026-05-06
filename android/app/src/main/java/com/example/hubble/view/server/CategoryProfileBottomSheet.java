@@ -28,10 +28,11 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
     private static final String ARG_CATEGORY_ID = "category_id";
     private static final String ARG_CATEGORY_NAME = "category_name";
     private static final String ARG_CATEGORY_IS_PRIVATE = "category_is_private";
+    private static final String ARG_CAN_MANAGE_CHANNELS = "can_manage_channels";
 
     public static CategoryProfileBottomSheet newInstance(
             String serverId, String serverName, String serverIconUrl, String serverOwnerId,
-            String categoryId, String categoryName, boolean isPrivate) {
+            String categoryId, String categoryName, boolean isPrivate, boolean canManageChannels) {
         CategoryProfileBottomSheet sheet = new CategoryProfileBottomSheet();
         Bundle args = new Bundle();
         args.putString(ARG_SERVER_ID, serverId);
@@ -41,6 +42,7 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
         args.putString(ARG_CATEGORY_ID, categoryId);
         args.putString(ARG_CATEGORY_NAME, categoryName);
         args.putBoolean(ARG_CATEGORY_IS_PRIVATE, isPrivate);
+        args.putBoolean(ARG_CAN_MANAGE_CHANNELS, canManageChannels);
         sheet.setArguments(args);
         return sheet;
     }
@@ -65,6 +67,7 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
         String categoryId = getArguments().getString(ARG_CATEGORY_ID);
         String categoryName = getArguments().getString(ARG_CATEGORY_NAME);
         boolean isPrivate = getArguments().getBoolean(ARG_CATEGORY_IS_PRIVATE, false);
+        boolean canManageChannels = getArguments().getBoolean(ARG_CAN_MANAGE_CHANNELS, false);
 
         // Header
         binding.tvCategoryName.setText(categoryName);
@@ -82,7 +85,7 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
         TokenManager tm = new TokenManager(requireContext());
         String currentUserId = tm.getUser() != null ? tm.getUser().getId() : null;
         boolean isOwner = currentUserId != null && currentUserId.equals(serverOwnerId);
-        binding.cardCluster3.setVisibility(isOwner ? View.VISIBLE : View.GONE);
+        binding.cardCluster3.setVisibility((isOwner || canManageChannels) ? View.VISIBLE : View.GONE);
 
         // Cluster 1: placeholders
         binding.rowMarkAsRead.setOnClickListener(v -> showComingSoon());

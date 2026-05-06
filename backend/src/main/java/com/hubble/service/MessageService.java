@@ -64,6 +64,7 @@ public class MessageService {
     UserRepository userRepository;
     SimpMessagingTemplate messagingTemplate;
     ReactionService reactionService;
+    RoleService roleService;
 
     @Transactional(readOnly = true)
     public List<MessageResponse> getMessages(String userId, String channelId, int page, int size) {
@@ -260,6 +261,9 @@ public class MessageService {
         UUID channelUuid = UUID.fromString(request.getChannelId());
         UUID authorUuid = UUID.fromString(authorId);
         checkChannelAccess(channelUuid, authorUuid);
+
+        Channel channel = channelRepository.findById(channelUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.CHANNEL_NOT_FOUND));
 
         Message message = Message.builder()
                 .channelId(channelUuid)

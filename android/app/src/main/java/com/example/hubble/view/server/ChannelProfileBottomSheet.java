@@ -32,13 +32,28 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
     private static final String ARG_CHANNEL_TOPIC = "channel_topic";
     private static final String ARG_SERVER_OWNER_ID = "server_owner_id";
     private static final String ARG_CHANNEL_PARENT_NAME = "channel_parent_name";
+    private static final String ARG_CAN_MANAGE_CHANNELS = "can_manage_channels";
+
+    private static final String ARG_CAN_INVITE_MEMBERS = "can_invite_members";
 
     public static ChannelProfileBottomSheet newInstance(String serverId, String serverName,
                                                         String serverIconUrl, String serverOwnerId,
                                                         String channelId, String channelName,
                                                         String channelType, String topic,
                                                         String parentId, String parentName,
-                                                        boolean isPrivate) {
+                                                        boolean isPrivate, boolean canManageChannels) {
+        return newInstance(serverId, serverName, serverIconUrl, serverOwnerId,
+                channelId, channelName, channelType, topic, parentId, parentName,
+                isPrivate, canManageChannels, false);
+    }
+
+    public static ChannelProfileBottomSheet newInstance(String serverId, String serverName,
+                                                        String serverIconUrl, String serverOwnerId,
+                                                        String channelId, String channelName,
+                                                        String channelType, String topic,
+                                                        String parentId, String parentName,
+                                                        boolean isPrivate, boolean canManageChannels,
+                                                        boolean canInviteMembers) {
         ChannelProfileBottomSheet sheet = new ChannelProfileBottomSheet();
         Bundle args = new Bundle();
         args.putString(ARG_SERVER_ID, serverId);
@@ -52,6 +67,8 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
         args.putString(ARG_CHANNEL_PARENT_ID, parentId);
         args.putString(ARG_CHANNEL_PARENT_NAME, parentName);
         args.putBoolean(ARG_CHANNEL_IS_PRIVATE, isPrivate);
+        args.putBoolean(ARG_CAN_MANAGE_CHANNELS, canManageChannels);
+        args.putBoolean(ARG_CAN_INVITE_MEMBERS, canInviteMembers);
         sheet.setArguments(args);
         return sheet;
     }
@@ -80,12 +97,19 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
         String parentId = getArguments().getString(ARG_CHANNEL_PARENT_ID);
         String parentName = getArguments().getString(ARG_CHANNEL_PARENT_NAME);
         boolean isPrivate = getArguments().getBoolean(ARG_CHANNEL_IS_PRIVATE, false);
+        boolean canManageChannels = getArguments().getBoolean(ARG_CAN_MANAGE_CHANNELS, false);
+        boolean canInviteMembers = getArguments().getBoolean(ARG_CAN_INVITE_MEMBERS, false);
 
         // Owner-only: hide Edit/Duplicate for non-owners
         TokenManager tm = new TokenManager(requireContext());
         String currentUserId = tm.getUser() != null ? tm.getUser().getId() : null;
         boolean isOwner = currentUserId != null && currentUserId.equals(serverOwnerId);
-        binding.cardCluster3.setVisibility(isOwner ? View.VISIBLE : View.GONE);
+        binding.cardCluster3.setVisibility((isOwner || canManageChannels) ? View.VISIBLE : View.GONE);
+
+        // Invite: owner or members with INVITE_MEMBERS permission
+        if (!isOwner && !canInviteMembers) {
+            binding.rowInvite.setVisibility(View.GONE);
+        }
 
         // Header
         String prefix = "TEXT".equalsIgnoreCase(channelType) ? "# " : "";
