@@ -87,10 +87,6 @@ public class CategoryProfileBottomSheet extends BottomSheetDialogFragment {
         boolean isOwner = currentUserId != null && currentUserId.equals(serverOwnerId);
         binding.cardCluster3.setVisibility((isOwner || canManageChannels) ? View.VISIBLE : View.GONE);
 
-        // Cluster 1: placeholders
-        binding.rowMarkAsRead.setOnClickListener(v -> showComingSoon());
-        binding.rowNotifications.setOnClickListener(v -> showComingSoon());
-
         // Cluster 2 (owner only): Edit category
         binding.rowEditCategory.setOnClickListener(v -> {
             dismiss();

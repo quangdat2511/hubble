@@ -351,7 +351,7 @@ public class HomeFragment extends Fragment {
         binding.cardServerSearch.setOnClickListener(v -> {
             ServerItem server = viewModel.selectedServer.getValue();
             if (server != null) {
-                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId());
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId(), server.getName());
             }
         });
 

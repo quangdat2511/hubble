@@ -136,12 +136,6 @@ public class ChannelProfileBottomSheet extends BottomSheetDialogFragment {
             InvitePeopleBottomSheet.newInstance(serverId, serverName)
                     .show(requireActivity().getSupportFragmentManager(), "invite_people");
         });
-        binding.rowCopyLink.setOnClickListener(v -> showComingSoon());
-
-        // Cluster 2
-        binding.rowMarkAsRead.setOnClickListener(v -> showComingSoon());
-        binding.rowNotifications.setOnClickListener(v -> showComingSoon());
-
         // Cluster 3
         binding.rowEditChannel.setOnClickListener(v -> {
             dismiss();

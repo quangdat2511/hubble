@@ -245,9 +245,11 @@ public class RoleService {
     }
 
     @Transactional
-    public void removeMember(UUID serverId, UUID roleId, UUID memberId) {
+    public void removeMember(UUID serverId, UUID roleId, UUID userId) {
         getRole(serverId, roleId);
-        memberRoleRepository.deleteByMemberIdAndRoleId(memberId, roleId);
+        ServerMember member = serverMemberRepository.findByServerIdAndUserId(serverId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        memberRoleRepository.deleteByMemberIdAndRoleId(member.getId(), roleId);
     }
 
     /**

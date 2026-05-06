@@ -39,14 +39,22 @@ public class SearchResultFragment extends Fragment {
     private static final String KEY_CATEGORY = "category";
     private static final String KEY_SCOPE_TYPE = "scope_type";
     private static final String KEY_SCOPE_ID = "scope_id";
+    private static final String KEY_SERVER_NAME = "server_name";
 
     public static SearchResultFragment newInstance(Category category, ScopeType scopeType,
                                                    @Nullable String scopeId) {
+        return newInstance(category, scopeType, scopeId, null);
+    }
+
+    public static SearchResultFragment newInstance(Category category, ScopeType scopeType,
+                                                   @Nullable String scopeId,
+                                                   @Nullable String serverName) {
         SearchResultFragment f = new SearchResultFragment();
         Bundle args = new Bundle();
         args.putString(KEY_CATEGORY, category.name());
         args.putString(KEY_SCOPE_TYPE, scopeType.name());
         args.putString(KEY_SCOPE_ID, scopeId);
+        args.putString(KEY_SERVER_NAME, serverName);
         f.setArguments(args);
         return f;
     }
@@ -56,6 +64,7 @@ public class SearchResultFragment extends Fragment {
     private Category category;
     private ScopeType scopeType;
     @Nullable private String scopeId;
+    @Nullable private String serverName;
 
     // Adapters
     private SearchMessageAdapter messageAdapter;
@@ -70,6 +79,7 @@ public class SearchResultFragment extends Fragment {
             category = Category.valueOf(args.getString(KEY_CATEGORY, Category.MESSAGES.name()));
             scopeType = ScopeType.valueOf(args.getString(KEY_SCOPE_TYPE, ScopeType.CHANNEL.name()));
             scopeId = args.getString(KEY_SCOPE_ID);
+            serverName = args.getString(KEY_SERVER_NAME);
         }
     }
 
@@ -238,6 +248,13 @@ public class SearchResultFragment extends Fragment {
 
     private void onChannelClick(SearchChannelDto item) {
         if (item.getId() == null || scopeId == null) return;
+        if ("VOICE".equalsIgnoreCase(item.getType())) {
+            com.example.hubble.view.voice.VoiceChannelBottomSheet
+                    .newInstance(item.getId(), item.getName(), scopeId,
+                            serverName != null ? serverName : "")
+                    .show(getChildFragmentManager(), "voice_channel");
+            return;
+        }
         Intent intent = DmChatActivity.createIntentForServerText(
                 requireContext(), scopeId, null, null, null,
                 item.getId(), item.getName() != null ? "#" + item.getName() : "",

@@ -300,48 +300,6 @@
                         android:background="?attr/colorOutline" />
 
                     <LinearLayout
-                        android:id="@+id/rowBans"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:contentDescription="@string/server_settings_bans"
-                            android:src="@drawable/ic_ban"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/server_settings_bans"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_chevron_right"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <LinearLayout
                         android:id="@+id/rowInvites"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
@@ -380,6 +338,12 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Moderation Section -->
+            <LinearLayout
+                android:id="@+id/sectionModeration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -436,92 +400,10 @@
                             android:src="@drawable/ic_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <LinearLayout
-                        android:id="@+id/rowEmoji"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:contentDescription="@string/server_settings_emoji"
-                            android:src="@drawable/ic_emoji"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/server_settings_emoji"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_chevron_right"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="?attr/colorOutline" />
-
-                    <LinearLayout
-                        android:id="@+id/rowStickers"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/spacing_md"
-                        android:paddingEnd="@dimen/spacing_md">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="@dimen/spacing_md"
-                            android:contentDescription="@string/server_settings_stickers"
-                            android:src="@drawable/ic_sticker"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/server_settings_stickers"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_chevron_right"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout><!-- end sectionModeration -->
 
             <!-- Delete Server -->
             <com.google.android.material.card.MaterialCardView

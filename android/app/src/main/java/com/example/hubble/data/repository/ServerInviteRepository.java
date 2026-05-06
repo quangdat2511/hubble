@@ -44,7 +44,15 @@ public class ServerInviteRepository {
                                 && response.body().getResult() != null) {
                             callback.onResult(AuthResult.success(response.body().getResult()));
                         } else {
-                            String msg = response.body() != null ? response.body().getMessage() : null;
+                            String msg = null;
+                            try {
+                                if (response.errorBody() != null) {
+                                    String raw = response.errorBody().string();
+                                    com.example.hubble.data.model.ApiResponse<?> err =
+                                            new com.google.gson.Gson().fromJson(raw, com.example.hubble.data.model.ApiResponse.class);
+                                    if (err != null) msg = err.getMessage();
+                                }
+                            } catch (Exception ignored) {}
                             callback.onResult(AuthResult.error(
                                     msg != null ? msg : "Không thể gửi lời mời"));
                         }

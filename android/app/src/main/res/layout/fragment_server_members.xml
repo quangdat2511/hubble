@@ -13,8 +13,7 @@
         android:background="?android:attr/colorBackground"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="@string/server_settings_members"
-        app:titleCentered="true"
-        app:menu="@menu/menu_members" />
+        app:titleCentered="true" />
 
     <!-- Discord-style search bar -->
     <LinearLayout
@@ -42,6 +41,7 @@
                 android:id="@+id/etSearch"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:gravity="center_vertical"
                 android:hint="@string/members_search_hint"
                 android:imeOptions="actionSearch"
                 android:singleLine="true" />

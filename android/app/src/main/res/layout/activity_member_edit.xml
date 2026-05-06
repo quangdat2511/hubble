@@ -48,22 +48,22 @@
 
                     <!-- Avatar -->
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
                         android:layout_marginEnd="@dimen/spacing_md">
 
                         <com.google.android.material.imageview.ShapeableImageView
                             android:id="@+id/ivAvatar"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
                             android:contentDescription="@null"
                             android:scaleType="centerCrop"
                             app:shapeAppearance="@style/ShapeAppearance.App.Avatar" />
 
                         <TextView
                             android:id="@+id/tvAvatarInitials"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
                             android:gravity="center"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:textColor="@android:color/white"

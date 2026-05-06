@@ -151,6 +151,7 @@ public class ServerSettingsFragment extends Fragment {
         if (!isOwner) {
             binding.rowRoles.setVisibility(View.GONE);
             binding.rowInvites.setVisibility(View.GONE);
+            binding.sectionModeration.setVisibility(View.GONE);
 
             // Cache-first: apply instantly if permissions are already known
             Set<String> cached = PermissionsCache.get(serverId);
@@ -189,7 +190,6 @@ public class ServerSettingsFragment extends Fragment {
                         ServerMembersFragment.newInstance(serverId, serverName), true);
             }
         });
-        binding.rowBans.setOnClickListener(v -> showComingSoon());
         binding.rowInvites.setOnClickListener(v -> {
             if (serverId != null) {
                 ((ServerSettingsActivity) requireActivity()).navigateTo(
@@ -203,9 +203,6 @@ public class ServerSettingsFragment extends Fragment {
             }
         });
         // rowRoles + rowInvites visibility: owner always sees them; non-owners handled by cache-first block above
-        binding.rowEmoji.setOnClickListener(v -> showComingSoon());
-        binding.rowStickers.setOnClickListener(v -> showComingSoon());
-
         binding.cardDeleteServer.setOnClickListener(v ->
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle(R.string.server_settings_delete_confirm_title)
@@ -293,7 +290,10 @@ public class ServerSettingsFragment extends Fragment {
      */
     private void applyPermissionVisibility(Set<String> perms) {
         if (binding == null) return;
-        if (perms.contains("MANAGE_ROLES")) binding.rowRoles.setVisibility(View.VISIBLE);
+        if (perms.contains("MANAGE_ROLES")) {
+            binding.rowRoles.setVisibility(View.VISIBLE);
+            binding.sectionModeration.setVisibility(View.VISIBLE);
+        }
         if (perms.contains("INVITE_MEMBERS")) binding.rowInvites.setVisibility(View.VISIBLE);
         if (perms.contains("MANAGE_SERVER")) {
             binding.sectionOverview.setVisibility(View.VISIBLE);

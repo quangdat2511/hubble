@@ -599,6 +599,11 @@
     <string name="member_edit_transfer_success">Đã chuyển quyền sở hữu cho %1$s</string>
     <string name="member_edit_kick_error">Lỗi khi đuổi thành viên</string>
     <string name="member_edit_transfer_error">Lỗi khi chuyển quyền sở hữu</string>
+    <string name="edit_member_roles_title">Sửa Vai trò</string>
+    <string name="edit_member_roles_subtitle">Chọn vai trò cho %1$s</string>
+    <string name="edit_member_roles_empty">Máy chủ chưa có vai trò nào</string>
+    <string name="edit_member_roles_save_success">Đã cập nhật vai trò</string>
+    <string name="edit_member_roles_save_error">Lỗi khi cập nhật vai trò</string>
 
     <!-- Server Invites -->
     <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>
