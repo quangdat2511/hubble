@@ -3,26 +3,15 @@ package com.hubble.enums;
 import java.util.List;
 
 public enum Permission {
-    VIEW_CHANNELS            (1L),
-    MANAGE_CHANNELS          (1L << 1),
-    MANAGE_ROLES             (1L << 2),
-    MANAGE_EXPRESSIONS       (1L << 3),
-    VIEW_AUDIT_LOG           (1L << 4),
-    MANAGE_SERVER            (1L << 5),
-    CREATE_INVITE            (1L << 6),
-    CHANGE_NICKNAME          (1L << 7),
-    MANAGE_NICKNAMES         (1L << 8),
-    KICK_MEMBERS             (1L << 9),
-    BAN_MEMBERS              (1L << 10),
-    TIMEOUT_MEMBERS          (1L << 11),
-    SEND_MESSAGES            (1L << 12),
-    SEND_MESSAGES_IN_THREADS (1L << 13),
-    CREATE_PUBLIC_THREADS    (1L << 14),
-    CREATE_PRIVATE_THREADS   (1L << 15),
-    EMBED_LINKS              (1L << 16),
-    ATTACH_FILES             (1L << 17),
-    ADD_REACTIONS            (1L << 18),
-    USE_EXTERNAL_EMOJIS      (1L << 19);
+    VIEW_CHANNELS    (1L),
+    MANAGE_CHANNELS  (1L << 1),
+    MANAGE_ROLES     (1L << 2),
+    MANAGE_SERVER    (1L << 3),
+    INVITE_MEMBERS   (1L << 4),
+    KICK_MEMBERS     (1L << 5),
+    SEND_MESSAGES    (1L << 6),
+    ATTACH_FILES     (1L << 7),
+    HIDE_FROM_SEARCH (1L << 8);
 
     public final long bit;
 

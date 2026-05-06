@@ -155,8 +155,9 @@ public class ServerEventWebSocketManager {
                             String type       = json.optString("type", "");
                             String serverId   = json.optString("serverId", "");
                             String serverName = json.optString("serverName", "");
+                            String roleId     = json.optString("roleId", null);
                             Log.d(TAG, "Event received: " + type + " / " + serverId);
-                            eventSubject.onNext(new ServerEventNotification(type, serverId, serverName));
+                            eventSubject.onNext(new ServerEventNotification(type, serverId, serverName, roleId));
                         } catch (JSONException e) {
                             Log.e(TAG, "Failed to parse server event", e);
                         }

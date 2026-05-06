@@ -33,10 +33,10 @@ public class CreateServerViewModel extends ViewModel {
     public void setIconUri(Uri uri)        { _iconUri.setValue(uri); }
 
     public void createServer() {
-        String name    = _serverName.getValue();
-        Uri    iconUri = _iconUri.getValue();
-        // Pass iconUri to repository — null is fine (backend accepts no-icon)
-        repository.createServer(name, iconUri, result -> _createState.postValue(result));
+        String name       = _serverName.getValue();
+        String serverType = _serverType.getValue();
+        Uri    iconUri    = _iconUri.getValue();
+        repository.createServer(name, serverType, iconUri, result -> _createState.postValue(result));
     }
 
     public void resetCreateState() { _createState.setValue(null); }

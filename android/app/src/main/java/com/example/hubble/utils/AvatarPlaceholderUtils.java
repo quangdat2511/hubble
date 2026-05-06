@@ -58,6 +58,35 @@ public final class AvatarPlaceholderUtils {
     }
 
     @NonNull
+    public static Drawable createServerAvatarDrawable(
+            @NonNull Context context,
+            @Nullable String serverName,
+            int requestedSizePx
+    ) {
+        int sizePx = resolveSizePx(context, requestedSizePx);
+
+        Bitmap bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bgPaint.setColor(ContextCompat.getColor(context, R.color.color_primary));
+        canvas.drawRect(0, 0, sizePx, sizePx, bgPaint);
+
+        String letter = resolveLetter(serverName);
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(sizePx * 0.46f);
+
+        Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
+        float textBaseline = sizePx / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2f;
+        canvas.drawText(letter, sizePx / 2f, textBaseline, textPaint);
+
+        return new BitmapDrawable(context.getResources(), bitmap);
+    }
+
+    @NonNull
     public static Drawable createDefaultAvatarDrawable(@NonNull Context context, int requestedSizePx) {
         int sizePx = resolveSizePx(context, requestedSizePx);
 

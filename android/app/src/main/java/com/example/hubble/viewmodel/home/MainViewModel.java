@@ -19,7 +19,9 @@ import com.example.hubble.data.model.server.ChannelEvent;
 import com.example.hubble.data.model.server.ServerItem;
 import com.example.hubble.data.model.dm.DmConversationItem;
 import com.example.hubble.data.repository.DmRepository;
+import com.example.hubble.data.repository.RoleRepository;
 import com.example.hubble.data.repository.ServerRepository;
+import com.example.hubble.utils.PermissionsCache;
 import com.google.gson.Gson;
 import com.example.hubble.data.ws.ServerEventWebSocketManager;
 import com.example.hubble.data.ws.FriendStatusEvent;
@@ -60,6 +62,7 @@ public class MainViewModel extends ViewModel {
 
     private final DmRepository dmRepository;
     private final ServerRepository serverRepository;
+    private final RoleRepository roleRepository;
     private final Context appContext;
     private final String currentUserId;
     private final Gson gson = new Gson();
@@ -130,6 +133,14 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> _kickedFromServer = new MutableLiveData<>();
     public final LiveData<String> kickedFromServer = _kickedFromServer;
 
+    /** Fires the serverId when a role's permissions are updated on the server. */
+    private final MutableLiveData<String> _permissionsUpdatedForServer = new MutableLiveData<>();
+    public final LiveData<String> permissionsUpdatedForServer = _permissionsUpdatedForServer;
+
+    /** Current user's effective permissions for the selected server. */
+    private final MutableLiveData<Set<String>> _currentServerPermissions = new MutableLiveData<>(new HashSet<>());
+    public final LiveData<Set<String>> currentServerPermissions = _currentServerPermissions;
+
     private final MutableLiveData<AuthResult<List<ChannelDto>>> _serverChannels = new MutableLiveData<>();
     public final LiveData<AuthResult<List<ChannelDto>>> serverChannels = _serverChannels;
 
@@ -145,6 +156,8 @@ public class MainViewModel extends ViewModel {
 
     private final Set<String> collapsedCategories = new HashSet<>();
     private final Map<String, List<ChannelDto>> channelCache = new ConcurrentHashMap<>();
+    /** Cached effective permissions per server id. Used to avoid flicker on server switch. */
+    private final Map<String, Set<String>> permissionsCache = new ConcurrentHashMap<>();
     private final CompositeDisposable wsDisposables = new CompositeDisposable();
     private volatile String activeServerId;
 
@@ -162,6 +175,7 @@ public class MainViewModel extends ViewModel {
         this.appContext = appContext.getApplicationContext();
         this.dmRepository = dmRepository;
         this.serverRepository = serverRepository;
+        this.roleRepository = new RoleRepository(appContext);
         this.currentUserId = dmRepository.getCurrentUserId();
         _servers.setValue(new ArrayList<>());
         _selectedServer.setValue(null);
@@ -264,6 +278,14 @@ public class MainViewModel extends ViewModel {
                         case "SERVER_DELETED":
                             removeServerById(event.getServerId());
                             break;
+                        case "ROLE_PERMISSIONS_UPDATED":
+                            _permissionsUpdatedForServer.setValue(event.getServerId());
+                            // Reload effective permissions if it's for the current server
+                            ServerItem sel = _selectedServer.getValue();
+                            if (sel != null && sel.getId() != null && sel.getId().equals(event.getServerId())) {
+                                loadMyPermissions(sel.getId());
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -348,12 +370,30 @@ public class MainViewModel extends ViewModel {
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
                 setServers(result.getData());
                 prefetchAllServerChannels(result.getData());
+                prefetchAllServerPermissions(result.getData());
                 return;
             }
             if (result.getStatus() == AuthResult.Status.ERROR) {
                 _errorMessage.postValue(result.getMessage());
             }
         });
+    }
+
+    private void prefetchAllServerPermissions(List<ServerItem> servers) {
+        for (ServerItem server : servers) {
+            String serverId = server.getId();
+            if (serverId == null) continue;
+            roleRepository.loadMyPermissions(serverId, result -> {
+                if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                    permissionsCache.put(serverId, result.getData());
+                    PermissionsCache.put(serverId, result.getData());
+                    ServerItem sel = _selectedServer.getValue();
+                    if (sel != null && serverId.equals(sel.getId())) {
+                        _currentServerPermissions.postValue(result.getData());
+                    }
+                }
+            });
+        }
     }
 
     private void prefetchAllServerChannels(List<ServerItem> servers) {
@@ -541,6 +581,36 @@ public class MainViewModel extends ViewModel {
 
     public void selectServer(ServerItem server) {
         _selectedServer.setValue(server);
+        if (server != null && server.getId() != null) {
+            String serverId = server.getId();
+            // Instantly apply cached permissions for this server (no flicker, no stale from previous server).
+            Set<String> cached = permissionsCache.get(serverId);
+            _currentServerPermissions.setValue(cached != null ? cached : new HashSet<>());
+            // Refresh in background; LiveData will only be updated if this server is still selected.
+            loadMyPermissions(serverId);
+        } else {
+            _currentServerPermissions.setValue(new HashSet<>());
+        }
+    }
+
+    public void loadMyPermissions(String serverId) {
+        if (serverId == null) return;
+        roleRepository.loadMyPermissions(serverId, result -> {
+            if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
+                permissionsCache.put(serverId, result.getData());
+                PermissionsCache.put(serverId, result.getData());
+                // Only push to LiveData if this server is still the active one.
+                ServerItem sel = _selectedServer.getValue();
+                if (sel != null && serverId.equals(sel.getId())) {
+                    _currentServerPermissions.postValue(result.getData());
+                }
+            }
+        });
+    }
+
+    public boolean hasPermission(String permission) {
+        Set<String> perms = _currentServerPermissions.getValue();
+        return perms != null && perms.contains(permission);
     }
 
     public void selectDmPanel() {
@@ -1476,6 +1546,39 @@ public class MainViewModel extends ViewModel {
 
         ensureDmRealtimeConnected();
         subscribeToServerChannelTopic(serverId);
+    }
+
+    /**
+     * Silent background refresh: fetches channels from network but only posts to
+     * {@link #serverChannels} LiveData when the channel structure actually changed
+     * (different set of channel IDs). This avoids triggering RecyclerView redraws
+     * on every onResume when nothing has changed.
+     */
+    public void silentRefreshServerChannels(String serverId) {
+        if (serverId == null || serverId.trim().isEmpty()) return;
+        serverRepository.getServerChannels(serverId, result -> {
+            if (result.getStatus() != AuthResult.Status.SUCCESS || result.getData() == null) return;
+            List<ChannelDto> freshData = result.getData();
+            mergeServerChannelCounts(serverId, freshData, true);
+            List<ChannelDto> prev = channelCache.get(serverId);
+            channelCache.put(serverId, freshData);
+            if (serverId.equals(activeServerId) && channelIdsChanged(prev, freshData)) {
+                _serverChannels.postValue(AuthResult.success(freshData));
+            }
+            postServerUnreadSummaries();
+            syncServerChannelMessageSubscriptions();
+        });
+    }
+
+    private static boolean channelIdsChanged(List<ChannelDto> prev, List<ChannelDto> next) {
+        if (prev == null) return true;
+        if (prev.size() != next.size()) return true;
+        for (int i = 0; i < prev.size(); i++) {
+            String a = prev.get(i).getId();
+            String b = next.get(i).getId();
+            if (a == null ? b != null : !a.equals(b)) return true;
+        }
+        return false;
     }
 
     /**

@@ -177,6 +177,7 @@ public class ServerMembersFragment extends Fragment {
         intent.putExtra(MemberEditActivity.EXTRA_USER_ID, member.getUserId());
         intent.putExtra(MemberEditActivity.EXTRA_USERNAME, member.getUsername());
         intent.putExtra(MemberEditActivity.EXTRA_DISPLAY_NAME, member.getDisplayName());
+        intent.putExtra(MemberEditActivity.EXTRA_AVATAR_URL, member.getAvatarUrl());
         intent.putExtra(MemberEditActivity.EXTRA_AVATAR_BG_COLOR, member.getAvatarBackgroundColor());
         intent.putExtra(MemberEditActivity.EXTRA_IS_CURRENT_USER_OWNER, showOwnerActions);
         intent.putExtra(MemberEditActivity.EXTRA_SERVER_ID, serverId);

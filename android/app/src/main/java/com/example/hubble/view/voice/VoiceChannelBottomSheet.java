@@ -55,14 +55,23 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
                 }
             });
 
+    private static final String ARG_CAN_INVITE_MEMBERS = "can_invite_members";
+
     public static VoiceChannelBottomSheet newInstance(String channelId, String channelName,
                                                        String serverId, String serverName) {
+        return newInstance(channelId, channelName, serverId, serverName, false);
+    }
+
+    public static VoiceChannelBottomSheet newInstance(String channelId, String channelName,
+                                                       String serverId, String serverName,
+                                                       boolean canInviteMembers) {
         VoiceChannelBottomSheet sheet = new VoiceChannelBottomSheet();
         Bundle args = new Bundle();
         args.putString(ARG_CHANNEL_ID, channelId);
         args.putString(ARG_CHANNEL_NAME, channelName);
         args.putString(ARG_SERVER_ID, serverId);
         args.putString(ARG_SERVER_NAME, serverName);
+        args.putBoolean(ARG_CAN_INVITE_MEMBERS, canInviteMembers);
         sheet.setArguments(args);
         return sheet;
     }
@@ -94,6 +103,9 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
             InvitePeopleBottomSheet.newInstance(serverId, serverName)
                     .show(requireActivity().getSupportFragmentManager(), "invite_people");
         });
+
+        boolean canInviteMembers = getArguments().getBoolean(ARG_CAN_INVITE_MEMBERS, false);
+        binding.btnAddUser.setVisibility(canInviteMembers ? View.VISIBLE : View.GONE);
 
         // Participant list
         adapter = new VoiceParticipantAdapter();
@@ -174,9 +186,10 @@ public class VoiceChannelBottomSheet extends BottomSheetDialogFragment {
         String channelName = getArguments().getString(ARG_CHANNEL_NAME);
         String serverId = getArguments().getString(ARG_SERVER_ID);
         String serverName = getArguments().getString(ARG_SERVER_NAME);
+        boolean canInviteMembers = getArguments().getBoolean(ARG_CAN_INVITE_MEMBERS, false);
 
         startActivity(VoiceCallActivity.createIntent(
-                requireContext(), channelId, channelName, serverId, serverName, micEnabled));
+                requireContext(), channelId, channelName, serverId, serverName, micEnabled, canInviteMembers));
     }
 
     private void updateMicButton() {

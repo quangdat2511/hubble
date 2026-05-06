@@ -45,7 +45,7 @@ public class ServerRepository {
         defaultColors = resolveDefaultColors();
     }
 
-    public void createServer(String name, @Nullable Uri iconUri,
+    public void createServer(String name, @Nullable String serverType, @Nullable Uri iconUri,
                              RepositoryCallback<ServerItem> callback) {
         callback.onResult(AuthResult.loading());
         String accessToken = tokenManager.getAccessToken();
@@ -56,10 +56,12 @@ public class ServerRepository {
 
         String token = "Bearer " + accessToken;
         RequestBody namePart = RequestBody.create(MediaType.parse("text/plain"), name);
+        RequestBody typePart = RequestBody.create(MediaType.parse("text/plain"),
+                serverType != null ? serverType : "");
         MultipartBody.Part iconPart = iconUri != null ? buildFilePart("icon", iconUri) : null;
 
         RetrofitClient.getServerService(appContext)
-                .createServer(token, namePart, iconPart)
+                .createServer(token, namePart, typePart, iconPart)
                 .enqueue(new Callback<ApiResponse<ServerResponse>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<ServerResponse>> call,

@@ -126,10 +126,10 @@ public class HomeFragment extends Fragment {
         super.onResume();
         if (viewModel != null) {
             viewModel.refreshDirectMessages();
-            // Refresh channels if a server is selected (e.g. after creating a channel)
+            // Silently refresh channels in the background so the UI doesn't flicker
             ServerItem server = viewModel.selectedServer.getValue();
             if (server != null) {
-                viewModel.loadServerChannels(server.getId());
+                viewModel.silentRefreshServerChannels(server.getId());
             }
         }
     }
@@ -234,7 +234,8 @@ public class HomeFragment extends Fragment {
                     if (server != null) {
                         VoiceChannelBottomSheet.newInstance(
                                 channel.getId(), channel.getName(),
-                                server.getId(), server.getName()
+                                server.getId(), server.getName(),
+                                viewModel.hasPermission("INVITE_MEMBERS")
                         ).show(getParentFragmentManager(), "VoiceChannel");
                     }
                 } else if ("TEXT".equalsIgnoreCase(channel.getType())) {
@@ -265,7 +266,9 @@ public class HomeFragment extends Fragment {
                                 channel.getTopic(),
                                 channel.getParentId(),
                                 parentName,
-                                Boolean.TRUE.equals(channel.getIsPrivate())
+                                Boolean.TRUE.equals(channel.getIsPrivate()),
+                                viewModel.hasPermission("SEND_MESSAGES"),
+                                viewModel.hasPermission("ATTACH_FILES")
                         ));
                     }
                 } else {
@@ -299,7 +302,9 @@ public class HomeFragment extends Fragment {
                             server.getOwnerId(),
                             channel.getId(), displayChannelName, channel.getType(),
                             channel.getTopic(), channel.getParentId(), parentName,
-                            Boolean.TRUE.equals(channel.getIsPrivate())
+                            Boolean.TRUE.equals(channel.getIsPrivate()),
+                            viewModel.hasPermission("MANAGE_CHANNELS"),
+                            viewModel.hasPermission("INVITE_MEMBERS")
                     ).show(getParentFragmentManager(), "ChannelProfile");
                 }
             },
@@ -313,7 +318,8 @@ public class HomeFragment extends Fragment {
                                     requireContext(),
                                     category
                             ),
-                            Boolean.TRUE.equals(category.getIsPrivate())
+                            Boolean.TRUE.equals(category.getIsPrivate()),
+                            viewModel.hasPermission("MANAGE_CHANNELS")
                     ).show(getParentFragmentManager(), "CategoryProfile");
                 }
             }
@@ -345,7 +351,7 @@ public class HomeFragment extends Fragment {
         binding.cardServerSearch.setOnClickListener(v -> {
             ServerItem server = viewModel.selectedServer.getValue();
             if (server != null) {
-                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId());
+                SearchActivity.start(requireContext(), SearchViewModel.ScopeType.SERVER, server.getId(), server.getName());
             }
         });
 
@@ -360,7 +366,17 @@ public class HomeFragment extends Fragment {
         viewModel.serverChannels.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
             if (result.getStatus() == AuthResult.Status.SUCCESS && result.getData() != null) {
-                serverChannelAdapter.submitChannels(result.getData(), viewModel.getCollapsedCategories());
+                List<ChannelDto> channels = result.getData();
+                if (!viewModel.hasPermission("VIEW_CHANNELS")) {
+                    // Only show categories, hide all channels
+                    channels = new java.util.ArrayList<>();
+                    for (ChannelDto ch : result.getData()) {
+                        if ("CATEGORY".equalsIgnoreCase(ch.getType())) {
+                            channels.add(ch);
+                        }
+                    }
+                }
+                serverChannelAdapter.submitChannels(channels, viewModel.getCollapsedCategories());
                 return;
             }
 
@@ -368,6 +384,27 @@ public class HomeFragment extends Fragment {
                 String error = result.getMessage() != null ? result.getMessage() : getString(R.string.error_generic);
                 showMessage(error);
             }
+        });
+
+        // Re-apply channel filter when permissions change
+        viewModel.currentServerPermissions.observe(getViewLifecycleOwner(), perms -> {
+            AuthResult<List<ChannelDto>> channelResult = viewModel.serverChannels.getValue();
+            if (channelResult != null && channelResult.getStatus() == AuthResult.Status.SUCCESS
+                    && channelResult.getData() != null) {
+                List<ChannelDto> channels = channelResult.getData();
+                if (!viewModel.hasPermission("VIEW_CHANNELS")) {
+                    channels = new java.util.ArrayList<>();
+                    for (ChannelDto ch : channelResult.getData()) {
+                        if ("CATEGORY".equalsIgnoreCase(ch.getType())) {
+                            channels.add(ch);
+                        }
+                    }
+                }
+                serverChannelAdapter.submitChannels(channels, viewModel.getCollapsedCategories());
+            }
+            // Update invite button visibility
+            binding.btnServerInvite.setVisibility(
+                    viewModel.hasPermission("INVITE_MEMBERS") ? View.VISIBLE : View.GONE);
         });
     }
 
@@ -579,7 +616,9 @@ public class HomeFragment extends Fragment {
         int cachedOnlineCount = cachedStats != null ? cachedStats.onlineCount : 0;
 
         ServerProfileBottomSheet sheet =
-                ServerProfileBottomSheet.newInstance(server, cachedMemberCount, cachedOnlineCount);
+                ServerProfileBottomSheet.newInstance(server, cachedMemberCount, cachedOnlineCount,
+                        viewModel.hasPermission("MANAGE_CHANNELS"),
+                        viewModel.hasPermission("INVITE_MEMBERS"));
         sheet.show(getParentFragmentManager(), "ServerProfile");
 
         // Refresh in background and update existing bottom sheet in place.

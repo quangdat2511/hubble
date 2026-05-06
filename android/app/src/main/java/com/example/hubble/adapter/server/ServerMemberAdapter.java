@@ -142,19 +142,25 @@ public class ServerMemberAdapter extends ListAdapter<ServerMemberAdapter.Adapter
                 binding.tvUsernameHandle.setVisibility(android.view.View.GONE);
             }
 
-            // ...existing code...
-            if (member.getAvatarUrl() != null && !member.getAvatarUrl().isEmpty()) {
-                binding.ivAvatar.setVisibility(android.view.View.VISIBLE);
-                binding.tvAvatarInitials.setVisibility(android.view.View.GONE);
-                // TODO: Load with Glide when implemented
-            } else {
-                binding.ivAvatar.setVisibility(android.view.View.GONE);
-                binding.tvAvatarInitials.setVisibility(android.view.View.VISIBLE);
-                binding.tvAvatarInitials.setText(member.getDisplayInitials());
-                binding.tvAvatarInitials.setBackgroundColor(member.getAvatarBackgroundColor());
-            }
+            // Avatar: use proper dp→px size for crisp placeholder on all densities
+            String resolvedUrl = member.getAvatarUrl() != null && !member.getAvatarUrl().isEmpty()
+                    ? com.example.hubble.data.api.NetworkConfig.resolveUrl(member.getAvatarUrl()) : null;
+            int avatarSizePx = Math.round(android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, 48,
+                    binding.ivAvatar.getContext().getResources().getDisplayMetrics()));
+            android.graphics.drawable.Drawable fallback =
+                    com.example.hubble.utils.AvatarPlaceholderUtils.createAvatarDrawable(
+                            binding.ivAvatar.getContext(), displayName, avatarSizePx);
+            com.bumptech.glide.Glide.with(binding.ivAvatar.getContext())
+                    .load(resolvedUrl)
+                    .placeholder(fallback)
+                    .error(fallback)
+                    .circleCrop()
+                    .into(binding.ivAvatar);
+            binding.ivAvatar.setVisibility(android.view.View.VISIBLE);
+            binding.tvAvatarInitials.setVisibility(android.view.View.GONE);
 
-            // Online status
+            // Online status dot: programmatic oval with background-colored stroke for gap effect
             int statusColor = itemView.getContext().getColor(
                     "ONLINE".equalsIgnoreCase(member.getStatus()) ? R.color.color_online :
                     "IDLE".equalsIgnoreCase(member.getStatus()) ? R.color.color_idle :
@@ -165,8 +171,18 @@ public class ServerMemberAdapter extends ListAdapter<ServerMemberAdapter.Adapter
                 binding.viewOnlineStatus.setVisibility(android.view.View.GONE);
             } else {
                 binding.viewOnlineStatus.setVisibility(android.view.View.VISIBLE);
-                binding.viewOnlineStatus.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(statusColor));
+                android.graphics.drawable.GradientDrawable statusDot =
+                        new android.graphics.drawable.GradientDrawable();
+                statusDot.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                statusDot.setColor(statusColor);
+                android.util.TypedValue tv = new android.util.TypedValue();
+                binding.viewOnlineStatus.getContext().getTheme()
+                        .resolveAttribute(android.R.attr.colorBackground, tv, true);
+                int strokePx = Math.round(android.util.TypedValue.applyDimension(
+                        android.util.TypedValue.COMPLEX_UNIT_DIP, 2,
+                        binding.viewOnlineStatus.getContext().getResources().getDisplayMetrics()));
+                statusDot.setStroke(strokePx, tv.data);
+                binding.viewOnlineStatus.setBackground(statusDot);
             }
 
             // Role chips

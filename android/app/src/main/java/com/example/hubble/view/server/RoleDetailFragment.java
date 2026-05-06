@@ -109,9 +109,6 @@ public class RoleDetailFragment extends Fragment {
                 ((ServerSettingsActivity) requireActivity()).navigateTo(
                         RolePermissionsFragment.newInstance(roleId, roleName, serverId), true));
 
-        binding.rowLinks.setOnClickListener(v ->
-                Snackbar.make(view, R.string.main_coming_soon, Snackbar.LENGTH_SHORT).show());
-
         binding.rowMembers.setOnClickListener(v ->
                 ((ServerSettingsActivity) requireActivity()).navigateTo(
                         RoleMembersFragment.newInstance(roleId, roleName, serverId), true));

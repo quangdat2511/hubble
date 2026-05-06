@@ -29,7 +29,7 @@ public class CreateRoleStep2Fragment extends Fragment {
     private String roleName;
     private int roleColor;
 
-    private final int[] presetColors = new int[4];
+    private final int[] presetColors = new int[3];
 
     public static CreateRoleStep2Fragment newInstance(String serverId, String roleName, int roleColor) {
         CreateRoleStep2Fragment fragment = new CreateRoleStep2Fragment();
@@ -64,8 +64,7 @@ public class CreateRoleStep2Fragment extends Fragment {
 
         presetColors[0] = ContextCompat.getColor(requireContext(), R.color.role_preset_decorative);
         presetColors[1] = ContextCompat.getColor(requireContext(), R.color.role_preset_member);
-        presetColors[2] = ContextCompat.getColor(requireContext(), R.color.role_preset_moderator);
-        presetColors[3] = ContextCompat.getColor(requireContext(), R.color.role_preset_admin);
+        presetColors[2] = ContextCompat.getColor(requireContext(), R.color.role_preset_admin);
 
         setupPresetCards();
         setupSlider();
@@ -91,16 +90,6 @@ public class CreateRoleStep2Fragment extends Fragment {
                         getString(R.string.create_role_preset_member_1),
                         getString(R.string.create_role_preset_member_2),
                         getString(R.string.create_role_preset_member_3))));
-
-        presets.add(new PermissionPresetAdapter.PresetData(
-                getString(R.string.create_role_perm_moderator),
-                getString(R.string.create_role_preset_moderator_desc),
-                getString(R.string.create_role_preset_moderator_extra),
-                Arrays.asList(
-                        getString(R.string.create_role_preset_moderator_1),
-                        getString(R.string.create_role_preset_moderator_2),
-                        getString(R.string.create_role_preset_moderator_3),
-                        getString(R.string.create_role_preset_moderator_4))));
 
         presets.add(new PermissionPresetAdapter.PresetData(
                 getString(R.string.create_role_perm_admin),
@@ -146,7 +135,7 @@ public class CreateRoleStep2Fragment extends Fragment {
         binding.sliderPreset.setTrackActiveTintList(ColorStateList.valueOf(color));
     }
 
-    private static final String[] PRESET_NAMES = {"DECORATIVE", "MEMBER", "MODERATOR", "ADMIN"};
+    private static final String[] PRESET_NAMES = {"DECORATIVE", "MEMBER", "ADMIN"};
 
     private void setupButtons() {
         View.OnClickListener goToStep3 = v -> {

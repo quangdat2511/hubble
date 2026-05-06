@@ -2,6 +2,7 @@ package com.example.hubble.view.server;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,17 +11,26 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.hubble.R;
+import com.example.hubble.data.api.NetworkConfig;
+import com.example.hubble.data.model.server.RoleResponse;
+import com.example.hubble.data.repository.RoleRepository;
 import com.example.hubble.data.repository.ServerRepository;
 import com.example.hubble.databinding.ActivityMemberEditBinding;
+import com.example.hubble.utils.AvatarPlaceholderUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MemberEditActivity extends AppCompatActivity {
 
     public static final String EXTRA_USER_ID = "extra_user_id";
     public static final String EXTRA_USERNAME = "extra_username";
     public static final String EXTRA_DISPLAY_NAME = "extra_display_name";
+    public static final String EXTRA_AVATAR_URL = "extra_avatar_url";
     public static final String EXTRA_AVATAR_BG_COLOR = "extra_avatar_bg_color";
     public static final String EXTRA_IS_CURRENT_USER_OWNER = "extra_is_current_user_owner";
     public static final String EXTRA_SERVER_ID = "extra_server_id";
@@ -30,6 +40,8 @@ public class MemberEditActivity extends AppCompatActivity {
     private String userId;
     private String serverId;
     private ServerRepository serverRepository;
+    // Cached server roles for instant bottom-sheet open on repeated taps
+    private List<RoleResponse> mCachedAllRoles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +65,7 @@ public class MemberEditActivity extends AppCompatActivity {
         username = getIntent().getStringExtra(EXTRA_USERNAME);
         serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
         String displayName = getIntent().getStringExtra(EXTRA_DISPLAY_NAME);
-        int avatarBgColor = getIntent().getIntExtra(EXTRA_AVATAR_BG_COLOR, 0xFF5865F2);
+        String avatarUrl = getIntent().getStringExtra(EXTRA_AVATAR_URL);
         boolean isCurrentUserOwner = getIntent().getBooleanExtra(EXTRA_IS_CURRENT_USER_OWNER, false);
 
         // Toolbar
@@ -61,13 +73,27 @@ public class MemberEditActivity extends AppCompatActivity {
         binding.toolbar.setTitle(getString(R.string.member_edit_title, displayText));
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Identity card: avatar initials
-        binding.tvAvatarInitials.setVisibility(View.VISIBLE);
-        binding.ivAvatar.setVisibility(View.GONE);
-        String initials = (displayText != null && !displayText.isEmpty())
-                ? displayText.substring(0, 1).toUpperCase() : "?";
-        binding.tvAvatarInitials.setText(initials);
-        binding.tvAvatarInitials.setBackgroundColor(avatarBgColor);
+        // Identity card: always use ivAvatar with Glide (circular placeholder for no-avatar case)
+        int avatarSizePx = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics()));
+        android.graphics.drawable.Drawable placeholder =
+                AvatarPlaceholderUtils.createAvatarDrawable(this, displayText, avatarSizePx);
+        binding.tvAvatarInitials.setVisibility(View.GONE);
+        binding.ivAvatar.setVisibility(View.VISIBLE);
+        Glide.with(this)
+                .load(avatarUrl != null && !avatarUrl.isEmpty() ? NetworkConfig.resolveUrl(avatarUrl) : null)
+                .placeholder(placeholder)
+                .error(placeholder)
+                .circleCrop()
+                .into(binding.ivAvatar);
+
+        // Pre-fetch server roles so EditMemberRolesBottomSheet opens without waiting for getRoles
+        RoleRepository roleRepository = new RoleRepository(this);
+        final String prefetchServerId = serverId;
+        roleRepository.getRoles(prefetchServerId, result -> {
+            mCachedAllRoles = (result.isSuccess() && result.getData() != null)
+                    ? result.getData() : new ArrayList<>();
+        });
 
         // Display name
         binding.tvDisplayName.setText(displayText);
@@ -85,10 +111,13 @@ public class MemberEditActivity extends AppCompatActivity {
                 Snackbar.make(binding.getRoot(), R.string.main_coming_soon, Snackbar.LENGTH_SHORT).show()
         );
 
-        // Edit roles tap
-        binding.rowEditRoles.setOnClickListener(v ->
-                Snackbar.make(binding.getRoot(), R.string.main_coming_soon, Snackbar.LENGTH_SHORT).show()
-        );
+        // Edit roles tap — push cached roles before opening so sheet skips getRoles fetch
+        final String finalDisplayText = displayText;
+        binding.rowEditRoles.setOnClickListener(v -> {
+            EditMemberRolesBottomSheet.sPendingAllRoles = mCachedAllRoles;
+            EditMemberRolesBottomSheet.newInstance(serverId, userId, finalDisplayText)
+                    .show(getSupportFragmentManager(), "edit_member_roles");
+        });
 
         // Danger zone - only visible for owner managing non-self members
         if (isCurrentUserOwner) {

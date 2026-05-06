@@ -32,6 +32,10 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
     private boolean isCurrentUserOwner;
 
     public static MemberDetailBottomSheet newInstance(ServerMemberItem member, String serverId) {
+        return newInstance(member, serverId, false);
+    }
+
+    public static MemberDetailBottomSheet newInstance(ServerMemberItem member, String serverId, boolean canKick) {
         MemberDetailBottomSheet fragment = new MemberDetailBottomSheet();
         Bundle args = new Bundle();
         args.putString("user_id", member.getUserId());
@@ -42,6 +46,7 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
         args.putString("status", member.getStatus());
         args.putBoolean("is_owner", member.isOwner());
         args.putString("server_id", serverId);
+        args.putBoolean("can_kick", canKick);
         fragment.setArguments(args);
         return fragment;
     }
@@ -68,6 +73,7 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
         int bgColor = getArguments().getInt("avatar_bg_color");
         String status = getArguments().getString("status");
         boolean isOwner = getArguments().getBoolean("is_owner");
+        boolean canKick = getArguments().getBoolean("can_kick", false);
         serverId = getArguments().getString("server_id");
 
         // Rebuild member object (simplified version)
@@ -136,12 +142,16 @@ public class MemberDetailBottomSheet extends BottomSheetDialogFragment {
             binding.dividerTransferOwnership.setVisibility(View.GONE);
             binding.rowManageRoles.setVisibility(View.GONE);
         } else if (!isMeOwner) {
-            // Hide owner actions if current user is not owner
-            binding.rowKick.setVisibility(View.GONE);
+            // Hide owner-only actions, but show kick if user has KICK_MEMBERS permission
             binding.rowBan.setVisibility(View.GONE);
             binding.rowTransferOwnership.setVisibility(View.GONE);
             binding.dividerTransferOwnership.setVisibility(View.GONE);
             binding.rowManageRoles.setVisibility(View.GONE);
+            if (canKick && !isOwner) {
+                binding.rowKick.setVisibility(View.VISIBLE);
+            } else {
+                binding.rowKick.setVisibility(View.GONE);
+            }
         } else {
             // Current user is owner
             binding.rowKick.setVisibility(View.VISIBLE);

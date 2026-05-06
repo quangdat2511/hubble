@@ -138,13 +138,13 @@ public class RoleMembersFragment extends Fragment {
     }
 
     private void removeMember(MemberBriefResponse member) {
-        viewModel.removeMember(serverId, roleId, member.getServerMemberId());
+        viewModel.removeMember(serverId, roleId, member.getUserId());
 
         // Optimistically remove from cache and UI
         List<MemberBriefResponse> current = membersCache.get(roleId);
         if (current != null) {
             List<MemberBriefResponse> updated = new ArrayList<>(current);
-            updated.removeIf(m -> m.getServerMemberId().equals(member.getServerMemberId()));
+            updated.removeIf(m -> m.getUserId().equals(member.getUserId()));
             membersCache.put(roleId, updated);
             adapter.updateList(updated);
             updateEmptyState(updated);

@@ -65,6 +65,7 @@ public class ServerService {
     private final ServerMapper serverMapper;
     private final ChannelMapper channelMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final RoleService roleService;
     private final String supabaseUrl;
     private final String serviceRoleKey;
     private final String serverIconBucket;
@@ -81,6 +82,7 @@ public class ServerService {
             ServerMapper serverMapper,
             ChannelMapper channelMapper,
             SimpMessagingTemplate messagingTemplate,
+            RoleService roleService,
             @Value("${supabase.url}") String supabaseUrl,
             @Value("${supabase.service-role-key}") String serviceRoleKey,
             @Value("${supabase.server-icon-bucket}") String serverIconBucket) {
@@ -95,6 +97,7 @@ public class ServerService {
         this.serverMapper = serverMapper;
         this.channelMapper = channelMapper;
         this.messagingTemplate = messagingTemplate;
+        this.roleService = roleService;
         this.supabaseUrl = supabaseUrl;
         this.serviceRoleKey = serviceRoleKey;
         this.serverIconBucket = serverIconBucket;
@@ -190,23 +193,19 @@ public class ServerService {
                 .permissions(Permission.buildBitmask(List.of(
                         Permission.VIEW_CHANNELS,
                         Permission.SEND_MESSAGES,
-                        Permission.EMBED_LINKS,
                         Permission.ATTACH_FILES,
-                        Permission.ADD_REACTIONS,
-                        Permission.USE_EXTERNAL_EMOJIS,
-                        Permission.CHANGE_NICKNAME,
-                        Permission.CREATE_INVITE)))
+                        Permission.INVITE_MEMBERS)))
                 .position((short) 0)
                 .isDefault(true)
                 .build());
 
-        createDefaultChannels(server.getId());
+        createDefaultChannels(server.getId(), request.getServerType());
         return serverMapper.toServerResponse(server);
     }
 
     @Transactional
     public ServerResponse updateServer(UUID userId, UUID serverId, UpdateServerRequest request) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         if (request.getName() != null) {
             String name = request.getName().trim();
             if (name.isEmpty() || name.length() > 100) {
@@ -224,7 +223,7 @@ public class ServerService {
 
     @Transactional
     public ServerResponse updateServerIcon(UUID userId, UUID serverId, MultipartFile iconFile) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(uploadIcon(iconFile));
         ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
@@ -234,7 +233,7 @@ public class ServerService {
 
     @Transactional
     public ServerResponse removeServerIcon(UUID userId, UUID serverId) {
-        Server server = getOwnedServer(userId, serverId);
+        Server server = getServerWithManagePermission(userId, serverId);
         deleteIconQuietly(server.getIconUrl());
         server.setIconUrl(null);
         ServerResponse response = serverMapper.toServerResponse(serverRepository.save(server));
@@ -342,6 +341,16 @@ public class ServerService {
         return server;
     }
 
+    private Server getServerWithManagePermission(UUID userId, UUID serverId) {
+        Server server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new AppException(ErrorCode.SERVER_NOT_FOUND));
+        if (!server.getOwnerId().equals(userId)
+                && !roleService.hasServerPermission(serverId, userId, Permission.MANAGE_SERVER)) {
+            throw new AppException(ErrorCode.NOT_SERVER_OWNER);
+        }
+        return server;
+    }
+
     private String generateUniqueInviteCode() {
         String code;
         do {
@@ -354,39 +363,146 @@ public class ServerService {
         return code;
     }
 
-    private void createDefaultChannels(UUID serverId) {
-        Channel chatCategory = channelRepository.save(Channel.builder()
-                .serverId(serverId)
-                .name("Kênh chat")
-                .type(ChannelType.CATEGORY)
-                .position((short) 0)
-                .isPrivate(false)
-                .build());
+    private void createDefaultChannels(UUID serverId, String serverType) {
+        if (serverType == null) serverType = "";
+        switch (serverType) {
+            case "gaming" -> createGamingChannels(serverId);
+            case "school" -> createSchoolChannels(serverId);
+            case "study"  -> createStudyChannels(serverId);
+            case "friends" -> createFriendsChannels(serverId);
+            case "artists" -> createArtistsChannels(serverId);
+            case "local"  -> createLocalChannels(serverId);
+            case "community" -> createCommunityChannels(serverId);
+            default -> createDefaultBaseChannels(serverId);
+        }
+    }
 
+    // ── Default (no template) ───────────────────────────────────────────────
+    private void createDefaultBaseChannels(UUID serverId) {
+        Channel chat = saveCategory(serverId, "Kênh chat", 0);
+        saveText(serverId, chat.getId(), "Kênh chung", 0);
+        Channel voice = saveCategory(serverId, "Kênh đàm thoại", 1);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Gaming ──────────────────────────────────────────────────────────────
+    private void createGamingChannels(UUID serverId) {
+        Channel info = saveCategory(serverId, "Thông tin", 0);
+        saveText(serverId, info.getId(), "Thông báo", 0);
+
+        Channel game = saveCategory(serverId, "Trò chơi", 1);
+        saveText(serverId, game.getId(), "Thảo luận", 0);
+        saveText(serverId, game.getId(), "Tìm đội nhóm", 1);
+
+        Channel voice = saveCategory(serverId, "Kênh thoại", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+        saveVoice(serverId, voice.getId(), "Chơi game", 1);
+    }
+
+    // ── School Club ─────────────────────────────────────────────────────────
+    private void createSchoolChannels(UUID serverId) {
+        Channel notice = saveCategory(serverId, "Thông báo", 0);
+        saveText(serverId, notice.getId(), "Thông báo", 0);
+        saveText(serverId, notice.getId(), "Giới thiệu", 1);
+
+        Channel club = saveCategory(serverId, "Câu lạc bộ", 1);
+        saveText(serverId, club.getId(), "Chung", 0);
+        saveText(serverId, club.getId(), "Sự kiện", 1);
+        saveText(serverId, club.getId(), "Hỏi đáp", 2);
+
+        Channel voice = saveCategory(serverId, "Họp mặt", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Study Group ─────────────────────────────────────────────────────────
+    private void createStudyChannels(UUID serverId) {
+        Channel resources = saveCategory(serverId, "Tài nguyên", 0);
+        saveText(serverId, resources.getId(), "Chia sẻ tài liệu", 0);
+        saveText(serverId, resources.getId(), "Bài tập", 1);
+
+        Channel discuss = saveCategory(serverId, "Thảo luận", 1);
+        saveText(serverId, discuss.getId(), "Hỏi đáp", 0);
+        saveText(serverId, discuss.getId(), "Ôn tập", 1);
+
+        Channel voice = saveCategory(serverId, "Học nhóm", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Friends ─────────────────────────────────────────────────────────────
+    private void createFriendsChannels(UUID serverId) {
+        Channel chat = saveCategory(serverId, "Chuyện vãn", 0);
+        saveText(serverId, chat.getId(), "Chung", 0);
+        saveText(serverId, chat.getId(), "Ảnh meme", 1);
+
+        Channel fun = saveCategory(serverId, "Góc vui", 1);
+        saveText(serverId, fun.getId(), "Phim nhạc", 0);
+        saveText(serverId, fun.getId(), "Game", 1);
+
+        Channel voice = saveCategory(serverId, "Gặp gỡ", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Artists & Creators ──────────────────────────────────────────────────
+    private void createArtistsChannels(UUID serverId) {
+        Channel works = saveCategory(serverId, "Tác phẩm", 0);
+        saveText(serverId, works.getId(), "Chia sẻ tác phẩm", 0);
+        saveText(serverId, works.getId(), "Phản hồi", 1);
+
+        Channel inspo = saveCategory(serverId, "Cảm hứng", 1);
+        saveText(serverId, inspo.getId(), "Nguồn cảm hứng", 0);
+        saveText(serverId, inspo.getId(), "Dự án", 1);
+
+        Channel voice = saveCategory(serverId, "Gặp gỡ", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Local Community ─────────────────────────────────────────────────────
+    private void createLocalChannels(UUID serverId) {
+        Channel community = saveCategory(serverId, "Cộng đồng", 0);
+        saveText(serverId, community.getId(), "Thông báo", 0);
+        saveText(serverId, community.getId(), "Giới thiệu", 1);
+
+        Channel discuss = saveCategory(serverId, "Thảo luận", 1);
+        saveText(serverId, discuss.getId(), "Chung", 0);
+        saveText(serverId, discuss.getId(), "Sự kiện", 1);
+        saveText(serverId, discuss.getId(), "Góp ý", 2);
+
+        Channel voice = saveCategory(serverId, "Gặp gỡ", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Community (audience) ────────────────────────────────────────────────
+    private void createCommunityChannels(UUID serverId) {
+        Channel notice = saveCategory(serverId, "Thông báo", 0);
+        saveText(serverId, notice.getId(), "Thông báo", 0);
+
+        Channel discuss = saveCategory(serverId, "Thảo luận", 1);
+        saveText(serverId, discuss.getId(), "Chung", 0);
+        saveText(serverId, discuss.getId(), "Hỏi đáp", 1);
+
+        Channel voice = saveCategory(serverId, "Đàm thoại", 2);
+        saveVoice(serverId, voice.getId(), "Kênh thoại", 0);
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    private Channel saveCategory(UUID serverId, String name, int position) {
+        return channelRepository.save(Channel.builder()
+                .serverId(serverId).name(name)
+                .type(ChannelType.CATEGORY).position((short) position)
+                .isPrivate(false).build());
+    }
+
+    private void saveText(UUID serverId, UUID parentId, String name, int position) {
         channelRepository.save(Channel.builder()
-                .serverId(serverId)
-                .parentId(chatCategory.getId())
-                .name("Kênh chung")
-                .type(ChannelType.TEXT)
-                .position((short) 0)
-                .isPrivate(false)
-                .build());
+                .serverId(serverId).parentId(parentId).name(name)
+                .type(ChannelType.TEXT).position((short) position)
+                .isPrivate(false).build());
+    }
 
-        Channel voiceCategory = channelRepository.save(Channel.builder()
-                .serverId(serverId)
-                .name("Kênh đàm thoại")
-                .type(ChannelType.CATEGORY)
-                .position((short) 1)
-                .isPrivate(false)
-                .build());
-
+    private void saveVoice(UUID serverId, UUID parentId, String name, int position) {
         channelRepository.save(Channel.builder()
-                .serverId(serverId)
-                .parentId(voiceCategory.getId())
-                .name("Chung")
-                .type(ChannelType.VOICE)
-                .position((short) 0)
-                .isPrivate(false)
-                .build());
+                .serverId(serverId).parentId(parentId).name(name)
+                .type(ChannelType.VOICE).position((short) position)
+                .isPrivate(false).build());
     }
 }

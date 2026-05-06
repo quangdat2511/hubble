@@ -32,11 +32,18 @@ public class SearchActivity extends AppCompatActivity {
 
     private static final String EXTRA_SCOPE_TYPE = "search_scope_type";
     private static final String EXTRA_SCOPE_ID = "search_scope_id";
+    private static final String EXTRA_SERVER_NAME = "search_server_name";
 
     public static void start(Context context, ScopeType scopeType, @Nullable String scopeId) {
+        start(context, scopeType, scopeId, null);
+    }
+
+    public static void start(Context context, ScopeType scopeType, @Nullable String scopeId,
+                             @Nullable String serverName) {
         Intent intent = new Intent(context, SearchActivity.class);
         intent.putExtra(EXTRA_SCOPE_TYPE, scopeType.name());
         intent.putExtra(EXTRA_SCOPE_ID, scopeId);
+        intent.putExtra(EXTRA_SERVER_NAME, serverName);
         context.startActivity(intent);
     }
 
@@ -45,6 +52,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private ScopeType scopeType;
     @Nullable private String scopeId;
+    @Nullable private String serverName;
 
     private final List<Category> categories = new ArrayList<>();
     private final List<String> tabTitles = new ArrayList<>();
@@ -68,6 +76,7 @@ public class SearchActivity extends AppCompatActivity {
         String scopeTypeName = getIntent().getStringExtra(EXTRA_SCOPE_TYPE);
         scopeType = scopeTypeName != null ? ScopeType.valueOf(scopeTypeName) : ScopeType.CHANNEL;
         scopeId = getIntent().getStringExtra(EXTRA_SCOPE_ID);
+        serverName = getIntent().getStringExtra(EXTRA_SERVER_NAME);
 
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         viewModel.init(this, scopeType, scopeId);
@@ -139,7 +148,7 @@ public class SearchActivity extends AppCompatActivity {
         @Override
         public Fragment createFragment(int position) {
             return SearchResultFragment.newInstance(
-                    categories.get(position), scopeType, scopeId);
+                    categories.get(position), scopeType, scopeId, serverName);
         }
     }
 }

@@ -599,6 +599,11 @@
     <string name="member_edit_transfer_success">Đã chuyển quyền sở hữu cho %1$s</string>
     <string name="member_edit_kick_error">Lỗi khi đuổi thành viên</string>
     <string name="member_edit_transfer_error">Lỗi khi chuyển quyền sở hữu</string>
+    <string name="edit_member_roles_title">Sửa Vai trò</string>
+    <string name="edit_member_roles_subtitle">Chọn vai trò cho %1$s</string>
+    <string name="edit_member_roles_empty">Máy chủ chưa có vai trò nào</string>
+    <string name="edit_member_roles_save_success">Đã cập nhật vai trò</string>
+    <string name="edit_member_roles_save_error">Lỗi khi cập nhật vai trò</string>
 
     <!-- Server Invites -->
     <string name="invite_section_pending">LỜI MỜI ĐANG CHỜ — %1$d</string>
@@ -644,11 +649,11 @@
 
     <!-- General server permissions -->
     <string name="role_perm_view_channels">Xem Các Kênh</string>
-    <string name="role_perm_view_channels_desc">Cho phép thành viên mặc định xem kênh (không tính kênh riêng tư).</string>
+    <string name="role_perm_view_channels_desc">Xem nội dung và lịch sử tin nhắn trong kênh.</string>
     <string name="role_perm_manage_channels">Quản Lý Kênh</string>
-    <string name="role_perm_manage_channels_desc">Cho phép thành viên tạo, chỉnh sửa, hoặc xóa kênh.</string>
+    <string name="role_perm_manage_channels_desc">Tạo, sửa, xóa kênh và danh mục trong máy chủ.</string>
     <string name="role_perm_manage_roles">Quản Lý Vai Trò</string>
-    <string name="role_perm_manage_roles_desc">Cho phép thành viên tạo vai trò mới và chỉnh sửa hoặc xóa vai trò thấp hơn vai trò cao nhất của họ. Đồng thời cho phép thành viên thay đổi quyền hạn của các kênh riêng lẻ mà họ có quyền truy cập.</string>
+    <string name="role_perm_manage_roles_desc">Tạo, sửa, xóa vai trò trong máy chủ.</string>
     <string name="role_perm_create_expressions">Tạo Biểu Cảm</string>
     <string name="role_perm_create_expressions_desc">Cho phép thành viên thêm emoji, sticker và âm thanh tùy chỉnh trong máy chủ này.</string>
     <string name="role_perm_manage_expressions">Quản lý biểu cảm</string>
@@ -656,7 +661,7 @@
     <string name="role_perm_view_audit_log">Xem Nhật Ký Chỉnh Sửa</string>
     <string name="role_perm_view_audit_log_desc">Cho phép thành viên xem lịch sử thay đổi trong máy chủ này.</string>
     <string name="role_perm_manage_server">Quản Lý Máy Chủ</string>
-    <string name="role_perm_manage_server_desc">Cho phép thành viên thay đổi tên, hình ảnh và cài đặt máy chủ.</string>
+    <string name="role_perm_manage_server_desc">Chỉnh sửa cài đặt máy chủ (tên, ảnh, mô tả).</string>
     <string name="role_perm_manage_webhooks">Quản lý Webhook</string>
     <string name="role_perm_manage_webhooks_desc">Cho phép thành viên tạo, chỉnh sửa, hoặc xóa webhook, bao gồm cả việc có thể đăng tin nhắn.</string>
 
@@ -668,7 +673,11 @@
     <string name="role_perm_manage_nicknames">Quản Lý Biệt Danh</string>
     <string name="role_perm_manage_nicknames_desc">Cho phép thành viên thay đổi biệt danh của thành viên khác.</string>
     <string name="role_perm_kick_members">Đuổi, Chấp thuận và Từ chối Thành viên</string>
-    <string name="role_perm_kick_members_desc">Tính năng Đuổi sẽ xóa các thành viên khác khỏi máy chủ này. Thành viên bị đuổi có thể tham gia lại nếu nhận được lời mời khác. Nếu máy chủ kích hoạt Yêu Cầu Đối Với Thành Viên, quyền này cho phép chấp thuận hoặc từ chối các thành viên yêu cầu tham gia vào máy chủ.</string>
+    <string name="role_perm_kick_members_desc">Kick thành viên khỏi máy chủ.</string>
+    <string name="role_perm_invite_members">Mời Thành Viên</string>
+    <string name="role_perm_invite_members_desc">Tạo link mời và mời người vào máy chủ.</string>
+    <string name="role_perm_hide_from_search">Ẩn Trong Danh Sách Tìm Kiếm</string>
+    <string name="role_perm_hide_from_search_desc">Ẩn khỏi kết quả tìm kiếm thành viên.</string>
     <string name="role_perm_ban_members">Cấm Thành Viên</string>
     <string name="role_perm_ban_members_desc">Cho phép thành viên cấm vĩnh viễn và xóa lịch sử tin nhắn của các thành viên khác từ máy chủ này.</string>
     <string name="role_perm_timeout_members">Hạn chế thành viên</string>
@@ -676,7 +685,7 @@
 
     <!-- Text channel permissions -->
     <string name="role_perm_send_messages">Gửi tin nhắn và tạo bài đăng</string>
-    <string name="role_perm_send_messages_desc">Cho phép thành viên gửi tin nhắn trong các kênh văn bản và tạo bài đăng trong các kênh diễn đàn.</string>
+    <string name="role_perm_send_messages_desc">Gửi tin nhắn văn bản trong kênh.</string>
     <string name="role_perm_send_messages_threads">Gửi tin nhắn trong chủ đề và bài đăng</string>
     <string name="role_perm_send_messages_threads_desc">Cho phép các thành viên gửi tin nhắn trong chủ đề và trong bài đăng trên các kênh diễn đàn.</string>
     <string name="role_perm_create_public_threads">Tạo Chủ Đề Công Khai</string>
@@ -686,7 +695,7 @@
     <string name="role_perm_embed_links">Nhúng liên kết</string>
     <string name="role_perm_embed_links_desc">Cho phép hiển thị nội dung nhúng của liên kết do thành viên chia sẻ trong các kênh chat.</string>
     <string name="role_perm_attach_files">Đính kèm tập tin</string>
-    <string name="role_perm_attach_files_desc">Cho phép thành viên tải lên tệp hoặc tệp media trong kênh chat.</string>
+    <string name="role_perm_attach_files_desc">Đính kèm tệp tin trong kênh chat.</string>
     <string name="role_perm_add_reactions">Thêm Biểu Cảm</string>
     <string name="role_perm_add_reactions_desc">Cho phép thành viên thêm hiệu ứng tương tác emoji mới vào tin nhắn. Nếu không cấp quyền này, thành viên vẫn có thể sử dụng các tương tác đã được thêm.</string>
     <string name="role_perm_use_external_emojis">Sử dụng Emoji Ngoài</string>
@@ -705,6 +714,7 @@
     <string name="color_picker_title">Chọn một màu</string>
     <string name="color_picker_save">Lưu</string>
     <string name="color_picker_reset">Đặt lại</string>
+    <string name="color_picker_custom_title">Chọn màu tùy chỉnh</string>
     <string name="create_role_step">Bước %1$d/3</string>
     <string name="role_members_empty">Vai trò này chưa có thành viên nào.</string>
     <string name="role_members_add_btn">Thêm</string>
@@ -727,21 +737,21 @@
     <string name="create_role_preset_decorative_1">Hiển thị trên hồ sơ</string>
     <string name="create_role_preset_decorative_2">Tô màu tên</string>
     <string name="create_role_preset_member_desc">Quyền cơ bản của một thành viên thông thường để trò chuyện.</string>
-    <string name="create_role_preset_member_1">Trò chuyện trong các kênh</string>
-    <string name="create_role_preset_member_2">Mời bạn bè</string>
-    <string name="create_role_preset_member_3">Đổi biệt danh</string>
+    <string name="create_role_preset_member_1">Xem các kênh</string>
+    <string name="create_role_preset_member_2">Gửi tin nhắn và đính kèm tệp</string>
+    <string name="create_role_preset_member_3">Mời thành viên khác</string>
     <string name="create_role_preset_moderator_desc">Những người có thể giúp bạn quản lý các thành viên trong máy chủ này.</string>
     <string name="create_role_preset_moderator_extra">Mọi thứ thành viên có thể làm, và:</string>
     <string name="create_role_preset_moderator_1">Xóa tin nhắn bất kỳ</string>
     <string name="create_role_preset_moderator_2">Tắt âm mọi người trong trò chuyện thoại</string>
     <string name="create_role_preset_moderator_3">Đuổi/cấm thành viên</string>
     <string name="create_role_preset_moderator_4">Thành viên bị hạn chế</string>
-    <string name="create_role_preset_admin_desc">Các nhà lãnh đạo đáng tin cậy có thể giúp bạn xây dựng máy chủ.</string>
-    <string name="create_role_preset_admin_extra">Mọi thứ điều phối viên có thể làm, và:</string>
-    <string name="create_role_preset_admin_1">Tạo và xóa kênh</string>
-    <string name="create_role_preset_admin_2">Tạo và xóa vai trò</string>
-    <string name="create_role_preset_admin_3">Thêm emoji và ứng dụng</string>
-    <string name="create_role_preset_admin_4">Gần như mọi thứ</string>
+    <string name="create_role_preset_admin_desc">Các nhà lãnh đạo đáng tin cậy có thể giúp bạn quản lý máy chủ.</string>
+    <string name="create_role_preset_admin_extra">Mọi thứ thành viên có thể làm, và:</string>
+    <string name="create_role_preset_admin_1">Quản lý kênh và vai trò</string>
+    <string name="create_role_preset_admin_2">Cài đặt máy chủ</string>
+    <string name="create_role_preset_admin_3">Mời và đuổi thành viên</string>
+    <string name="create_role_preset_admin_4">Toàn quyền quản lý</string>
 
     <!-- Create Role Step 3 - Add Members -->
     <string name="create_role_members_title">Thêm thành viên</string>
@@ -936,6 +946,7 @@
     <string name="search_friend_state_pending_outgoing">Đã gửi lời mời</string>
     <string name="search_friend_state_pending_incoming">Đã nhận lời mời</string>
     <string name="search_profile_status_hint">Trạng thái: %1$s</string>
+    <string name="search_member_roles_label">VAI TRÒ</string>
     <string name="friend_request_send_success">Đã gửi lời mời kết bạn</string>
     <string name="common_avatar">Ảnh đại diện</string>
 

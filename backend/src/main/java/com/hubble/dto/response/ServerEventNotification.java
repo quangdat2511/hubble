@@ -14,5 +14,6 @@ public class ServerEventNotification {
     String type;      // e.g. "KICKED", "SERVER_DELETED", "ROLE_UPDATED"
     UUID serverId;
     String serverName;
+    UUID roleId;
 }
 

@@ -171,15 +171,4 @@
 
     </LinearLayout>
 
-    <!-- Back button at bottom -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnBack"
-        style="@style/Widget.Material3.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="@dimen/spacing_lg"
-        android:text="@string/create_server_back"
-        android:textColor="@color/color_text_secondary" />
-
 </LinearLayout>

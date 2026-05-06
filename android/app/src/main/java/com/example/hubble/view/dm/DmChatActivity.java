@@ -123,6 +123,8 @@ public class DmChatActivity extends AppCompatActivity {
     private static final String EXTRA_CHANNEL_IS_PRIVATE = "extra_channel_is_private";
     public static final String EXTRA_JUMP_MESSAGE_ID = "extra_jump_message_id";
     public static final String EXTRA_HIGHLIGHT_QUERY = "extra_highlight_query";
+    private static final String EXTRA_CAN_SEND_MESSAGES = "extra_can_send_messages";
+    private static final String EXTRA_CAN_ATTACH_FILES = "extra_can_attach_files";
     private static final String CHAT_MODE_DM = "dm";
     private static final String CHAT_MODE_SERVER_TEXT = "server_text";
     private static final String RAILWAY_HOST = "hubble-production.up.railway.app";
@@ -166,6 +168,8 @@ public class DmChatActivity extends AppCompatActivity {
     @Nullable private String channelParentId;
     @Nullable private String channelParentName;
     private boolean channelIsPrivate;
+    private boolean canSendMessages = true;
+    private boolean canAttachFiles = true;
 
     // Emoji/keyboard state (Main)
     private boolean isEmojiPanelVisible = false;
@@ -252,7 +256,9 @@ public class DmChatActivity extends AppCompatActivity {
             @Nullable String topic,
             @Nullable String parentId,
             @Nullable String parentName,
-            boolean isPrivate
+            boolean isPrivate,
+            boolean canSendMessages,
+            boolean canAttachFiles
     ) {
         Intent intent = new Intent(context, DmChatActivity.class);
         intent.putExtra(EXTRA_CHAT_MODE, CHAT_MODE_SERVER_TEXT);
@@ -266,6 +272,8 @@ public class DmChatActivity extends AppCompatActivity {
         intent.putExtra(EXTRA_CHANNEL_PARENT_ID, parentId);
         intent.putExtra(EXTRA_CHANNEL_PARENT_NAME, parentName);
         intent.putExtra(EXTRA_CHANNEL_IS_PRIVATE, isPrivate);
+        intent.putExtra(EXTRA_CAN_SEND_MESSAGES, canSendMessages);
+        intent.putExtra(EXTRA_CAN_ATTACH_FILES, canAttachFiles);
         return intent;
     }
 
@@ -364,6 +372,8 @@ public class DmChatActivity extends AppCompatActivity {
         channelParentId = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_ID);
         channelParentName = getIntent().getStringExtra(EXTRA_CHANNEL_PARENT_NAME);
         channelIsPrivate = getIntent().getBooleanExtra(EXTRA_CHANNEL_IS_PRIVATE, false);
+        canSendMessages = !isServerTextChannel() || getIntent().getBooleanExtra(EXTRA_CAN_SEND_MESSAGES, true);
+        canAttachFiles = !isServerTextChannel() || getIntent().getBooleanExtra(EXTRA_CAN_ATTACH_FILES, true);
 
 
         peerDisplayName = getIntent().getStringExtra(EXTRA_USERNAME);
@@ -390,6 +400,10 @@ public class DmChatActivity extends AppCompatActivity {
         }
         String jumpMessageId = getIntent().getStringExtra(EXTRA_JUMP_MESSAGE_ID);
         if (!TextUtils.isEmpty(jumpMessageId)) {
+            // Set context-window mode immediately (synchronously) so that when
+            // connectStomp() fires in onStart() and STOMP OPENED arrives, it
+            // won't call loadMessageHistory() and clobber our target scroll.
+            isContextWindowMode = true;
             String highlightQuery = getIntent().getStringExtra(EXTRA_HIGHLIGHT_QUERY);
             jumpToMessage(jumpMessageId, highlightQuery);
         } else {
@@ -983,6 +997,24 @@ public class DmChatActivity extends AppCompatActivity {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void setupComposer() {
+        // Apply permission gating for server text channels
+        if (!canSendMessages && !canAttachFiles) {
+            // Nothing usable — hide the entire bar
+            binding.composerBar.setVisibility(View.GONE);
+        } else {
+            if (!canSendMessages) {
+                // Hide text input and voice/send buttons; keep attach button
+                binding.tilComposer.setVisibility(View.GONE);
+                binding.btnEmoji.setVisibility(View.GONE);
+                binding.btnVoice.setVisibility(View.GONE);
+                binding.btnSend.setVisibility(View.GONE);
+                binding.btnCollapse.setVisibility(View.GONE);
+            }
+            if (!canAttachFiles) {
+                binding.btnAttach.setVisibility(View.GONE);
+            }
+        }
+
         binding.btnSend.setOnClickListener(v -> attemptSendMessage());
         binding.btnCancelReply.setOnClickListener(v -> clearReply());
         binding.btnCancelEdit.setOnClickListener(v -> clearEditMode(true));
@@ -1266,13 +1298,18 @@ public class DmChatActivity extends AppCompatActivity {
         boolean canSend = hasText || hasAttachment;
 
         // Nút Gửi và nút Mic sẽ đổi chỗ cho nhau dựa trên canSend
-        binding.btnVoice.setVisibility(canSend ? View.GONE : View.VISIBLE);
-        binding.btnSend.setVisibility(canSend ? View.VISIBLE : View.GONE);
+        // chỉ áp dụng khi canSendMessages được phép
+        if (canSendMessages) {
+            binding.btnVoice.setVisibility(canSend ? View.GONE : View.VISIBLE);
+            binding.btnSend.setVisibility(canSend ? View.VISIBLE : View.GONE);
+        }
 
         // Nút Đính kèm (+) và nút Mũi tên (>) thì chỉ phụ thuộc vào việc có gõ chữ hay không
-        // (Để khi user mới chỉ thêm ảnh, họ vẫn thấy nút (+) để bấm thêm ảnh nữa)
-        binding.btnAttach.setVisibility(hasText ? View.GONE : View.VISIBLE);
-        binding.btnCollapse.setVisibility(hasText ? View.VISIBLE : View.GONE);
+        // và quyền canAttachFiles
+        if (canAttachFiles) {
+            binding.btnAttach.setVisibility(hasText ? View.GONE : View.VISIBLE);
+            binding.btnCollapse.setVisibility(hasText ? View.VISIBLE : View.GONE);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1818,7 +1855,7 @@ public class DmChatActivity extends AppCompatActivity {
             loadMessageHistory();
             return;
         }
-        dmRepository.loadContextWindow(channelId, targetMessageId, 30, result -> {
+        dmRepository.loadContextWindow(channelId, targetMessageId, 60, result -> {
             if (result.getData() != null) {
                 List<DmMessageItem> items = mapMessages(result.getData());
                 runOnUiThread(() -> {
@@ -2188,7 +2225,11 @@ public class DmChatActivity extends AppCompatActivity {
                             // STOMP does not replay missed messages after disconnect (airplane, etc.).
                             // Always sync from REST on connect/reconnect so B sees server state and
                             // sendDeliveryAck() can notify A → "✓✓ Đã nhận".
-                            loadMessageHistory();
+                            // Exception: if we are in context-window mode (jumped here from a search
+                            // result), don't reload history and clobber the target scroll position.
+                            if (!isContextWindowMode) {
+                                loadMessageHistory();
+                            }
                             sendDeliveryAck();
                             break;
                         case CLOSED:
@@ -2593,7 +2634,11 @@ public class DmChatActivity extends AppCompatActivity {
         // Peer messages: status stays null (no indicator needed for received messages)
 
         adapter.upsertItem(item);
-        scrollToBottom();
+        // Don't jump to bottom when the user is viewing a historical context window
+        // (e.g. navigated here from a search result). Only auto-scroll for live view.
+        if (!isContextWindowMode) {
+            scrollToBottom();
+        }
         scheduleMarkChannelRead();
     }
 

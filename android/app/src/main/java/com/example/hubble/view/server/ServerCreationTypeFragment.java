@@ -36,24 +36,20 @@ public class ServerCreationTypeFragment extends Fragment {
         binding.cardCreateOwn.setOnClickListener(v ->
                 activity.navigateTo(new ServerAudienceFragment(), true));
 
-        // Templates → skip audience, pre-fill server name
-        setupTemplateCard(binding.cardTemplateGaming, "Gaming");
-        setupTemplateCard(binding.cardTemplateSchool, "School Club");
-        setupTemplateCard(binding.cardTemplateStudy, "Study Group");
-        setupTemplateCard(binding.cardTemplateFriends, "Friends");
-        setupTemplateCard(binding.cardTemplateArtists, "Artists & Creators");
-        setupTemplateCard(binding.cardTemplateLocal, "Local Community");
-
-        // Join server
-        binding.btnJoinServer.setOnClickListener(v ->
-                activity.navigateTo(new JoinServerFragment(), true));
+        // Templates → skip audience, pre-fill server name + type
+        setupTemplateCard(binding.cardTemplateGaming, "Gaming", "gaming");
+        setupTemplateCard(binding.cardTemplateSchool, "Câu lạc bộ trường", "school");
+        setupTemplateCard(binding.cardTemplateStudy, "Nhóm học tập", "study");
+        setupTemplateCard(binding.cardTemplateFriends, "Bạn bè", "friends");
+        setupTemplateCard(binding.cardTemplateArtists, "Nghệ sĩ & Nhà sáng tạo", "artists");
+        setupTemplateCard(binding.cardTemplateLocal, "Cộng đồng địa phương", "local");
     }
 
-    private void setupTemplateCard(View card, String templateName) {
+    private void setupTemplateCard(View card, String templateName, String templateType) {
         card.setOnClickListener(v -> {
             CreateServerActivity activity = (CreateServerActivity) requireActivity();
             activity.getCreateServerViewModel().setServerName(templateName);
-            activity.getCreateServerViewModel().setServerType("community");
+            activity.getCreateServerViewModel().setServerType(templateType);
             activity.navigateTo(new CustomizeServerFragment(), true);
         });
     }

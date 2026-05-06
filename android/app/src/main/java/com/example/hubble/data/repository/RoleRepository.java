@@ -16,8 +16,10 @@ import com.example.hubble.utils.TokenManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -304,6 +306,55 @@ public class RoleRepository {
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<Void>> call, @NonNull Throwable t) {
                         callback.onResult(AuthResult.error("Lỗi kết nối: " + t.getMessage()));
+                    }
+                });
+    }
+
+    // ── My effective permissions ──────────────────────────────────────────
+
+    public void loadMyPermissions(String serverId, RepositoryCallback<Set<String>> callback) {
+        callback.onResult(AuthResult.loading());
+        String token = bearerToken();
+        if (token == null) { callback.onResult(AuthResult.error("Bạn chưa đăng nhập")); return; }
+
+        RetrofitClient.getRoleApiService(appContext).getMyPermissions(token, serverId)
+                .enqueue(new Callback<ApiResponse<Set<String>>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<Set<String>>> call,
+                                           @NonNull Response<ApiResponse<Set<String>>> resp) {
+                        if (resp.isSuccessful() && resp.body() != null && resp.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(new HashSet<>(resp.body().getResult())));
+                        } else {
+                            callback.onResult(AuthResult.success(new HashSet<>()));
+                        }
+                    }
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<Set<String>>> call, @NonNull Throwable t) {
+                        callback.onResult(AuthResult.success(new HashSet<>()));
+                    }
+                });
+    }
+
+    // ── Get member roles ──────────────────────────────────────────────────
+
+    public void getMemberRoles(String serverId, String userId, RepositoryCallback<List<RoleResponse>> callback) {
+        String token = bearerToken();
+        if (token == null) { callback.onResult(AuthResult.error("Bạn chưa đăng nhập")); return; }
+
+        RetrofitClient.getRoleApiService(appContext).getMemberRoles(token, serverId, userId)
+                .enqueue(new Callback<ApiResponse<List<RoleResponse>>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<List<RoleResponse>>> call,
+                                           @NonNull Response<ApiResponse<List<RoleResponse>>> resp) {
+                        if (resp.isSuccessful() && resp.body() != null && resp.body().getResult() != null) {
+                            callback.onResult(AuthResult.success(resp.body().getResult()));
+                        } else {
+                            callback.onResult(AuthResult.success(List.of()));
+                        }
+                    }
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<List<RoleResponse>>> call, @NonNull Throwable t) {
+                        callback.onResult(AuthResult.success(List.of()));
                     }
                 });
     }
